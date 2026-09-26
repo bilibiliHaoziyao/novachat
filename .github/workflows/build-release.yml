@@ -31,9 +31,6 @@ jobs:
         with:
           packages: 'platform-tools'
 
-      - name: Install Android SDK platform 37
-        run: yes | sdkmanager --install "platforms;android-37"
-
       - uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
