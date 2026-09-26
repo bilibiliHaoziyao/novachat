@@ -16,7 +16,7 @@ Nova Chat（新星聊）围绕 Delta Chat 做了三项核心改造：
 | 平台 | 产物 | 说明 |
 |---|---|---|
 | Android | `NovaChat-arm64-v8a.apk` | arm64-v8a，CI 自签名（Android 8.0+，`minSdk 21`） |
-| Windows | `Nova Chat-<版本>-Setup.x64.exe` | NSIS 安装包（另有 Portable 免安装版） |
+| Windows | `Nova.Chat-0.1.0-Setup.x64.exe` | NSIS 安装包（另有 `Nova.Chat-0.1.0-Portable.x64.exe` 免安装版） |
 
 > 产物由 GitHub Actions 在打 `v*` 标签时自动构建（见 [.github/workflows/build-release.yml](.github/workflows/build-release.yml)）。
 

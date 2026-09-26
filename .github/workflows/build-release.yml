@@ -49,25 +49,31 @@ jobs:
           export PATH="${PATH}:${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64/bin/"
           bash scripts/ndk-make.sh arm64-v8a
 
-      - name: Build release APK (foss flavor)
+      - name: Generate CI signing key
         run: |
-          cd apps/android
-          ./gradlew --no-daemon -PABI_FILTER=arm64-v8a assembleFossRelease
+          keytool -genkeypair -v -keystore "$RUNNER_TEMP/novachat-ci.jks" \
+            -storepass novachat-ci -alias nova -keypass novachat-ci \
+            -keyalg RSA -keysize 2048 -validity 10000 \
+            -dname "CN=Nova Chat, OU=Nova, O=Nova Chat, L=City, ST=State, C=CN"
 
-      - name: Sign APK with CI key
+      - name: Build release APK (foss flavor, signed with the CI key)
         run: |
           cd apps/android
-          keytool -genkeypair -v -keystore /tmp/ci-release.jks -storepass novachat-ci -alias nova \
-            -keypass novachat-ci -keyalg RSA -keysize 2048 -validity 10000 \
-            -dname "CN=Nova Chat, OU=Nova, O=Nova Chat, L=City, ST=State, C=CN" || true
+          ./gradlew --no-daemon -PABI_FILTER=arm64-v8a \
+            -PDC_RELEASE_STORE_FILE="$RUNNER_TEMP/novachat-ci.jks" \
+            -PDC_RELEASE_STORE_PASSWORD=novachat-ci \
+            -PDC_RELEASE_KEY_ALIAS=nova \
+            -PDC_RELEASE_KEY_PASSWORD=novachat-ci \
+            assembleFossRelease
+
+      - name: Collect and verify APK
+        run: |
+          cd apps/android
           APK=$(ls build/outputs/apk/foss/release/*.apk | head -1)
-          mv "$APK" /tmp/unsigned.apk
-          BT=$(ls -d ${ANDROID_HOME:-$ANDROID_SDK_ROOT}/build-tools/* 2>/dev/null | sort -V | tail -1)
-          export PATH="${BT}:${PATH}"
-          zipalign -f 4 /tmp/unsigned.apk /tmp/aligned.apk
-          apksigner sign --ks /tmp/ci-release.jks --ks-pass pass:novachat-ci --key-pass pass:novachat-ci \
-            --out "NovaChat-arm64-v8a.apk" /tmp/aligned.apk
+          cp "$APK" NovaChat-arm64-v8a.apk
           ls -lh NovaChat-arm64-v8a.apk
+          BT=$(ls -d ${ANDROID_HOME:-$ANDROID_SDK_ROOT}/build-tools/* 2>/dev/null | sort -V | tail -1)
+          "${BT}/apksigner" verify --print-certs NovaChat-arm64-v8a.apk
 
       - name: Upload APK to Release
         if: startsWith(github.ref, 'refs/tags/v')
