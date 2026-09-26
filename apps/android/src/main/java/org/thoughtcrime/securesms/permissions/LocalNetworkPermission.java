@@ -18,7 +18,7 @@ public class LocalNetworkPermission {
   private LocalNetworkPermission() {}
 
   public static boolean isNeeded() {
-    return Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN;
+    return Build.VERSION.SDK_INT >= 37;
   }
 
   public static boolean hasPermission(Context context) {

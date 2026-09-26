@@ -109,14 +109,14 @@ public class ApplicationPreferencesActivity extends PassphraseRequiredActionBarA
   }
 
   public void showBackupProvider() {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN) {
+    if (Build.VERSION.SDK_INT >= 37) {
       requestLocalNetworkForBackupProvider();
     } else {
       startBackupProvider();
     }
   }
 
-  @RequiresApi(api = Build.VERSION_CODES.CINNAMON_BUN)
+  @RequiresApi(api = 37)
   public void requestLocalNetworkForBackupProvider() {
     Permissions.with(this)
         .request(Manifest.permission.ACCESS_LOCAL_NETWORK)

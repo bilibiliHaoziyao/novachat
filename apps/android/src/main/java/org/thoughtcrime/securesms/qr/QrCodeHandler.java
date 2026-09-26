@@ -225,7 +225,7 @@ public class QrCodeHandler {
             .getButton(AlertDialog.BUTTON_POSITIVE)
             .setOnClickListener(
                 v -> {
-                  if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN) {
+                  if (Build.VERSION.SDK_INT >= 37) {
                     receiveBackupWithPermission(alertDialog, rawString);
                   } else {
                     proceedWithBackupTransfer(alertDialog, rawString);
@@ -252,7 +252,7 @@ public class QrCodeHandler {
     AccountManager.getInstance().addAccountFromSecondDevice(activity, rawString);
   }
 
-  @RequiresApi(api = Build.VERSION_CODES.CINNAMON_BUN)
+  @RequiresApi(api = 37)
   private void receiveBackupWithPermission(AlertDialog alertDialog, String rawString) {
     Permissions.with(activity)
         .request(Manifest.permission.ACCESS_LOCAL_NETWORK)

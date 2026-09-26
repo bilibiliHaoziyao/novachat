@@ -179,7 +179,7 @@ public class CallActivity extends AppCompatActivity {
       return;
     }
 
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN
+    if (Build.VERSION.SDK_INT >= 37
         && maybeAskLocalNetworkPermission()) {
       return;
     }
@@ -922,7 +922,7 @@ public class CallActivity extends AppCompatActivity {
       return;
     }
 
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN
+    if (Build.VERSION.SDK_INT >= 37
         && maybeAskLocalNetworkPermission()) {
       return;
     }
@@ -931,7 +931,7 @@ public class CallActivity extends AppCompatActivity {
     intentHandled = true;
   }
 
-  @RequiresApi(api = Build.VERSION_CODES.CINNAMON_BUN)
+  @RequiresApi(api = 37)
   private boolean maybeAskLocalNetworkPermission() {
     if (localNetworkAsked
         || LocalNetworkPermission.hasPermission(this)

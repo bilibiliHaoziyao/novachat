@@ -337,7 +337,7 @@ public class EditRelayActivity extends BaseActionBarActivity
       return;
     }
 
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.CINNAMON_BUN
+    if (Build.VERSION.SDK_INT >= 37
         && !LocalNetworkPermission.hasPermission(this)) {
       maybeAskLocalNetworkThenLogin();
       return;
@@ -346,7 +346,7 @@ public class EditRelayActivity extends BaseActionBarActivity
     startLogin();
   }
 
-  @RequiresApi(api = Build.VERSION_CODES.CINNAMON_BUN)
+  @RequiresApi(api = 37)
   private void maybeAskLocalNetworkThenLogin() {
     final String imapServer = getParam(R.id.imap_server_text, true);
     final String smtpServer = getParam(R.id.smtp_server_text, true);
