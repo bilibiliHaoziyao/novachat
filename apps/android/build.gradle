@@ -16,8 +16,7 @@ repositories {
 android {
     namespace "org.thoughtcrime.securesms"
     flavorDimensions "none"
-    // Nova Chat: android-37 not yet published in the public SDK repository; use 36.
-    compileSdk 36
+    compileSdk 37
 
     // Set NDK version to strip native libraries.
     // Even though we compile our libraries outside Gradle with `scripts/ndk-make.sh`,
@@ -36,7 +35,7 @@ android {
         multiDexEnabled true
 
         minSdkVersion 21
-        targetSdkVersion 36
+        targetSdkVersion 37
 
         vectorDrawables.useSupportLibrary = true
 

@@ -15,6 +15,7 @@ import About from '../dialogs/About'
 import Appearance from './Appearance'
 import Advanced from './Advanced'
 import Profile from './Profile'
+import WebdavSync from './WebdavSync'
 import Dialog, { DialogBody, DialogHeader } from '../Dialog'
 import EditProfileDialog from '../dialogs/EditProfileDialog'
 import SettingsSeparator, { SettingsEndSeparator } from './SettingsSeparator'
@@ -107,6 +108,13 @@ export default function Settings({ onClose }: DialogProps) {
           {tx('multidevice_title')}
         </SettingsIconButton>
         <ConnectivityButton />
+        <SettingsIconButton
+          icon='upload-file'
+          onClick={() => openDialog(WebdavSync)}
+          dataTestid='open-webdav-sync'
+        >
+          {tx('nova_webdav_sync')}
+        </SettingsIconButton>
         <SettingsIconButton
           icon='code-tags'
           onClick={() => openSettingsSectionDialog('advanced')}

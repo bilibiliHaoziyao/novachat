@@ -16,6 +16,9 @@ import {
   DropListener,
   MediaAccessStatus,
   MediaType,
+  NovaSyncProgress,
+  NovaSyncResult,
+  NovaWebdavSettings,
   Runtime,
 } from '@deltachat-desktop/runtime-interface'
 import { BaseDeltaChat, yerpc } from '@deltachat/jsonrpc-client'
@@ -40,6 +43,7 @@ type RuntimeApi = {
   send: (channel: SendChannel, ...args: any[]) => void
   sendSync: (channel: SendSyncChannel, ...args: any[]) => any
   on: (channel: ReceiveChannel, callback: (...args: any[]) => void) => void
+  offChannel: (channel: ReceiveChannel) => void
   getPathForFile: typeof webUtils.getPathForFile
 }
 
@@ -234,6 +238,27 @@ class ElectronRuntime implements Runtime {
     isDefaultPicture: boolean
   ): Promise<string> {
     return ipcBackend.invoke('saveBackgroundImage', file, isDefaultPicture)
+  }
+  // Nova Chat: WebDAV account sync
+  novaWebdav = {
+    getSettings: (): Promise<NovaWebdavSettings> =>
+      ipcBackend.invoke('nova.webdav.get-settings'),
+    saveSettings: (settings: NovaWebdavSettings): Promise<void> =>
+      ipcBackend.invoke('nova.webdav.save-settings', settings),
+    testConnection: (settings: NovaWebdavSettings): Promise<NovaSyncResult> =>
+      ipcBackend.invoke('nova.webdav.test-connection', settings),
+    backupNow: (accountId: number): Promise<NovaSyncResult> =>
+      ipcBackend.invoke('nova.webdav.backup-now', accountId),
+    restoreLast: (accountId: number): Promise<NovaSyncResult> =>
+      ipcBackend.invoke('nova.webdav.restore-last', accountId),
+    onProgress: (
+      callback: (progress: NovaSyncProgress) => void
+    ): (() => void) => {
+      ipcBackend.on('nova-webdav-progress', (progress: NovaSyncProgress) =>
+        callback(progress)
+      )
+      return () => ipcBackend.offChannel('nova-webdav-progress')
+    },
   }
   getLocaleData(locale?: string | undefined): Promise<LocaleData> {
     return ipcBackend.invoke('getLocaleData', locale)

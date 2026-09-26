@@ -35,5 +35,9 @@ contextBridge.exposeInMainWorld('runtime_api', {
     // don't leak the IpcRendererEvent across the bridge
     ipcRenderer.on(channel, (_ev, ...args) => callback(...args))
   },
+  offChannel: (channel: string) => {
+    assertAllowed(RECEIVE_CHANNELS, channel)
+    ipcRenderer.removeAllListeners(channel)
+  },
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
 })

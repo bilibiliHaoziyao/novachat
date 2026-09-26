@@ -1253,4 +1253,55 @@
 
     <!-- device messages for updates -->
     <string name="update_2_0">新版变化？\n\n💯 端到端加密现在可靠且永久。挂锁图标 🔒 没有了！\n\n✉️ 没有端到端加密的经典电子邮件用字母符号标记\n\n😻 所有联系人的新的增强的个人资料屏\n\n🔲 新增快速访问聊天中所用应用的按钮\n\n❤️ 请捐赠帮助我们保持独立并继续带来改进：%1$s</string>
+
+    <!-- Nova Chat -->
+    <string name="nova_login_title">Nova Chat 新星聊 · 登录向导</string>
+    <string name="nova_email_login">使用邮箱登录</string>
+    <string name="nova_step_account">第 1 步 / 共 4 步 · 邮箱地址</string>
+    <string name="nova_step_security">第 2 步 / 共 4 步 · 密码与安全</string>
+    <string name="nova_step_connect">第 3 步 / 共 4 步 · 连接测试</string>
+    <string name="nova_step_sync">第 4 步 / 共 4 步 · 账号同步（可选）</string>
+    <string name="nova_account_step_title">你想使用哪个邮箱地址？</string>
+    <string name="nova_account_step_hint">新星聊支持任意邮箱地址，无需中心服务器；服务器参数会自动填写。</string>
+    <string name="nova_provider_pick">选择邮箱服务商（可选）：</string>
+    <string name="nova_provider_detected">已识别服务商：%1$s —— 服务器设置已自动填写</string>
+    <string name="nova_provider_note_qq">需要在 QQ 邮箱设置中开启 IMAP/SMTP，并把“授权码”当作密码使用</string>
+    <string name="nova_provider_note_163">需要在网易邮箱设置中开启 IMAP/SMTP，并使用“授权码”作为密码</string>
+    <string name="nova_provider_note_gmail">开启两步验证后，需要使用“应用专用密码”登录</string>
+    <string name="nova_provider_note_icloud">需要 Apple ID 的“应用专用密码”</string>
+    <string name="nova_provider_note_custom">将使用邮箱地址自动探测服务器；也可以手动填写 IMAP/SMTP</string>
+    <string name="nova_security_step_title">密码与加密方式</string>
+    <string name="nova_password_hint">邮箱密码或授权码</string>
+    <string name="nova_e2ee_switch">要求端到端加密</string>
+    <string name="nova_e2ee_switch_hint">默认关闭。关闭后可与使用普通邮件客户端的联系人通信；开启后仅收发加密消息。</string>
+    <string name="nova_advanced_servers">服务器设置（高级）</string>
+    <string name="nova_connect_now">连接并登录</string>
+    <string name="nova_connecting">正在连接邮箱服务器…</string>
+    <string name="nova_connect_error">连接失败</string>
+    <string name="nova_edit_again">返回修改</string>
+    <string name="nova_connected_title">账号已连接</string>
+    <string name="nova_connected_hint">现在就可以开始聊天了。</string>
+    <string name="nova_e2ee_on">端到端加密：已开启</string>
+    <string name="nova_e2ee_off">端到端加密：已关闭</string>
+    <string name="nova_skip">跳过</string>
+    <string name="nova_finish">完成</string>
+    <string name="nova_webdav_sync">WebDAV 同步</string>
+    <string name="nova_webdav_explain">把本账号（设置、联系人、密钥与消息）备份到你自己的 WebDAV 服务器。备份会先在本地用备份口令加密，再上传到云端。</string>
+    <string name="nova_webdav_url">WebDAV 服务器地址</string>
+    <string name="nova_webdav_username">用户名</string>
+    <string name="nova_webdav_password">密码</string>
+    <string name="nova_webdav_passphrase">备份口令（用于加密云端备份）</string>
+    <string name="nova_webdav_auto_sync">启动时自动同步</string>
+    <string name="nova_webdav_test">测试连接</string>
+    <string name="nova_webdav_testing">正在测试连接…</string>
+    <string name="nova_webdav_backup_now">立即上传备份</string>
+    <string name="nova_webdav_restore">从云端恢复</string>
+    <string name="nova_webdav_restore_warn">恢复会用云端的备份覆盖本账号的数据，继续吗？</string>
+    <string name="nova_webdav_saved">设置已保存</string>
+    <string name="nova_webdav_enable">启用 WebDAV 账号同步（可选）</string>
+    <string name="nova_webdav_enable_hint">把加密后的账号备份上传到你的 WebDAV 服务器（Nextcloud、坚果云、自建服务等），并在其他设备上一键恢复。</string>
+    <string name="nova_webdav_desktop_only">当前运行环境暂不支持 WebDAV 同步（仅桌面版可用）。</string>
+    <string name="nova_e2ee_section">端到端加密</string>
+    <string name="nova_e2ee_toggle">要求端到端加密</string>
+    <string name="nova_e2ee_toggle_hint">默认关闭。开启后将拒绝收发未加密的消息。</string>
     </resources>

@@ -22,6 +22,34 @@ export type MediaAccessStatus =
   | 'restricted'
   | 'unknown'
 
+/** Nova Chat: WebDAV account sync settings */
+export type NovaWebdavSettings = {
+  url: string
+  username: string
+  password: string
+  passphrase: string
+  autoSync: boolean
+}
+
+export type NovaSyncProgress = { phase: string; percent: number }
+export type NovaSyncResult = { ok: boolean; message: string }
+
+/**
+ * Nova Chat: WebDAV account sync bridge.
+ * Only implemented by the desktop (electron) runtime for now.
+ */
+export type NovaWebdavBridge = {
+  getSettings(): Promise<NovaWebdavSettings>
+  saveSettings(settings: NovaWebdavSettings): Promise<void>
+  testConnection(settings: NovaWebdavSettings): Promise<NovaSyncResult>
+  /** Upload an encrypted backup of the account to the WebDAV server. */
+  backupNow(accountId: number): Promise<NovaSyncResult>
+  /** Download the backup from the WebDAV server and import it. */
+  restoreLast(accountId: number): Promise<NovaSyncResult>
+  /** Subscribe to progress updates; returns an unsubscribe function. */
+  onProgress(callback: (progress: NovaSyncProgress) => void): () => void
+}
+
 export type DropListener = {
   /** element that gets compared against the event target,
   either by bounds or by event target path */
@@ -188,6 +216,12 @@ export interface Runtime {
     data: string
   } | null>
   saveBackgroundImage(file: string, isDefaultPicture: boolean): Promise<string>
+
+  /**
+   * Nova Chat: WebDAV account sync.
+   * `undefined` if the current runtime does not support it (browser/tauri).
+   */
+  novaWebdav?: NovaWebdavBridge
 
   /**
    * only support this if you have a real implementation for `isDroppedFileFromOutside`

@@ -2,79 +2,54 @@
 
 ## 1. 现状与问题
 
-Delta Chat 首次使用向导（Android 为 `OnboardingActivity` 及其多步 Fragment；桌面端为 `LoginScreen` 相关组件）目前的问题：
+Delta Chat 的首次使用流程以"创建即时账号（chatmail）"为默认路径，新用户若想用自己的邮箱，需要多点几层才能找到经典登录入口；且缺少服务商预设与友好的失败重试路径。
 
 | 问题 | 表现 |
 |---|---|
-| 步骤偏多 | 欢迎页 → 新建/已有账号 → 邮箱 → 密码 → 服务商配置 → 完成，新用户易中途流失 |
-| 服务商适配靠猜 | 邮箱服务商信息依赖自动探测，失败后用户面对一堆 IMAP/SMTP 高级选项无从下手 |
-| 错误提示不友好 | 密码错误、IMAP 未开启、需要"应用专用密码"等情况没有分级引导 |
-| 缺少导入通道 | 已有账号无法从备份/WebDAV 一键恢复配置 |
+| 邮箱登录入口太深 | 欢迎页 → 创建即时账号 → 使用其它服务器 → 经典登录，共 4 次点击 |
+| 服务商适配靠猜 | 依赖核心自动探测，失败后用户面对一堆 IMAP/SMTP 选项无从下手 |
+| 失败后无路可退 | 连接失败只弹出错误提示，用户需重新填一遍 |
+| 加密无解释 | 用户不清楚"是否必须加密"、能否与普通邮件客户端互通 |
 
 ## 2. 目标体验
 
-新用户完成配置所需输入项收敛到 **4 个以内**（邮箱、密码、显示名、同步方式），常见服务商全程零手动配置：
+- 邮箱登录提升为欢迎页的**第一个主按钮**（1 次点击进入向导）；
+- 常见服务商（QQ/163/126/新浪/Gmail/Outlook/iCloud/Yahoo）**输入邮箱即自动预填** IMAP/SMTP；
+- 连接过程**实时展示进度**，失败时可一键返回上一步修改（保留已填内容）；
+- 端到端加密**默认关闭**且解释清楚（见 [optional-e2ee.md](./optional-e2ee.md)）；
+- 登录成功后可选配置 WebDAV 同步（见 [webdav-sync.md](./webdav-sync.md)）。
 
-```
-┌─────────────────────────────────────────┐
-│  Nova Chat · 新星聊                        │
-│                                          │
-│  邮箱地址  [ ____________@gmail.com     ] │
-│  密码      [ ••••••••••                ] │
-│  显示名    [ 小明                     ] │
-│                                          │
-│  ( ) 仅本机使用    ( ) 用 WebDAV 同步账号   │
-│                                          │
-│  [ 测试连接 ]   [ 开始使用 ]               │
-│  已自动识别：Gmail（IMAP/SMTP 已预填）      │
-│  ──────────────────────────────          │
-│  高级选项（IMAP/SMTP 手动配置、代理等）       │
-│  已有账号？从 WebDAV / 备份文件导入          │
-└─────────────────────────────────────────┘
-```
+## 3. 实现
 
-- **服务商智能预设**：输入邮箱域名后立即匹配预设库（Gmail、Outlook、QQ 邮箱、网易 163/126、iCloud、自建域名 → 走探测），预填 IMAP/SMTP 主机、端口、SSL 策略；
-- **实时测试连接**：`测试连接` 按钮后台调用核心配置探测，成功即点亮 `开始使用`；
-- **错误分级引导**：
-  - 凭据错误 → "邮箱或密码不正确，请检查后重试"；
-  - 连接被拒/超时 → "无法连接服务器，可尝试高级设置或更换网络"；
-  - 服务商禁用 IMAP / 需要应用专用密码 → 给出对应的操作指引（如"请到 QQ 邮箱 → 设置 → 开启 IMAP/SMTP 并生成授权码"）；
-- **导入通道**：底部提供"从 WebDAV / 备份文件导入已有账号"（与 WebDAV 改造联动）。
+### 3.1 Android（apps/android）
 
-## 3. 技术方案
+- [ClassicLoginActivity.java](file:///workspace/apps/android/src/main/java/org/thoughtcrime/securesms/ClassicLoginActivity.java)：新增「经典邮箱登录」单页表单
+  - 字段：邮箱、密码、显示名（可选）、高级折叠区（IMAP/SMTP 主机、端口、SSL）；
+  - 点击「连接」后创建账号 → 写入 `addr` / `mail_pw` / 可选服务器参数 → 写入 `force_encryption=0` → 调用 `rpc.configure()`；
+  - 通过 `DcEventCenter` 捕获配置错误并以 Toast 提示，失败即可直接重试；
+- [WelcomeActivity.java](file:///workspace/apps/android/src/main/java/org/thoughtcrime/securesms/WelcomeActivity.java)：新增"使用自己的邮箱"入口直达该向导；
+- 布局与文案：`res/layout/activity_classic_login.xml`、`values/strings.xml`（含 `classic_login_*` 系列字符串）。
 
-### 3.1 核心引擎（core/）
+### 3.2 Windows 桌面端（apps/desktop）
 
-- 复用现有探测与配置能力（`configure`、provider 信息查询、凭据校验）；
-- 新增或整理一个"凭据预检"入口：给定邮箱地址，返回服务商预设（主机/端口/SSL）与可连通性（异步）；
-- **无核心大改**：预设库与探测逻辑保持在上游路径上，仅在需要时补充中文服务商（QQ 邮箱、163/126）的预设记录。
-
-### 3.2 Android（apps/android/）
-
-| 改动点 | 说明 |
-|---|---|
-| `OnboardingActivity` 重构 | 由多步向导改为单页表单 + 折叠"高级选项"；保留 `从 WebDAV 导入` 分支 |
-| 新增 `OnboardingViewModel` | 输入校验、服务商识别、测试连接状态机（idle / testing / success / error） |
-| 服务商预设数据源 | 内置常见服务商表，按邮箱域名匹配；未命中时回退核心探测 |
-| 错误映射 | 将核心返回的错误码映射为分级引导文案 |
-
-### 3.3 Windows 桌面端（apps/desktop/）
-
-| 改动点 | 说明 |
-|---|---|
-| `src/renderer/components/Login/` 重构 | 单页表单 + 高级选项折叠面板，交互与 Android 一致 |
-| 服务商预设 | 与核心共用同一份预设数据（由核心下发或前端内置） |
-| 测试连接 | 调用核心（JSON-RPC）异步探测，展示进度与结果 |
+- [NovaWizard/index.tsx](file:///workspace/apps/desktop/packages/frontend/src/components/screens/NovaWizard/index.tsx)：四步向导（同一对话框内切换，不跳屏）
+  1. **邮箱地址**：输入即匹配服务商预设（`providerPresets.ts`），显示"已识别服务商"，也支持手动选择；
+  2. **密码与安全**：密码/授权码 + 「要求端到端加密」开关（默认关）+ 可展开的服务器设置；
+  3. **连接测试**：调用 `addOrUpdateTransport()` 并把核心的 `ConfigureProgress` 事件实时显示为进度条与文字；失败显示错误与「返回修改」；
+  4. **账号同步（可选）**：WebDAV 快速配置（地址/账号/密码/备份口令 + 测试连接），可跳过；
+- [OnboardingScreen.tsx](file:///workspace/apps/desktop/packages/frontend/src/components/screens/WelcomeScreen/OnboardingScreen.tsx)：欢迎页把「使用邮箱登录」放为主按钮，即时账号与备份恢复降为次要按钮；
+- 服务商预设表：[providerPresets.ts](file:///workspace/apps/desktop/packages/frontend/src/components/screens/NovaWizard/providerPresets.ts)（含各服务商的"授权码/应用专用密码"提示）。
 
 ## 4. 验收标准
 
-- [ ] 新用户在 4 个输入项内完成配置；
-- [ ] Gmail / QQ 邮箱 / 网易 / Outlook / iCloud 自动预填成功率 ≥ 90%；
-- [ ] 错误按凭据 / 连接 / 服务商策略分级提示，并给出可操作指引；
-- [ ] "从 WebDAV 导入"入口可用（M3 完成后端到端打通）。
+- [x] 桌面端：欢迎页 1 次点击进入邮箱登录向导；
+- [x] 输入 QQ/163/Gmail/Outlook/iCloud 等地址能自动预填服务器设置；
+- [x] 连接失败可返回上一步修改，已填内容不丢失；
+- [x] 新账号默认 `force_encryption=0`；
+- [ ] 从 WebDAV 一键恢复为向导第一步的入口（当前在"恢复备份"对话框中，后续合并进向导）。
 
-## 5. 注意事项
+## 5. 后续可做
 
-- 保留高级设置入口，避免高级用户受阻；
-- 预设数据仅供**预填**，最终以用户配置与连接测试结果为准；
-- 测试连接不得阻塞 UI 主线程；失败信息要可重试。
+- 预设库改为随核心下发（避免双端两份表）；
+- 连接失败的错误分级文案（凭据错误 / 网络不可达 / 未开启 IMAP / 需要授权码）；
+- 向导内嵌"从 WebDAV 恢复"入口，进一步缩短换机路径。

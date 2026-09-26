@@ -39,3 +39,7 @@ desktop.ini
 # ---- 产物 ----
 *.log
 tmp/
+
+# ---- 包管理器缓存 / 工具产物 ----
+.pnpm-store/
+.trae-html-share-packages/

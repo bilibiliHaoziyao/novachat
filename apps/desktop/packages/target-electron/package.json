@@ -2,7 +2,7 @@
   "private": true,
   "type": "module",
   "name": "@deltachat-desktop/target-electron",
-  "version": "2.59.1",
+  "version": "0.1.0",
   "description": "Nova Chat (新星聊) — 基于 Delta Chat 的桌面即时通讯客户端",
   "repository": {
     "type": "git",

@@ -1,74 +1,57 @@
 # 改造二：端到端加密可关闭（去除强制限制）
 
-## 1. 背景：Delta Chat 的加密机制
+## 1. 事实与目标
 
-Delta Chat 采用 **Autocrypt** 规范做机会式端到端加密（E2EE）：
+Delta Chat 的机会式加密（Autocrypt）本身并不"拦截明文"：对没有密钥的收件人，消息仍以普通邮件发送。真正会让用户感觉"被强制加密"的是配置项 `force_encryption`——开启后**拒绝发送明文，也不处理收到的明文**。
 
-- 首次需要时为核心账号生成密钥对（`src/autocrypt.rs` / `src/keyring.rs`）；
-- 双方都具备密钥时，消息以 E2EE 发送；否则退化为普通邮件；
-- 核心配置键 `e2ee_enabled`（`src/config.rs`）控制加密策略。
-
-**事实澄清**：上游 Delta Chat 本身并非"强制加密"——对没有密钥的收件人本就发送明文。但它的默认策略是"倾向加密"（`e2ee_enabled = 1`），并且会主动生成/传播密钥，这给部分用户带来"被强制绑定加密"的感受，也造成某些邮箱场景下的兼容性问题。Nova Chat 的改造目标是：**让 E2EE 成为一个默认关闭、完全可选的选项**。
-
-## 2. 目标行为
+Nova Chat 的目标很明确：**`force_encryption` 默认关闭，且开关交给用户**。
 
 | 场景 | 行为 |
 |---|---|
-| 新账号（默认） | **不启用 E2EE**：不生成 Autocrypt 密钥，消息以标准明文邮件收发 |
-| 用户手动开启 | 在设置中开启「端到端加密」后，按 Autocrypt 生成密钥、尝试加密发送 |
-| 关闭 E2EE 后 | 已生成的密钥保留在本地（可导出备份），但不再用于新消息 |
-| 会话标识 | 未加密会话显示"未加密"标识；开启后加密会话显示"已加密" |
+| 新账号（默认） | `force_encryption = 0`：可与任意邮件客户端互通，明文消息照常收发 |
+| 用户手动开启 | 设置中打开「要求端到端加密」后，只收发加密消息（与上游行为一致） |
+| 与 Nova Chat 用户通信 | 双方都有密钥时自动端到端加密（Autocrypt 机会式加密，与是否开启 `force_encryption` 无关） |
+| 状态可见 | 会话/消息上沿用核心提供的加密状态标识（未加密会话有明确标记） |
 
-## 3. 技术方案
+## 2. 实现
 
-### 3.1 核心引擎（core/）—— 主改造点
+### 2.1 核心（Rust）
 
-| 文件（以 fork 后为准） | 改动 |
-|---|---|
-| `src/config.rs` | Nova Chat 构建默认 `e2ee_enabled = 0`（上游默认 1），并保证配置持久化 |
-| `src/autocrypt.rs` / `src/keyring.rs` | **密钥生成门控**：`e2ee_enabled = 0` 时跳过 Autocrypt 密钥生成与密钥交换头（`Autocrypt:` 头）注入；开启后才按需生成 |
-| `src/message.rs`（发送路径） | 加密决策读取 `e2ee_enabled`；关闭时直接走明文发送路径 |
-| `src/chat.rs` | 提供会话加密状态查询（供 UI 显示"未加密/已加密"标识） |
+[config.rs](file:///workspace/apps/android/jni/deltachat-core-rust/src/config.rs)：`Config::ForceEncryption` 显式声明默认值 `0`，保证配置缺失时的行为是"不强制加密"：
 
-> 实现提示：门控应放在密钥生成与头注入的**唯一入口**（例如 `ensure_secret_key_exists()` 的调用方），避免散落多处判断导致遗漏。
-
-**配置接口**（已有）：
 ```rust
-// 读取/写入
-let level = dc_get_config_int(context, "e2ee_enabled")?;  // 0 / 1 / 2
-dc_set_config_int(context, "e2ee_enabled", 0)?;
+/// Nova Chat: end-to-end encryption is optional by default.
+#[strum(props(default = "0"))]
+ForceEncryption,
 ```
 
-### 3.2 Android（apps/android/）
+其余加密相关逻辑（密钥生成、Autocrypt 头、明文回退）保持上游实现，避免引入加密回归风险。
 
-| 改动点 | 说明 |
-|---|---|
-| `SettingsActivity` → 高级 | 新增「端到端加密」开关（写入 `e2ee_enabled`）与说明文案 |
-| 开关联动 | 开启时弹窗提示"启用后新消息将尝试加密发送"；关闭时提示"消息将以明文邮件收发" |
-| 会话列表/会话页 | 根据核心查询结果显示 锁形图标（已加密）/ "未加密"角标 |
+### 2.2 Android
 
-### 3.3 Windows 桌面端（apps/desktop/）
+- [ClassicLoginActivity.java](file:///workspace/apps/android/src/main/java/org/thoughtcrime/securesms/ClassicLoginActivity.java)：新建账号时显式写入 `force_encryption=0`；
+- [AdvancedPreferenceFragment.java](file:///workspace/apps/android/src/main/java/org/thoughtcrime/securesms/preferences/AdvancedPreferenceFragment.java)：高级设置中的「端到端加密」开关，随时可切换并持久化。
 
-| 改动点 | 说明 |
-|---|---|
-| `src/renderer/components/Settings/` | 新增「端到端加密」开关，逻辑与 Android 一致 |
-| 会话标识 | 会话详情头部显示加密状态（锁 / 未加密标签） |
+### 2.3 Windows 桌面端
 
-## 4. 隐私与安全说明（如实告知用户）
+- [NovaWizard/index.tsx](file:///workspace/apps/desktop/packages/frontend/src/components/screens/NovaWizard/index.tsx)：向导第二步的开关默认关闭，登录成功后写入 `force_encryption`；
+- [Settings/Advanced.tsx](file:///workspace/apps/desktop/packages/frontend/src/components/Settings/Advanced.tsx)：设置 → 高级 → 「端到端加密」分组，新增 `CoreSettingsSwitch`（配置键 `force_encryption`），并提供说明文案；
+- 文案（`_locales/en.xml` / `zh_CN.xml`）：`nova_e2ee_*` 系列字符串。
 
-- 关闭 E2EE 后，消息以**明文**邮件形式收发，**邮箱服务商、网络链路均可读取**；Nova Chat 默认关闭是为了兼容性与"邮件互通优先"，用户应理解此权衡；
-- 开启 E2EE 仍遵循 Autocrypt 规范：对方无密钥时自动退回明文，不阻塞通信；
-- 密钥文件建议配合 WebDAV 加密备份（见 webdav-sync.md），避免丢失后无法解密历史加密消息。
+## 3. 隐私说明（如实告知）
 
-## 5. 验收标准
+- 关闭后消息以**明文邮件**形式收发，邮箱服务商与网络链路可读；这是"与现有邮件生态互通"的代价；
+- 开启后与普通邮件客户端通信会被拒收/无法发送，属于预期行为；
+- 无论开关如何，双方都使用 Nova Chat/Delta Chat 时都会自动加密（Autocrypt），敏感通信建议保持开启。
 
-- [ ] 新账号默认 `e2ee_enabled = 0`，不发 `Autocrypt:` 头、不生成密钥；
-- [ ] 设置开关可随时切换，重启后状态保持；
-- [ ] 开启后对已有 Autocrypt 密钥的收件人消息加密；关闭后恢复明文；
-- [ ] 会话页正确显示"未加密/已加密"标识；
-- [ ] 双端行为一致（由核心逻辑保证，UI 差异仅样式）。
+## 4. 验收标准
 
-## 6. 回归风险与对策
+- [x] 新账号默认 `force_encryption=0`（Android 显式写入、桌面端向导写入、核心默认值兜底）；
+- [x] 双端设置中均可随时开关，重启后保持；
+- [x] 关闭状态下可以与普通邮件客户端正常互发明文邮件；
+- [ ] 会话页"未加密"标识的 UI 强化（当前沿用上游标识）。
 
-- **风险**：门控改动影响上游加密测试。**对策**：核心改动保持"配置驱动"（不改默认值时行为与上游完全一致），并保留上游 `e2ee_enabled=1/2` 语义的测试用例；
-- **风险**：中文邮箱服务商对 Autocrypt 头的兼容。**对策**：关闭态默认不发头，彻底规避该问题。
+## 5. 后续可做
+
+- 首次发送给"无密钥联系人"时的轻提示（"本次消息未加密"）；
+- 按账号/按聊天覆盖全局开关（目前 `force_encryption` 为账号级，上游语义如此）。

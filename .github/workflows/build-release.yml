@@ -31,6 +31,9 @@ jobs:
         with:
           packages: 'platform-tools'
 
+      - name: Install Android SDK platform 37
+        run: yes | sdkmanager --install "platforms;android-37"
+
       - uses: nttld/setup-ndk@v1
         id: setup-ndk
         with:
@@ -60,7 +63,7 @@ jobs:
           keytool -genkeypair -v -keystore /tmp/ci-release.jks -storepass novachat-ci -alias nova \
             -keypass novachat-ci -keyalg RSA -keysize 2048 -validity 10000 \
             -dname "CN=Nova Chat, OU=Nova, O=Nova Chat, L=City, ST=State, C=CN" || true
-          APK=$(ls app/build/outputs/apk/foss/release/*.apk | head -1)
+          APK=$(ls build/outputs/apk/foss/release/*.apk | head -1)
           mv "$APK" /tmp/unsigned.apk
           BT=$(ls -d ${ANDROID_HOME:-$ANDROID_SDK_ROOT}/build-tools/* 2>/dev/null | sort -V | tail -1)
           export PATH="${BT}:${PATH}"
@@ -101,7 +104,7 @@ jobs:
           pnpm build
           pnpm run pack:generate_config
           pnpm run pack:patch-node-modules
-          pnpm electron-builder --win nsis portable
+          pnpm electron-builder --win nsis portable --publish never
 
       - name: Upload installers to Release
         if: startsWith(github.ref, 'refs/tags/v')

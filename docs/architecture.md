@@ -2,83 +2,67 @@
 
 ## 1. 总体架构
 
-Nova Chat 沿用 Delta Chat 的分层架构，三层分离、UI 与核心解耦：
+Nova Chat 沿用 Delta Chat 的分层架构：Rust 核心负责协议，客户端只做 UI 与调度。
 
 ```
-┌────────────────────────────┐   ┌────────────────────────────┐
-│  apps/android（Java/Kotlin） │   │  apps/desktop（TypeScript）  │
-│  UI · 向导 · 设置 · 通知     │   │  UI · 向导 · 设置 · Electron  │
-└─────────────┬──────────────┘   └──────────────┬─────────────┘
-              │ JNI（deltachat-ffi）             │ JSON-RPC（deltachat/jsonrpc）
+┌────────────────────────────┐   ┌─────────────────────────────┐
+│  apps/android（Java）        │   │  apps/desktop（TypeScript）   │
+│  UI · 向导 · 设置 · 通知      │   │  UI · 向导 · 设置 · Electron   │
+└─────────────┬──────────────┘   └──────────────┬──────────────┘
+              │ JSON-RPC（chat.delta.rpc.Rpc）    │ JSON-RPC（@deltachat/jsonrpc-client）
               ▼                                 ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                 core/（Rust 核心引擎）                          │
-│  deltachat-core-rust：IMAP/SMTP · Autocrypt · 联系人 · 配置     │
-│  + nova 扩展：webdav 同步模块（新增）                             │
+│  deltachat-core-rust（Rust 核心引擎，内嵌于 apps/android/jni/） │
+│  IMAP/SMTP · Autocrypt · 联系人 · 配置 · imex（备份导入导出）    │
 └─────────────────────────────────────────────────────────────┘
-              │
-              ▼
-         IMAP / SMTP（任意邮箱服务商）
-         WebDAV（可选，账号配置/联系人/密钥备份同步）
+              │                                        │
+              ▼                                        ▼
+      IMAP / SMTP（任意邮箱服务商）              WebDAV（可选，账号备份同步）
 ```
 
-- **无中心服务器**：消息收发走用户自己的邮箱（IMAP/SMTP），Nova Chat 不引入任何自建服务端；
-- **核心引擎**：所有协议、加密、账号逻辑集中在 Rust 核心，双端共享；
-- **WebDAV 同步**：作为"增值层"挂在核心之上，仅同步账号配置/联系人/密钥备份，不承载消息。
+- **无中心服务器**：消息收发全部走用户自己的邮箱，Nova Chat 不引入任何自建服务端；
+- **核心引擎**：双端都通过 JSON-RPC 调用同一个 Rust 核心（桌面端为 `deltachat-rpc-server` 子进程，Android 为本地 JNI/JSON-RPC）；
+- **WebDAV 同步**：实现位于**客户端层**（而非核心），复用核心的备份导出/导入能力（`exportBackup` / `importBackup`），把加密后的备份文件放到用户自己的 WebDAV 服务器上。
 
-## 2. 模块划分
+## 2. 三项改造的实现位置
 
-### 2.1 核心引擎（core/，源自 deltachat-core-rust，MPL-2.0）
+| 改造 | 核心（Rust） | Android | 桌面端（Windows） |
+|---|---|---|---|
+| 登录向导优化 | 无需改动（复用 `configure` / `add_or_update_transport`） | [ClassicLoginActivity.java](file:///workspace/apps/android/src/main/java/org/thoughtcrime/securesms/ClassicLoginActivity.java) | [NovaWizard/index.tsx](file:///workspace/apps/desktop/packages/frontend/src/components/screens/NovaWizard/index.tsx) |
+| 端到端加密可选 | [config.rs](file:///workspace/apps/android/jni/deltachat-core-rust/src/config.rs)（`force_encryption` 默认值 `0`） | ClassicLoginActivity（新账号写入 `force_encryption=0`）、AdvancedPreferenceFragment（开关） | NovaWizard（默认关闭）、Settings/Advanced.tsx（开关） |
+| WebDAV 账号同步 | 复用 `imex` 备份导出/导入 | [WebDavSyncManager.java](file:///workspace/apps/android/src/main/java/org/thoughtcrime/securesms/connect/WebDavSyncManager.java) + [WebDavSettingsActivity.java](file:///workspace/apps/android/src/main/java/org/thoughtcrime/securesms/WebDavSettingsActivity.java) | [nova/webdav-client.ts](file:///workspace/apps/desktop/packages/target-electron/src/nova/webdav-client.ts) + [nova/nova-sync.ts](file:///workspace/apps/desktop/packages/target-electron/src/nova/nova-sync.ts) + Settings/WebdavSync.tsx |
 
-| 模块 | 职责 |
+## 3. 桌面端模块划分（apps/desktop）
+
+| 路径 | 职责 |
 |---|---|
-| `src/accounts.rs` | 多账号管理、账号配置（IMAP/SMTP 参数） |
-| `src/imap/`、`src/smtp/` | 邮件收发协议实现 |
-| `src/autocrypt.rs`、`src/keyring.rs` | Autocrypt 端到端加密、密钥环管理 |
-| `src/contact.rs` | 联系人管理 |
-| `src/config.rs` | 配置键与默认值（含 `e2ee_enabled`） |
-| `src/imex.rs` | 密钥/账号导入导出 |
-| `src/webdav/`（**Nova Chat 新增**） | WebDAV 同步客户端：清单、增量、加密备份 |
-
-### 2.2 Android 客户端（apps/android/，源自 deltachat-android，GPL-3.0）
-
-| 文件/目录（以 fork 后为准） | 职责 |
-|---|---|
-| `OnboardingActivity`（及向导 Fragment） | 首次使用登录向导（Nova Chat 重点改造） |
-| `SettingsActivity` | 设置页（新增：端到端加密开关、WebDAV 同步入口） |
-| `WebDavSyncService`（**新增**） | 后台周期同步（WorkManager） |
-| `jni/` | Rust 核心的 JNI 绑定（deltachat-ffi） |
-
-### 2.3 桌面客户端（apps/desktop/，源自 deltachat-desktop，GPL-3.0）
-
-| 文件/目录（以 fork 后为准） | 职责 |
-|---|---|
-| `src/renderer/components/Login/` | 登录/向导界面（Nova Chat 重点改造） |
-| `src/renderer/components/Settings/` | 设置页（新增：E2E 开关、WebDAV 同步） |
-| `src/main/` | Electron 主进程、核心进程管理 |
-
-## 3. 双端共享的改造点
-
-三项核心改造中，**端到端加密可关闭**与 **WebDAV 同步**的协议与业务逻辑全部下沉到核心引擎（Rust），双端只做 UI 与调度，保证行为一致、避免双端逻辑漂移：
-
-- 可选 E2E：核心提供 `e2ee_enabled` 配置与密钥生成门控，双端只暴露开关与状态标识；
-- WebDAV 同步：核心提供同步 API（同步、冲突解决、加密），双端提供设置页与后台调度。
+| `packages/frontend/src/components/screens/NovaWizard/` | 首次使用向导：服务商预设、连接测试、可选加密、可选 WebDAV |
+| `packages/frontend/src/components/screens/NovaWizard/providerPresets.ts` | 服务商预设表（QQ/163/126/新浪/Gmail/Outlook/iCloud/Yahoo/自定义） |
+| `packages/frontend/src/components/Settings/WebdavSync.tsx` | WebDAV 同步设置页（地址/账号/口令、测试、上传、恢复） |
+| `packages/target-electron/src/nova/webdav-client.ts` | WebDAV 客户端（MKCOL/PUT/GET/DELETE）+ 备份容器加解密 |
+| `packages/target-electron/src/nova/nova-sync.ts` | 备份导出 → 加密 → 上传；下载 → 解密 → 导入 |
+| `packages/target-electron/src/ipc.ts` | 新增 `nova.webdav.*` IPC 通道（渲染进程无文件/网络权限，网络操作全部在主进程完成） |
+| `packages/runtime/runtime.ts` | `novaWebdav` 运行时桥接接口（仅 Electron 实现，Web/Tauri 目标为 `undefined`） |
 
 ## 4. 数据流示例
 
-**发送一条消息（关闭 E2E 场景）**：
-1. UI 调用核心 `dc_send_msg`；
-2. 核心检查 `e2ee_enabled` 与收件人密钥：未启用则明文发送（RFC 2822 标准邮件）；
-3. 核心经 SMTP 投递，经 IMAP 同步回执/回信。
+**登录向导（普通邮箱）**：
 
-**WebDAV 同步一次（周期任务）**：
-1. 核心读取本地变更（设置/联系人/密钥版本）；
-2. 经 WebDAV `PROPFIND` 获取远端清单与 ETag；
-3. 按版本/ETag 增量拉取或上传，敏感文件解密/加密后落盘；
-4. 更新本地清单，记录冲突（若有）。
+1. 用户输入邮箱地址 → 前端按域名匹配服务商预设，自动填充 IMAP/SMTP 主机与端口；
+2. 用户输入密码（或授权码）→ 可选择是否要求端到端加密（默认关闭）；
+3. 前端调用 `addOrUpdateTransport(accountId, credentials)` → 核心执行配置并持续发出 `ConfigureProgress` 事件；
+4. 向导实时展示进度；失败时返回第二步修改，成功后写入 `force_encryption` 并进入可选的 WebDAV 步骤。
+
+**WebDAV 同步一次**：
+
+1. 主进程调用核心 `exportBackup(accountId, tmpDir, null)` 得到 tar 备份；
+2. 用用户口令派生密钥（PBKDF2-HMAC-SHA256，120000 次）做 AES-256-GCM 加密，得到 `NC1` 容器；
+3. `MKCOL nova-chat/`（如不存在）后 `PUT nova-chat/latest-backup.ac`；
+4. 恢复时反向执行：`GET` → 解密 → `importBackup(accountId, tar, null)`。
 
 ## 5. 设计约束
 
-- **许可边界**：core 保持 MPL-2.0，应用层 GPL-3.0，派生代码不得改变对应部分许可；
-- **不引入自建服务**：WebDAV 只是"自带钥匙串"的同步介质，不依赖任何 Nova Chat 专属服务器；
-- **兼容上游**：尽量以配置/插件方式改造，避免对核心大改，便于持续合并上游更新。
+- **许可边界**：核心保持 MPL-2.0（`apps/android/jni/deltachat-core-rust/LICENSE`），Android/桌面端应用层保持 GPL-3.0；派生代码不改变对应部分许可；
+- **不引入自建服务**：WebDAV 只是用户自带的同步介质，Nova Chat 不依赖任何专属服务器；
+- **兼容上游**：改造尽量集中在客户端层，核心仅有"默认值"级别的小改动，便于持续合并上游更新；
+- **双端一致的线上格式**：向导预填表、WebDAV 容器格式（`NC1` + AES-256-GCM + `nova-chat/latest-backup.ac`）在双端保持一致，Android 上传的备份可直接在 Windows 端恢复，反之亦然。

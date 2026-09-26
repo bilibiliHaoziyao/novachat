@@ -1,10 +1,12 @@
-import React from 'react'
+import React, { useContext } from 'react'
 
 import AlternativeSetupsDialog from './AlternativeSetupsDialog'
 import Button from '../../Button'
 import useDialog from '../../../hooks/dialog/useDialog'
 import useTranslationFunction from '../../../hooks/useTranslationFunction'
 import { DialogBody, DialogContent, DialogHeader } from '../../Dialog'
+import { ScreenContext } from '../../../contexts/ScreenContext'
+import { Screens } from '../../../ScreenController'
 
 import styles from './styles.module.scss'
 
@@ -25,11 +27,17 @@ type Props = {
 export default function OnboardingScreen(props: Props) {
   const tx = useTranslationFunction()
   const { openDialog } = useDialog()
+  const { changeScreen } = useContext(ScreenContext)
 
   const onAlreadyHaveAccount = () => {
     openDialog(AlternativeSetupsDialog, {
       selectedAccountId: props.selectedAccountId,
     })
+  }
+
+  /** Nova Chat: email login is the primary, one-click path now */
+  const onEmailLogin = () => {
+    changeScreen(Screens.Login)
   }
 
   const onSubmit = (event: React.FormEvent) => {
@@ -61,9 +69,16 @@ export default function OnboardingScreen(props: Props) {
             </div>
             <div className={styles.welcomeScreenButtonGroup}>
               <Button
-                type='submit'
                 className={styles.welcomeScreenButton}
                 styling='primary'
+                onClick={onEmailLogin}
+                data-testid='email-login-button'
+              >
+                {tx('nova_email_login')}
+              </Button>
+              <Button
+                type='submit'
+                className={styles.welcomeScreenButton}
                 data-testid='create-account-button'
               >
                 {tx('onboarding_create_instant_account')}

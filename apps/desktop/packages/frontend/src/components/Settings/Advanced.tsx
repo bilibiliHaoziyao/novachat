@@ -93,6 +93,15 @@ export default function Advanced({ onClose }: Props) {
 
       <SettingsSeparator />
 
+      <SettingsHeading>{tx('nova_e2ee_section')}</SettingsHeading>
+      <CoreSettingsSwitch
+        label={tx('nova_e2ee_toggle')}
+        settingsKey='force_encryption'
+        description={tx('nova_e2ee_toggle_hint')}
+      />
+
+      <SettingsSeparator />
+
       <SettingsHeading>{tx('pref_experimental_features')}</SettingsHeading>
       <ExperimentalFeatures />
 

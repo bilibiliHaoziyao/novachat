@@ -56,6 +56,15 @@ import {
   startOutgoingVideoCall,
   openIncomingVideoCallWindow,
 } from './windows/video-call.js'
+import {
+  NovaSyncProgress,
+  backupAccountToWebdav,
+  loadWebdavSettings,
+  restoreAccountFromWebdav,
+  saveWebdavSettings,
+  testWebdavConnection,
+} from './nova/nova-sync.js'
+import type { NovaWebdavSettings } from './nova/webdav-client.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -459,6 +468,66 @@ export async function init(cwd: string, logHandler: LogHandler) {
   const stopHandlingIncomingVideoCalls = startHandlingIncomingVideoCalls(
     dcController.jsonrpcRemote
   )
+
+  // Nova Chat: WebDAV account sync
+  const sendNovaSyncProgress = (progress: NovaSyncProgress) => {
+    mainWindow.window?.webContents.send('nova-webdav-progress', progress)
+  }
+
+  ipcMain.handle('nova.webdav.get-settings', () => loadWebdavSettings())
+  ipcMain.handle(
+    'nova.webdav.save-settings',
+    (_ev, settings: NovaWebdavSettings) => saveWebdavSettings(settings)
+  )
+  ipcMain.handle(
+    'nova.webdav.test-connection',
+    (_ev, settings: NovaWebdavSettings) => testWebdavConnection(settings)
+  )
+  ipcMain.handle('nova.webdav.backup-now', async (_ev, accountId: number) => {
+    const jsonrpcRemote = await DCJsonrpcRemoteInitializedP
+    return backupAccountToWebdav(
+      jsonrpcRemote.rpc,
+      accountId,
+      sendNovaSyncProgress
+    )
+  })
+  ipcMain.handle('nova.webdav.restore-last', async (_ev, accountId: number) => {
+    const jsonrpcRemote = await DCJsonrpcRemoteInitializedP
+    return restoreAccountFromWebdav(
+      jsonrpcRemote.rpc,
+      accountId,
+      sendNovaSyncProgress
+    )
+  })
+
+  // Nova Chat: upload an encrypted backup in the background on startup
+  // if the user enabled "sync automatically on startup".
+  DCJsonrpcRemoteInitializedP.then(jsonrpcRemote => {
+    setTimeout(async () => {
+      try {
+        const settings = await loadWebdavSettings()
+        if (!settings.autoSync || !settings.url || !settings.passphrase) {
+          return
+        }
+        const accountIds = await jsonrpcRemote.rpc.getAllAccountIds()
+        for (const accountId of accountIds ?? []) {
+          const accountInfo = await jsonrpcRemote.rpc.getAccountInfo(accountId)
+          if (accountInfo.kind === 'Configured') {
+            const result = await backupAccountToWebdav(
+              jsonrpcRemote.rpc,
+              accountId,
+              () => {}
+            )
+            if (!result.ok) {
+              log.warn('startup webdav sync failed:', result.message)
+            }
+          }
+        }
+      } catch (error) {
+        log.error('startup webdav sync failed', error)
+      }
+    }, 30_000)
+  })
 
   onInitialized(dcController.jsonrpcRemote)
   // the shutdown function
