@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <!-- common strings without special context -->
-    <string name="app_name">Delta Chat</string>
+    <string name="app_name">Nova Chat</string>
     <string name="ok">了承</string>
     <string name="cancel">取消</string>
     <string name="clear_search">検索履歴を消す</string>
@@ -37,7 +37,7 @@
     <!-- Verb "to mute". used to mute a chat, so that it is silenced e.g. does not make noise or cause notifications -->
     <string name="mute">ミュート</string>
     <string name="ephemeral_messages">消えるメッセージ</string>
-    <string name="ephemeral_messages_hint">この設定は、Delta Chatの利用する参加者に適用されます。ただし、参加者はメッセージをコピーしたり、保存したり、転送したり、他のアプリを利用したりすることができます。</string>
+    <string name="ephemeral_messages_hint">この設定は、Nova Chatの利用する参加者に適用されます。ただし、参加者はメッセージをコピーしたり、保存したり、転送したり、他のアプリを利用したりすることができます。</string>
     <string name="save">保存</string>
     <string name="chat">チャット</string>
     <string name="media">メディア</string>
@@ -267,7 +267,7 @@
     <plurals name="chat_n_new_messages">
         <item quantity="other">新着メッセージが%d件です</item>
     </plurals>
-    <string name="chat_new_group_hint">最初のメッセージを送ってから他人が返信できるようになります。\n\n･Delta Chatを使わなくても構いません\n\n･最初のメッセージの配信は時間がかかる場合もあります。</string>
+    <string name="chat_new_group_hint">最初のメッセージを送ってから他人が返信できるようになります。\n\n･Nova Chatを使わなくても構いません\n\n･最初のメッセージの配信は時間がかかる場合もあります。</string>
     <string name="chat_record_slide_to_cancel">スライドしてキャンセル</string>
     <string name="chat_record_explain">長押しして録音して、離すと送ります。</string>
     <string name="chat_no_chats_yet_title">受信箱が空です。\n＋でチャットを開始します。</string>
@@ -431,7 +431,7 @@
     <string name="pref_background_btn_default">デフォルトの画像を使う</string>
     <string name="pref_background_btn_gallery">ギャラリーから選ぶ</string>
     <!-- deprecated -->
-    <string name="pref_auto_folder_moves">DeltaChatフォルダに自動で移動する</string>
+    <string name="pref_auto_folder_moves">Nova Chatフォルダに自動で移動する</string>
     <!-- deprecated -->
     <string name="pref_show_emails">一般的なメールを表示する</string>
     <!-- deprecated -->
@@ -574,7 +574,7 @@
     <string name="ImageEditorHud_flip">反転</string>
     <string name="ImageEditorHud_rotate">回転</string>
 
-    <string name="welcome_desktop">Delta Chatにようこそ</string>
+    <string name="welcome_desktop">Nova Chatにようこそ</string>
     <string name="global_menu_preferences_language_desktop">言語を選択して下さい</string>
     <string name="global_menu_file_desktop">ファイル</string>
     <string name="global_menu_file_quit_desktop">終了</string>
@@ -590,7 +590,7 @@
     <string name="global_menu_view_developer_tools_desktop">開発者ツール</string>
     <string name="global_menu_help_desktop">ヘルプ</string>
     <string name="global_menu_help_report_desktop">問題を報告する</string>
-    <string name="global_menu_help_about_desktop">Delta Chatについて</string>
+    <string name="global_menu_help_about_desktop">Nova Chatについて</string>
     <string name="write_message_desktop">メッセージを送信</string>
     <string name="encryption_info_title_desktop">暗号化情報</string>
     <string name="delete_message_desktop">メッセージを削除する</string>

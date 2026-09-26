@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <!-- common strings without special context -->
-    <string name="app_name">Nova Chat 新星聊</string>
+    <string name="app_name">Nova Chat</string>
+
+    <!-- Nova Chat: about screen -->
+    <string name="about_title">About</string>
+    <string name="about_description">Nova Chat (新星聊) is an instant messenger built on top of email. It ships a friendlier first-run wizard, lets you choose whether to use end-to-end encryption, and supports syncing your account over WebDAV.</string>
+    <string name="about_license">Nova Chat is free and open source software, released under the GNU General Public License v3.</string>
+    <string name="about_view_source">View source code</string>
 
     <!-- Nova Chat: brand slogan shown on the welcome screen -->
     <string name="nova_slogan">Nova Chat · 新星聊\n以邮箱为底座的即时通讯</string>
@@ -394,7 +400,7 @@
     <string name="share_invite_link_explain">Anyone with this link can view your profile and start a chat with you. Only share it with people you trust.</string>
     <string name="invite_friends">Invite Friends</string>
     <!-- %1$s is replaced by the user's invitation link ("https://i.delta.chat/...") -->
-    <string name="invite_friends_text">Contact me on Delta Chat:\n%1$s</string>
+    <string name="invite_friends_text">Contact me on Nova Chat:\n%1$s</string>
     <string name="menu_copy_selection_to_clipboard">Copy Selection</string>
     <string name="menu_copy_link_to_clipboard">Copy Link</string>
     <string name="menu_copy_text_to_clipboard">Copy Text</string>
@@ -467,7 +473,7 @@
     <!-- Menu item beside an app/chat that adds an icon to the system's home screen. If the user taps that icon, the app/chat is opened directly. -->
     <string name="add_to_home_screen">Add to Home Screen</string>
     <string name="donate">Donate</string>
-    <string name="donate_device_msg">❤️ Seems you\'re enjoying Delta Chat!\n\nPlease consider donating to help ensure that Delta Chat stays free for everyone.\n\nWhile Delta Chat is free to use and open source, development costs money. Help us to keep Delta Chat independent and make it even more awesome in the future.\n\nhttps://delta.chat/donate</string>
+    <string name="donate_device_msg">❤️ Seems you\'re enjoying Nova Chat!\n\nPlease consider donating to help ensure that Nova Chat stays free for everyone.\n\nWhile Nova Chat is free to use and open source, development costs money. Help us to keep Nova Chat independent and make it even more awesome in the future.\n\nhttps://delta.chat/donate</string>
 
     <string name="mute_for_one_hour">Mute for 1 hour</string>
     <string name="mute_for_eight_hours">Mute for 8 hours</string>
@@ -699,15 +705,15 @@
     <string name="multidevice_title">Add Second Device</string>
     <string name="multidevice_same_network_hint">Make sure both devices are on the same Wi-Fi or network</string>
     <string name="multidevice_this_creates_a_qr_code">This creates a QR code that the second device can scan to copy the profile.\n\nMake sure no unwanted observer or camera can see the following screen.</string>
-    <string name="multidevice_install_dc_on_other_device">Install Delta Chat on your other device (https://get.delta.chat)</string>
+    <string name="multidevice_install_dc_on_other_device">Install Nova Chat on your other device (https://get.delta.chat)</string>
     <!-- "I Already Have a Profile / Add as Second Device” should be the same text as defined by the keys onboarding_alternative_logins and multidevice_receiver_title -->
-    <string name="multidevice_tap_scan_on_other_device">Start Delta Chat, tap “I Already Have a Profile / Add as Second Device” and scan the code shown here</string>
+    <string name="multidevice_tap_scan_on_other_device">Start Nova Chat, tap “I Already Have a Profile / Add as Second Device” and scan the code shown here</string>
     <!-- Shown inside a "QR code card" with very limited space; please formulate the text as short as possible therefore. The placeholder will be replaced by the profile name eg. "Scan to set up second device for Alice" -->
     <string name="multidevice_qr_subtitle">Scan to set up second device for %1$s</string>
     <string name="multidevice_receiver_title">Add as Second Device</string>
-    <string name="multidevice_open_settings_on_other_device">On the first device, start Delta Chat, go to “Settings / Add Second Device“ and scan the code shown there</string>
+    <string name="multidevice_open_settings_on_other_device">On the first device, start Nova Chat, go to “Settings / Add Second Device“ and scan the code shown there</string>
     <string name="multidevice_receiver_scanning_ask">Copy the profile from the other device to this device?</string>
-    <string name="multidevice_receiver_needs_update">The profile you want to import is from a newer Delta Chat version.\n\nTo continue setting up second device, please update this device to the latest version of Delta Chat.</string>
+    <string name="multidevice_receiver_needs_update">The profile you want to import is from a newer Nova Chat version.\n\nTo continue setting up second device, please update this device to the latest version of Nova Chat.</string>
     <string name="multidevice_abort">Abort setting up second device?</string>
     <string name="multidevice_abort_will_invalidate_copied_qr">This will invalidate the QR code copied to clipboard.</string>
     <string name="multidevice_transfer_done_devicemsg">ℹ️ Profile transferred to your second device.</string>
@@ -913,6 +919,7 @@
     <string name="pref_appearance">Appearance</string>
     <string name="pref_theme">Theme</string>
     <string name="pref_language">Language</string>
+    <string name="pref_language_system">System default</string>
     <string name="pref_use_system_ui_font">Use System Font</string>
     <string name="pref_incognito_keyboard">Incognito Keyboard</string>
     <!-- Translators: Must indicate that there is no guarantee as the system may not honor our request. -->
@@ -950,9 +957,9 @@
     <string name="pref_multidevice_explain">Synchronize your messages with your other devices. Automatically enabled on adding a second device</string>
     <string name="pref_multidevice_change_warn">Multi-Device Mode must be enabled when using the same profile on multiple devices. Only disable this setting if you have removed this profile from all your other devices.\n\nDisabling Multi-Device Mode while using the profile on multiple devices will result in missed messages and other problems.</string>
     <!-- deprecated -->
-    <string name="pref_auto_folder_moves">Move automatically to DeltaChat Folder</string>
+    <string name="pref_auto_folder_moves">Move automatically to Nova Chat Folder</string>
     <!-- deprecated -->
-    <string name="pref_only_fetch_mvbox_title">Only Fetch from DeltaChat Folder</string>
+    <string name="pref_only_fetch_mvbox_title">Only Fetch from Nova Chat Folder</string>
     <!-- deprecated -->
     <string name="pref_show_emails">Show Classic Emails</string>
     <!-- deprecated -->
@@ -980,14 +987,14 @@
     <string name="profile_image_delete">Delete Profile Image</string>
     <string name="pref_show_tray_icon">Show Tray Icon</string>
     <string name="pref_edit_profile">Edit Profile</string>
-    <string name="send_stats_to_devs">Send statistics to Delta Chat\'s developers</string>
-    <string name="stats_device_message">Do you want to help improve Delta Chat and support research by sending weekly anonymous usage statistics?\n\n👉 Tap here… 👈</string>
-    <string name="stats_confirmation_dialog">Do you want to help improve Delta Chat and support research by sending weekly anonymous usage statistics?</string>
-    <string name="stats_thanks">Thank you! You can always disable the sending at \"Settings -> Advanced\".\n\nDo you additionally have 5 minutes to take part in a scientific study on the security of Delta Chat?</string>
+    <string name="send_stats_to_devs">Send statistics to Nova Chat\'s developers</string>
+    <string name="stats_device_message">Do you want to help improve Nova Chat and support research by sending weekly anonymous usage statistics?\n\n👉 Tap here… 👈</string>
+    <string name="stats_confirmation_dialog">Do you want to help improve Nova Chat and support research by sending weekly anonymous usage statistics?</string>
+    <string name="stats_thanks">Thank you! You can always disable the sending at \"Settings -> Advanced\".\n\nDo you additionally have 5 minutes to take part in a scientific study on the security of Nova Chat?</string>
     <string name="stats_disable_dialog">Sending of statistics is already enabled.\n\nDo you want to disable it?</string>
     <string name="disable">Disable</string>
     <string name="stats_keep_sending">Keep sending</string>
-    <string name="stats_msg_body">The attachment contains anonymous usage statistics, which helps us improve Delta Chat. See https://delta.chat/help#statssending for more information. Thank you!</string>
+    <string name="stats_msg_body">The attachment contains anonymous usage statistics, which helps us improve Nova Chat. See https://delta.chat/help#statssending for more information. Thank you!</string>
 
     <!-- Emoji picker and categories -->
     <string name="emoji_search_results">Search Results</string>
@@ -1131,7 +1138,7 @@
     <string name="devicemsg_storage_exceeding">⚠️ Your provider\'s storage is about to run out: %1$s%% are already used.\n\nYou may not be able to receive messages if storage is full.\n\n👉 Please check if you can delete old data in the provider\'s web interface and consider enabling \"Settings / Chats / Delete Old Messages\". You can check your current storage usage anytime at \"Settings / Connectivity\".</string>
     <!-- %1%s will be replaced by date and time in some human-readable format -->
     <string name="devicemsg_bad_time">⚠️ Date or time on your device seems to be inaccurate (%1$s).\n\nAdjust your clock ⏰🔧 to ensure your messages are received correctly.</string>
-    <string name="devicemsg_update_reminder">⚠️ Your Delta Chat version might be outdated.\n\nThis may cause problems because your chat partners use newer versions - and you are missing the latest features 😳\nPlease check https://get.delta.chat or your app store for updates.</string>
+    <string name="devicemsg_update_reminder">⚠️ Your Nova Chat version might be outdated.\n\nThis may cause problems because your chat partners use newer versions - and you are missing the latest features 😳\nPlease check https://get.delta.chat or your app store for updates.</string>
 
     <!-- Some options as "Add Second Device" or "Backup" may require the system PIN/Fingerprint/Gesture/Etc. to be entered in a system dialog. This hint is added to the system dialog, below a title as "Add Second Device" or "Backup". -->
     <string name="enter_system_secret_to_continue">Unlock to continue</string>
@@ -1220,7 +1227,7 @@
 
     <!-- location streaming -->
     <string name="location_streaming_notification_text">You are sharing your location</string>
-    <string name="location_rationale">To share your live location with chat members, allow Delta Chat to use your location data.\n\nTo make live location work gaplessly, location data is used even when the app is closed or not in use.</string>
+    <string name="location_rationale">To share your live location with chat members, allow Nova Chat to use your location data.\n\nTo make live location work gaplessly, location data is used even when the app is closed or not in use.</string>
 
     <!-- permissions -->
     <string name="perm_required_title">Permission required</string>
@@ -1230,8 +1237,8 @@
     <string name="perm_explain_access_to_mic_denied">To send audio messages, go to system or app settings, select "Permissions" or "Privacy &amp; Security", and enable \"Microphone\".</string>
     <string name="perm_explain_access_to_storage_denied">To receive or send files, go to the app settings, select \"Permissions\", and enable \"Storage\".</string>
     <string name="perm_explain_access_to_location_denied">To attach a location, go to the app settings, select \"Permissions\", and enable \"Location\".</string>
-    <string name="perm_explain_access_to_notifications_denied">To receive notifications, go to \"System Settings / Apps / Delta Chat\" and enable \"Notifications\".</string>
-    <string name="perm_explain_local_network_denied">Delta Chat needs the "Nearby devices" permission to connect to devices on the local network. You can set it under Apps / Delta Chat / Permissions.</string>
+    <string name="perm_explain_access_to_notifications_denied">To receive notifications, go to \"System Settings / Apps / Nova Chat\" and enable \"Notifications\".</string>
+    <string name="perm_explain_local_network_denied">Nova Chat needs the "Nearby devices" permission to connect to devices on the local network. You can set it under Apps / Nova Chat / Permissions.</string>
 
     <!-- ImageEditorHud -->
     <string name="ImageEditorHud_draw_anywhere_to_blur">Draw anywhere to blur</string>
@@ -1243,7 +1250,7 @@
     <string name="ImageEditorHud_flip">Flip</string>
     <string name="ImageEditorHud_rotate">Rotate</string>
 
-    <string name="welcome_desktop">Welcome to Delta Chat</string>
+    <string name="welcome_desktop">Welcome to Nova Chat</string>
     <string name="global_menu_preferences_language_desktop">Language</string>
     <string name="global_menu_file_desktop">File</string>
     <string name="global_menu_file_quit_desktop">Quit</string>
@@ -1258,11 +1265,11 @@
     <string name="global_menu_view_developer_desktop">Developer</string>
     <string name="global_menu_view_developer_tools_desktop">Developer Tools</string>
     <string name="global_menu_help_desktop">Help</string>
-    <string name="delta_chat_homepage">Delta Chat Homepage</string>
+    <string name="delta_chat_homepage">Nova Chat Homepage</string>
     <string name="contribute">Contribute</string>
     <string name="global_menu_help_report_desktop">Report an Issue</string>
-    <string name="global_menu_help_about_desktop">About Delta Chat</string>
-    <string name="global_menu_file_open_desktop">Open Delta Chat</string>
+    <string name="global_menu_help_about_desktop">About Nova Chat</string>
+    <string name="global_menu_file_open_desktop">Open Nova Chat</string>
     <string name="global_menu_minimize_to_tray">Minimize</string>
     <string name="no_account_selected">Select a profile or create a new profile</string>
     <string name="no_chat_selected_suggestion_desktop">Select a chat or create a new chat</string>
@@ -1282,11 +1289,11 @@
     <string name="message_detail_received_desktop">Received</string>
     <string name="menu.view.developer.open.log.folder">Open the Log Folder</string>
     <string name="menu.view.developer.open.current.log.file">Open Current Logfile</string>
-    <string name="explain_desktop_minimized_disabled_tray_pref" tools:ignore="TypographyDashes">Tray icon cannot be disabled as Delta Chat was started with the --minimized option.</string>
+    <string name="explain_desktop_minimized_disabled_tray_pref" tools:ignore="TypographyDashes">Tray icon cannot be disabled as Nova Chat was started with the --minimized option.</string>
     <!-- deprecated, used on desktop although there is not spell checker -->
     <string name="no_spellcheck_suggestions_found">No spelling suggestions found.</string>
     <string name="show_window">Show Window</string>
-    <string name="data_found_other_installation_message">Your profiles from another Delta Chat installation are not accessible - different installations store their data in separate locations.\n\nTo keep existing profiles:\n1. Quit now\n2. Open the other Delta Chat - if needed, reinstall it from %1$s\n3. Back up each profile at \"Settings/Chats\"\n4. Relaunch this version\n5. Restore the backups using \"I already have a profile\"\n\nContinue without your previous profiles?</string>
+    <string name="data_found_other_installation_message">Your profiles from another Nova Chat installation are not accessible - different installations store their data in separate locations.\n\nTo keep existing profiles:\n1. Quit now\n2. Open the other Nova Chat - if needed, reinstall it from %1$s\n3. Back up each profile at \"Settings/Chats\"\n4. Relaunch this version\n5. Restore the backups using \"I already have a profile\"\n\nContinue without your previous profiles?</string>
 
     <!-- title of the "keybindings" dialog (for the keybindings names as such, where possible the normal command strings are used) -->
     <string name="keybindings">Keybindings</string>
@@ -1332,7 +1339,7 @@
     <string name="import_device_contacts">Import device contacts</string>
     <string name="import_device_contacts_hint">To chat with contacts from your device open Settings and enable \"Contacts\".</string>
     <!-- iOS notification settings -->
-    <string name="disabled_in_dc">Disabled in Delta Chat</string>
+    <string name="disabled_in_dc">Disabled in Nova Chat</string>
     <string name="disabled_in_system_settings">Disabled in system settings</string>
     <string name="bg_app_refresh_disabled">\"Background App Refresh\" disabled in system settings</string>
     <string name="notifications_avg_minutes">On average every %1$d minutes</string>
@@ -1345,19 +1352,19 @@
     <!-- use the same translation for "Shortcuts" as the system is using, often the term "Shortcut" stays untranslated; check eg. how the "Shortcuts" system app is called in your locale -->
     <string name="shortcuts_widget_title">Shortcuts</string>
     <!-- use the same translation for "Widget" as the system is using; often the term "Widget" stays untranslated -->
-    <string name="shortcuts_widget_description">Use Delta Chat\'s \"Add to Widget\" to add items</string>
+    <string name="shortcuts_widget_description">Use Nova Chat\'s \"Add to Widget\" to add items</string>
     <!-- use the same translation for "Widget" as the system is using; often the term "Widget" stays untranslated -->
     <string name="remove_from_widget">Remove from Widget</string>
     <!-- use the same translation for "Widget" as the system is using; often the term "Widget" stays untranslated -->
     <string name="add_to_widget">Add to Widget</string>
     <!-- iOS permissions, copy from "deltachat-ios/Info.plist", which is used on missing translations in "deltachat-ios/LANG.lproj/InfoPlist.strings" -->
-    <string name="InfoPlist_NSCameraUsageDescription">Delta Chat uses your camera to take and send photos and videos and to scan QR codes.</string>
-    <string name="InfoPlist_NSLocationAlwaysAndWhenInUseUsageDescription">Delta Chat needs permission to share your location for the timespan you have enabled location sharing.</string>
-    <string name="InfoPlist_NSLocationWhenInUseUsageDescription">Delta Chat needs permission to share your location for the timespan you have enabled location sharing.</string>
-    <string name="InfoPlist_NSMicrophoneUsageDescription">Delta Chat uses your microphone to record and send voice messages and videos with sound.</string>
-    <string name="InfoPlist_NSPhotoLibraryUsageDescription">Delta Chat will let you choose which photos from your library to send.</string>
-    <string name="InfoPlist_NSPhotoLibraryAddUsageDescription">Delta Chat wants to save images to your photo library.</string>
-    <string name="InfoPlist_NSFaceIDUsageDescription">Delta Chat can use Face ID to protect your local profile, backup creation and second device setup.</string>
+    <string name="InfoPlist_NSCameraUsageDescription">Nova Chat uses your camera to take and send photos and videos and to scan QR codes.</string>
+    <string name="InfoPlist_NSLocationAlwaysAndWhenInUseUsageDescription">Nova Chat needs permission to share your location for the timespan you have enabled location sharing.</string>
+    <string name="InfoPlist_NSLocationWhenInUseUsageDescription">Nova Chat needs permission to share your location for the timespan you have enabled location sharing.</string>
+    <string name="InfoPlist_NSMicrophoneUsageDescription">Nova Chat uses your microphone to record and send voice messages and videos with sound.</string>
+    <string name="InfoPlist_NSPhotoLibraryUsageDescription">Nova Chat will let you choose which photos from your library to send.</string>
+    <string name="InfoPlist_NSPhotoLibraryAddUsageDescription">Nova Chat wants to save images to your photo library.</string>
+    <string name="InfoPlist_NSFaceIDUsageDescription">Nova Chat can use Face ID to protect your local profile, backup creation and second device setup.</string>
 
     <!-- android specific strings, developers: please take care to remove strings that are no longer used! -->
     <string name="pref_instant_delivery">Instant Delivery</string>
@@ -1366,10 +1373,10 @@
     <string name="pref_reliable_service">Force Background Connection</string>
     <string name="pref_reliable_service_explain">Causes a permanent notification</string>
 
-    <string name="pref_background_notifications_rationale">To maintain connection and receive messages in the background, ignore battery optimizations in the next step.\n\nDelta Chat uses few resources and takes care not to drain your battery.</string>
+    <string name="pref_background_notifications_rationale">To maintain connection and receive messages in the background, ignore battery optimizations in the next step.\n\nNova Chat uses few resources and takes care not to drain your battery.</string>
     <!-- disabling "Reliable service" will hide a the maybe annoying permanent-notification with the drawback that new-message-notifications get potentially unreliable -->
-    <string name="perm_enable_bg_reminder_title">Tap here to receive messages while Delta Chat is in the background.</string>
-    <string name="perm_enable_bg_already_done">You already allowed Delta Chat to receive messages in the background.\n\nIf messages still do not arrive in background, please also check your system settings.</string>
+    <string name="perm_enable_bg_reminder_title">Tap here to receive messages while Nova Chat is in the background.</string>
+    <string name="perm_enable_bg_already_done">You already allowed Nova Chat to receive messages in the background.\n\nIf messages still do not arrive in background, please also check your system settings.</string>
 
     <!-- device messages for updates -->
     <string name="update_2_6">Guess what\'s new!\n\n🌐 Your messages now travel smarter: With multiple relays, one going down won\'t stop them\n\n📞 Calls grew up and are no longer experimental\n\n📢 Channels become interactive with reactions\n\n✍️ Add a chat description, so no one\'s left wondering\n\n👌 Sent images now look sharper\n\n🔵 Mark chats as unread, so you won\'t forget</string>
@@ -1383,5 +1390,5 @@
     <!-- The placeholder will be replaced by a version name, e.g. "Downloading v2.50.0 …" -->
     <string name="update_downloading">Downloading %1$s …</string>
     <string name="update_now">Update Now</string>
-    <string name="update_install_permission_explain">To install the update, please first allow Delta Chat to install apps in the system settings.</string>
+    <string name="update_install_permission_explain">To install the update, please first allow Nova Chat to install apps in the system settings.</string>
 </resources>

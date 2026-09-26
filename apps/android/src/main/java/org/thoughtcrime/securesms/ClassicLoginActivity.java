@@ -3,11 +3,13 @@ package org.thoughtcrime.securesms;
 import android.content.Intent;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.Toast;
+import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import com.b44t.messenger.DcContext;
@@ -20,6 +22,7 @@ import org.thoughtcrime.securesms.connect.AccountManager;
 import org.thoughtcrime.securesms.connect.DcEventCenter;
 import org.thoughtcrime.securesms.connect.DcHelper;
 import org.thoughtcrime.securesms.util.Util;
+import org.thoughtcrime.securesms.util.ViewUtil;
 import org.thoughtcrime.securesms.util.views.ProgressDialog;
 
 /**
@@ -52,6 +55,21 @@ public class ClassicLoginActivity extends BaseActionBarActivity
     super.onCreate(bundle);
     setContentView(R.layout.activity_classic_login);
     getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
+    // keep the scrollable content clear of the navigation bar (edge-to-edge)
+    ViewUtil.applyWindowInsets(
+        findViewById(R.id.classic_login_scroll), false, false, false, true);
+
+    // Nova Chat fix: make the software back control work (toolbar up-arrow and system back).
+    getOnBackPressedDispatcher()
+        .addCallback(
+            this,
+            new OnBackPressedCallback(true) {
+              @Override
+              public void handleOnBackPressed() {
+                goBack();
+              }
+            });
 
     emailInput = findViewById(R.id.email_input);
     passwordInput = findViewById(R.id.password_input);
@@ -172,6 +190,24 @@ public class ClassicLoginActivity extends BaseActionBarActivity
         .setMessage(text)
         .setPositiveButton(android.R.string.ok, null)
         .show();
+  }
+
+  @Override
+  public boolean onOptionsItemSelected(MenuItem item) {
+    if (item.getItemId() == android.R.id.home) {
+      goBack();
+      return true;
+    }
+    return super.onOptionsItemSelected(item);
+  }
+
+  /** Roll back a half-created account (if any) and leave the screen. */
+  private void goBack() {
+    AccountManager accountManager = AccountManager.getInstance();
+    if (accountManager.canRollbackAccountCreation(this)) {
+      accountManager.rollbackAccountCreation(this);
+    }
+    finish();
   }
 
   @Override

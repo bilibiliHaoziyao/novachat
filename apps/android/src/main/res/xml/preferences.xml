@@ -43,16 +43,12 @@
 
     <PreferenceCategory>
 
+        <!-- Nova Chat: the "Donate" and "Help" entries were removed; an "About" page
+             replaced them. -->
         <Preference
-            android:key="preference_category_donate"
-            android:title="@string/donate"
-            android:icon="@drawable/ic_donate_24dp"
-            android:layout="@layout/preference_item" />
-
-        <Preference
-            android:key="preference_category_help"
-            android:title="@string/menu_help"
-            android:icon="@drawable/ic_help_24dp"
+            android:key="preference_category_about"
+            android:title="@string/about_title"
+            android:icon="@drawable/ic_info_24dp"
             android:layout="@layout/preference_item" />
 
     </PreferenceCategory>

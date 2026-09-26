@@ -1,133 +1,145 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    android:fillViewport="true">
+    android:layout_height="match_parent">
 
-    <LinearLayout
+    <!-- extends the toolbar color behind the status bar (edge-to-edge) -->
+    <include layout="@layout/status_bar_background" />
+
+    <ScrollView
+        android:id="@+id/classic_login_scroll"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="24dp">
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="4dp"
-            android:text="@string/classic_login_title"
-            android:textSize="22sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
-            android:text="@string/nova_use_own_email_explain"
-            android:textSize="14sp" />
-
-        <EditText
-            android:id="@+id/email_input"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:hint="@string/classic_login_email_hint"
-            android:inputType="textEmailAddress"
-            android:importantForAutofill="no" />
-
-        <EditText
-            android:id="@+id/password_input"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:hint="@string/classic_login_password_hint"
-            android:inputType="textPassword"
-            android:importantForAutofill="no" />
-
-        <EditText
-            android:id="@+id/name_input"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="20dp"
-            android:hint="@string/classic_login_display_name_hint"
-            android:inputType="textPersonName"
-            android:importantForAutofill="no" />
-
-        <TextView
-            android:id="@+id/advanced_toggle"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="8dp"
-            android:text="@string/classic_login_advanced"
-            android:textColor="?android:attr/textColorLink"
-            android:textSize="15sp"
-            android:padding="4dp" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            android:text="@string/classic_login_advanced_explain"
-            android:textSize="13sp" />
+        android:layout_height="match_parent"
+        android:fillViewport="true">
 
         <LinearLayout
-            android:id="@+id/advanced_container"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:visibility="gone">
+            android:padding="24dp">
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:text="@string/classic_login_title"
+                android:textSize="22sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                android:text="@string/nova_use_own_email_explain"
+                android:textSize="14sp" />
 
             <EditText
-                android:id="@+id/imap_server_input"
+                android:id="@+id/email_input"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                android:hint="@string/classic_login_imap_server"
-                android:inputType="textUri"
+                android:hint="@string/classic_login_email_hint"
+                android:inputType="textEmailAddress"
                 android:importantForAutofill="no" />
 
             <EditText
-                android:id="@+id/imap_port_input"
+                android:id="@+id/password_input"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                android:hint="@string/classic_login_imap_port"
-                android:inputType="number"
+                android:hint="@string/classic_login_password_hint"
+                android:inputType="textPassword"
                 android:importantForAutofill="no" />
 
             <EditText
-                android:id="@+id/smtp_server_input"
+                android:id="@+id/name_input"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                android:hint="@string/classic_login_smtp_server"
-                android:inputType="textUri"
+                android:layout_marginBottom="20dp"
+                android:hint="@string/classic_login_display_name_hint"
+                android:inputType="textPersonName"
                 android:importantForAutofill="no" />
 
-            <EditText
-                android:id="@+id/smtp_port_input"
+            <TextView
+                android:id="@+id/advanced_toggle"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginBottom="12dp"
-                android:hint="@string/classic_login_smtp_port"
-                android:inputType="number"
-                android:importantForAutofill="no" />
+                android:layout_marginBottom="8dp"
+                android:text="@string/classic_login_advanced"
+                android:textColor="?android:attr/textColorLink"
+                android:textSize="15sp"
+                android:padding="4dp" />
 
-            <CheckBox
-                android:id="@+id/ssl_checkbox"
+            <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                android:text="@string/classic_login_ssl" />
+                android:text="@string/classic_login_advanced_explain"
+                android:textSize="13sp" />
+
+            <LinearLayout
+                android:id="@+id/advanced_container"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:visibility="gone">
+
+                <EditText
+                    android:id="@+id/imap_server_input"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:hint="@string/classic_login_imap_server"
+                    android:inputType="textUri"
+                    android:importantForAutofill="no" />
+
+                <EditText
+                    android:id="@+id/imap_port_input"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:hint="@string/classic_login_imap_port"
+                    android:inputType="number"
+                    android:importantForAutofill="no" />
+
+                <EditText
+                    android:id="@+id/smtp_server_input"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:hint="@string/classic_login_smtp_server"
+                    android:inputType="textUri"
+                    android:importantForAutofill="no" />
+
+                <EditText
+                    android:id="@+id/smtp_port_input"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:hint="@string/classic_login_smtp_port"
+                    android:inputType="number"
+                    android:importantForAutofill="no" />
+
+                <CheckBox
+                    android:id="@+id/ssl_checkbox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginBottom="12dp"
+                    android:text="@string/classic_login_ssl" />
+
+            </LinearLayout>
+
+            <Button
+                android:id="@+id/connect_button"
+                style="@style/ButtonPrimary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/classic_login_connect" />
 
         </LinearLayout>
 
-        <Button
-            android:id="@+id/connect_button"
-            style="@style/ButtonPrimary"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
-            android:text="@string/classic_login_connect" />
+    </ScrollView>
 
-    </LinearLayout>
-</ScrollView>
+</FrameLayout>

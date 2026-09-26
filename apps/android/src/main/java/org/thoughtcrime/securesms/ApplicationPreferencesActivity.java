@@ -66,8 +66,7 @@ public class ApplicationPreferencesActivity extends PassphraseRequiredActionBarA
   private static final String PREFERENCE_CATEGORY_MULTIDEVICE = "preference_category_multidevice";
   private static final String PREFERENCE_CATEGORY_ADVANCED = "preference_category_advanced";
   private static final String PREFERENCE_CATEGORY_CONNECTIVITY = "preference_category_connectivity";
-  private static final String PREFERENCE_CATEGORY_DONATE = "preference_category_donate";
-  private static final String PREFERENCE_CATEGORY_HELP = "preference_category_help";
+  private static final String PREFERENCE_CATEGORY_ABOUT = "preference_category_about";
 
   public static final int REQUEST_CODE_SET_BACKGROUND = 11;
 
@@ -179,11 +178,8 @@ public class ApplicationPreferencesActivity extends PassphraseRequiredActionBarA
       this.findPreference(PREFERENCE_CATEGORY_ADVANCED)
           .setOnPreferenceClickListener(new CategoryClickListener(PREFERENCE_CATEGORY_ADVANCED));
 
-      this.findPreference(PREFERENCE_CATEGORY_DONATE)
-          .setOnPreferenceClickListener(new CategoryClickListener(PREFERENCE_CATEGORY_DONATE));
-
-      this.findPreference(PREFERENCE_CATEGORY_HELP)
-          .setOnPreferenceClickListener(new CategoryClickListener(PREFERENCE_CATEGORY_HELP));
+      this.findPreference(PREFERENCE_CATEGORY_ABOUT)
+          .setOnPreferenceClickListener(new CategoryClickListener(PREFERENCE_CATEGORY_ABOUT));
 
       DcHelper.getEventCenter(getActivity())
           .addObserver(DcContext.DC_EVENT_CONNECTIVITY_CHANGED, this);
@@ -233,7 +229,7 @@ public class ApplicationPreferencesActivity extends PassphraseRequiredActionBarA
           .setSummary(
               DcHelper.getConnectivitySummary(
                   getActivity(), getString(R.string.connectivity_connected)));
-      this.findPreference(PREFERENCE_CATEGORY_HELP)
+      this.findPreference(PREFERENCE_CATEGORY_ABOUT)
           .setSummary(AdvancedPreferenceFragment.getVersion(getActivity()));
     }
 
@@ -301,11 +297,8 @@ public class ApplicationPreferencesActivity extends PassphraseRequiredActionBarA
           case PREFERENCE_CATEGORY_ADVANCED:
             fragment = new AdvancedPreferenceFragment();
             break;
-          case PREFERENCE_CATEGORY_DONATE:
-            IntentUtils.showInBrowser(requireActivity(), "https://delta.chat/donate");
-            break;
-          case PREFERENCE_CATEGORY_HELP:
-            startActivity(new Intent(getActivity(), LocalHelpActivity.class));
+          case PREFERENCE_CATEGORY_ABOUT:
+            startActivity(new Intent(getActivity(), AboutActivity.class));
             break;
           default:
             throw new AssertionError();

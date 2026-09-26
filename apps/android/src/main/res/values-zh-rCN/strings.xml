@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <!-- common strings without special context -->
-    <string name="app_name">Delta Chat</string>
+    <string name="app_name">新星聊</string>
+
+    <!-- Nova Chat: 关于页 -->
+    <string name="about_title">关于</string>
+    <string name="about_description">新星聊（Nova Chat）是一款以邮箱为底座的即时通讯软件。它改进了首次使用向导，端到端加密可自由选择，并支持使用 WebDAV 同步账号。</string>
+    <string name="about_license">新星聊是自由开源软件，遵循 GNU 通用公共许可证 v3 发布。</string>
+    <string name="about_view_source">查看源代码</string>
     <string name="ok">确定</string>
     <string name="cancel">取消</string>
     <string name="clear_search">清除搜索</string>
@@ -299,7 +305,7 @@
     <string name="share_invite_link_explain">任何有此链接的人都可查看您的账号并开始与您聊天。请仅与您信任的人分享。</string>
     <string name="invite_friends">邀请好友</string>
     <!-- %1$s is replaced by the user's invitation link ("https://i.delta.chat/...") -->
-    <string name="invite_friends_text">在 Delta Chat 上联系我：\n%1$s</string>
+    <string name="invite_friends_text">在 新星聊 上联系我：\n%1$s</string>
     <string name="menu_copy_selection_to_clipboard">复制所选内容</string>
     <string name="menu_copy_link_to_clipboard">复制链接</string>
     <string name="menu_copy_text_to_clipboard">复制文本</string>
@@ -370,7 +376,7 @@
     <!-- Menu item beside an app/chat that adds an icon to the system's home screen. If the user taps that icon, the app/chat is opened directly. -->
     <string name="add_to_home_screen">添加到主屏幕</string>
     <string name="donate">捐赠</string>
-    <string name="donate_device_msg">❤️ 看起来您很喜欢 Delta Chat！\n\n恳请您考虑捐款支持，让 Delta Chat 始终保持自由开放。\n\n虽然 Delta Chat 是自由且开源的，但开发仍需资金支持。请帮助我们保持 Delta Chat 的独立性，并在未来让它变得更加出色。\n\nhttps://delta.chat/donate</string>
+    <string name="donate_device_msg">❤️ 看起来您很喜欢 新星聊！\n\n恳请您考虑捐款支持，让 新星聊 始终保持自由开放。\n\n虽然 新星聊 是自由且开源的，但开发仍需资金支持。请帮助我们保持 新星聊 的独立性，并在未来让它变得更加出色。\n\nhttps://delta.chat/donate</string>
 
     <string name="mute_for_one_hour">静音 1 小时</string>
     <string name="mute_for_eight_hours">静音 8 小时</string>
@@ -591,15 +597,15 @@
     <string name="multidevice_title">添加第二台设备</string>
     <string name="multidevice_same_network_hint">让两台设备连接相同的 Wi-Fi 或网络</string>
     <string name="multidevice_this_creates_a_qr_code">这将创建一个二维码，第二台设备可以扫描该二维码来复制账号。\n\n请确保没有不必要的观察者或摄像机可以看到以下屏幕。</string>
-    <string name="multidevice_install_dc_on_other_device">在你的其他设备上安装 Delta Chat (https://get.delta.chat)</string>
+    <string name="multidevice_install_dc_on_other_device">在你的其他设备上安装 新星聊 (https://get.delta.chat)</string>
     <!-- "I Already Have a Profile / Add as Second Device” should be the same text as defined by the keys onboarding_alternative_logins and multidevice_receiver_title -->
-    <string name="multidevice_tap_scan_on_other_device">启动 Delta Chat，点按“我已有账号/添加为第二台设备”，然后扫描此处显示的二维码</string>
+    <string name="multidevice_tap_scan_on_other_device">启动 新星聊，点按“我已有账号/添加为第二台设备”，然后扫描此处显示的二维码</string>
     <!-- Shown inside a "QR code card" with very limited space; please formulate the text as short as possible therefore. The placeholder will be replaced by the profile name eg. "Scan to set up second device for Alice" -->
     <string name="multidevice_qr_subtitle">扫描此处为 %1$s 设置第二台设备</string>
     <string name="multidevice_receiver_title">添加为第二台设备</string>
-    <string name="multidevice_open_settings_on_other_device">在第一台设备上，启动 Delta Chat，转到“设置/添加第二台设备”，然后扫描显示的二维码</string>
+    <string name="multidevice_open_settings_on_other_device">在第一台设备上，启动 新星聊，转到“设置/添加第二台设备”，然后扫描显示的二维码</string>
     <string name="multidevice_receiver_scanning_ask">是否将账号从其他设备复制到此设备？</string>
-    <string name="multidevice_receiver_needs_update">您要导入的账号来自较新的 Delta Chat 版本。\n\n要继续设置第二台设备，请更新此设备上的 Delta Chat 到最新版。</string>
+    <string name="multidevice_receiver_needs_update">您要导入的账号来自较新的 新星聊 版本。\n\n要继续设置第二台设备，请更新此设备上的 新星聊 到最新版。</string>
     <string name="multidevice_abort">中止第二台设备的设置吗？</string>
     <string name="multidevice_abort_will_invalidate_copied_qr">这会让复制到剪贴板的二维码失效。</string>
     <string name="multidevice_transfer_done_devicemsg">ℹ️ 账号已传输到您的第二台设备。</string>
@@ -838,9 +844,9 @@
     <string name="pref_multidevice_explain">将您的消息与其他设备同步。添加第二台设备时自动启用</string>
     <string name="pref_multidevice_change_warn">在多个设备上使用同一账号时，必须启用多设备模式。仅当您已从所有其他设备中移除此账号后，才能禁用此设置。\n\n在多个设备上使用该账号时禁用多设备模式会导致错过消息和其他问题。</string>
     <!-- deprecated -->
-    <string name="pref_auto_folder_moves">自动移动至 DeltaChat 文件夹</string>
+    <string name="pref_auto_folder_moves">自动移动至 新星聊 文件夹</string>
     <!-- deprecated -->
-    <string name="pref_only_fetch_mvbox_title">只从 DeltaChat 文件夹获取</string>
+    <string name="pref_only_fetch_mvbox_title">只从 新星聊 文件夹获取</string>
     <!-- deprecated -->
     <string name="pref_show_emails">显示传统电子邮件</string>
     <!-- deprecated -->
@@ -868,14 +874,14 @@
     <string name="profile_image_delete">删除头像</string>
     <string name="pref_show_tray_icon">显示托盘图标</string>
     <string name="pref_edit_profile">编辑账号</string>
-    <string name="send_stats_to_devs">发送统计数据给 Delta Chat 开发者</string>
-    <string name="stats_device_message">您是否愿意通过每周发送匿名使用统计数据来帮助改进 Delta Chat 并支持相关研究？\n\n👉 点击此处… 👈</string>
-    <string name="stats_confirmation_dialog">您是否愿意通过每周发送匿名使用统计数据来帮助改进 Delta Chat 并支持相关研究？</string>
-    <string name="stats_thanks">谢谢！您随时可以在“设置 -> 高级”中禁用发送功能。\n\n您是否愿意抽出 5 分钟时间参与一项关于 Delta Chat 安全性的科学研究？</string>
+    <string name="send_stats_to_devs">发送统计数据给 新星聊 开发者</string>
+    <string name="stats_device_message">您是否愿意通过每周发送匿名使用统计数据来帮助改进 新星聊 并支持相关研究？\n\n👉 点击此处… 👈</string>
+    <string name="stats_confirmation_dialog">您是否愿意通过每周发送匿名使用统计数据来帮助改进 新星聊 并支持相关研究？</string>
+    <string name="stats_thanks">谢谢！您随时可以在“设置 -> 高级”中禁用发送功能。\n\n您是否愿意抽出 5 分钟时间参与一项关于 新星聊 安全性的科学研究？</string>
     <string name="stats_disable_dialog">统计数据发送功能已启用。\n\n是否要禁用此功能？</string>
     <string name="disable">禁用</string>
     <string name="stats_keep_sending">继续发送</string>
-    <string name="stats_msg_body">附件包含匿名使用统计数据，这有助于我们改进 Delta Chat。如需了解详情，请访问 https://delta.chat/help#statssending 。谢谢！</string>
+    <string name="stats_msg_body">附件包含匿名使用统计数据，这有助于我们改进 新星聊。如需了解详情，请访问 https://delta.chat/help#statssending 。谢谢！</string>
 
     <!-- Emoji picker and categories -->
     <string name="emoji_search_results">搜索结果</string>
@@ -1019,7 +1025,7 @@
     <string name="devicemsg_storage_exceeding">⚠️ 您的服务提供者存储空间即将用完：已使用 %1$s%%。\n\n如果存储空间已满，您可能无法接收消息。\n\n👉 请检查您是否可以在服务提供者的网页界面中删除旧数据，并考虑启用“设置/聊天/删除旧消息”。您可以随时在“设置/连接”中查看当前的存储空间使用情况。</string>
     <!-- %1%s will be replaced by date and time in some human-readable format -->
     <string name="devicemsg_bad_time">⚠️ 设备的日期或时间似乎不准确 （%1$s）。\n\n请调整时钟 ⏰🔧 以确保能够正确接收消息。</string>
-    <string name="devicemsg_update_reminder">⚠️您的 Delta Chat 版本可能过时了。\n\n这可能会在您的聊天对象使用更新的版本时造成问题。并且您缺失了最新功能😳\n请浏览 https://get.delta.chat 或应用商店来获取更新。</string>
+    <string name="devicemsg_update_reminder">⚠️您的 新星聊 版本可能过时了。\n\n这可能会在您的聊天对象使用更新的版本时造成问题。并且您缺失了最新功能😳\n请浏览 https://get.delta.chat 或应用商店来获取更新。</string>
 
     <!-- Some options as "Add Second Device" or "Backup" may require the system PIN/Fingerprint/Gesture/Etc. to be entered in a system dialog. This hint is added to the system dialog, below a title as "Add Second Device" or "Backup". -->
     <string name="enter_system_secret_to_continue">解锁以继续</string>
@@ -1106,7 +1112,7 @@
 
     <!-- location streaming -->
     <string name="location_streaming_notification_text">您正在共享您的位置</string>
-    <string name="location_rationale">要与聊天成员共享您的实时位置，请允许 Delta Chat 使用您的位置数据。\n\n为了确保实时位置无缝工作，即使应用已关闭或未使用，也会使用位置数据。</string>
+    <string name="location_rationale">要与聊天成员共享您的实时位置，请允许 新星聊 使用您的位置数据。\n\n为了确保实时位置无缝工作，即使应用已关闭或未使用，也会使用位置数据。</string>
 
     <!-- permissions -->
     <string name="perm_required_title">需要权限</string>
@@ -1116,7 +1122,7 @@
     <string name="perm_explain_access_to_mic_denied">要发送音频消息，请转到系统或应用设置，选择“权限”或“隐私和安全”，然后启用“麦克风”。</string>
     <string name="perm_explain_access_to_storage_denied">要发送或接收文件，请转到应用设置，选择“权限”，然后启用“存储”。</string>
     <string name="perm_explain_access_to_location_denied">要附加位置，请转到应用设置，选择“权限”，然后启用“位置”。</string>
-    <string name="perm_explain_access_to_notifications_denied">要接收通知，请转到“系统设置/应用/Delta Chat\"并开启”通知“。</string>
+    <string name="perm_explain_access_to_notifications_denied">要接收通知，请转到“系统设置/应用/新星聊\"并开启”通知“。</string>
     <!-- ImageEditorHud -->
     <string name="ImageEditorHud_draw_anywhere_to_blur">对任意地方涂抹以进行模糊</string>
     <string name="ImageEditorHud_add_text">添加文字</string>
@@ -1127,7 +1133,7 @@
     <string name="ImageEditorHud_flip">翻转</string>
     <string name="ImageEditorHud_rotate">旋转</string>
 
-    <string name="welcome_desktop">欢迎使用 Delta Chat</string>
+    <string name="welcome_desktop">欢迎使用 新星聊</string>
     <string name="global_menu_preferences_language_desktop">语言</string>
     <string name="global_menu_file_desktop">文件</string>
     <string name="global_menu_file_quit_desktop">退出</string>
@@ -1142,11 +1148,11 @@
     <string name="global_menu_view_developer_desktop">开发者</string>
     <string name="global_menu_view_developer_tools_desktop">开发者工具</string>
     <string name="global_menu_help_desktop">帮助</string>
-    <string name="delta_chat_homepage">Delta Chat 主页</string>
+    <string name="delta_chat_homepage">新星聊 主页</string>
     <string name="contribute">贡献</string>
     <string name="global_menu_help_report_desktop">报告问题</string>
-    <string name="global_menu_help_about_desktop">关于 Delta Chat</string>
-    <string name="global_menu_file_open_desktop">打开 Delta Chat</string>
+    <string name="global_menu_help_about_desktop">关于 新星聊</string>
+    <string name="global_menu_file_open_desktop">打开 新星聊</string>
     <string name="global_menu_minimize_to_tray">最小化</string>
     <string name="no_account_selected">选择账号或创建新账号</string>
     <string name="no_chat_selected_suggestion_desktop">选择聊天或创建新聊天</string>
@@ -1166,11 +1172,11 @@
     <string name="message_detail_received_desktop">接收于</string>
     <string name="menu.view.developer.open.log.folder">打开日志文件夹</string>
     <string name="menu.view.developer.open.current.log.file">打开当前日志文件</string>
-    <string name="explain_desktop_minimized_disabled_tray_pref" tools:ignore="TypographyDashes">在 Delta Chat 带 --minimized 参数启动时，无法禁用托盘图标。</string>
+    <string name="explain_desktop_minimized_disabled_tray_pref" tools:ignore="TypographyDashes">在 新星聊 带 --minimized 参数启动时，无法禁用托盘图标。</string>
     <!-- deprecated, used on desktop although there is not spell checker -->
     <string name="no_spellcheck_suggestions_found">未找到拼写建议</string>
     <string name="show_window">显示窗口</string>
-    <string name="data_found_other_installation_message">您无法访问其他 Delta Chat 安装中的配置文件 - 不同安装的数据存储在不同的位置。\n\n要保留现有配置文件：\n1. 立即退出\n2. 打开其他 Delta Chat - 如果需要，请从 %1$s 重新安装\n3. 在“设置/聊天”中备份每个配置文件\n4. 重新启动此版本\n5. 使用“我已有账号”恢复备份\n\n不使用之前的配置文件继续吗？</string>
+    <string name="data_found_other_installation_message">您无法访问其他 新星聊 安装中的配置文件 - 不同安装的数据存储在不同的位置。\n\n要保留现有配置文件：\n1. 立即退出\n2. 打开其他 新星聊 - 如果需要，请从 %1$s 重新安装\n3. 在“设置/聊天”中备份每个配置文件\n4. 重新启动此版本\n5. 使用“我已有账号”恢复备份\n\n不使用之前的配置文件继续吗？</string>
 
     <!-- title of the "keybindings" dialog (for the keybindings names as such, where possible the normal command strings are used) -->
     <string name="keybindings">按键绑定</string>
@@ -1216,7 +1222,7 @@
     <string name="import_device_contacts">导入设备联系人</string>
     <string name="import_device_contacts_hint">要与您设备中的联系人聊天，请打开设置并启用“联系人”。</string>
     <!-- iOS notification settings -->
-    <string name="disabled_in_dc">在 Delta Chat 中被禁用</string>
+    <string name="disabled_in_dc">在 新星聊 中被禁用</string>
     <string name="disabled_in_system_settings">在系统设置中被禁用</string>
     <string name="bg_app_refresh_disabled">“后台应用刷新”在系统设置中被禁用</string>
     <string name="notifications_avg_minutes">平均每 %1$d 分钟</string>
@@ -1229,19 +1235,19 @@
     <!-- use the same translation for "Shortcuts" as the system is using, often the term "Shortcut" stays untranslated; check eg. how the "Shortcuts" system app is called in your locale -->
     <string name="shortcuts_widget_title">快捷方式</string>
     <!-- use the same translation for "Widget" as the system is using; often the term "Widget" stays untranslated -->
-    <string name="shortcuts_widget_description">使用 Delta Chat 的“添加到微件”添加项目</string>
+    <string name="shortcuts_widget_description">使用 新星聊 的“添加到微件”添加项目</string>
     <!-- use the same translation for "Widget" as the system is using; often the term "Widget" stays untranslated -->
     <string name="remove_from_widget">从微件中移除</string>
     <!-- use the same translation for "Widget" as the system is using; often the term "Widget" stays untranslated -->
     <string name="add_to_widget">添加到微件</string>
     <!-- iOS permissions, copy from "deltachat-ios/Info.plist", which is used on missing translations in "deltachat-ios/LANG.lproj/InfoPlist.strings" -->
-    <string name="InfoPlist_NSCameraUsageDescription">Delta Chat 使用相机来拍摄、发送照片和视频以及扫描二维码。</string>
-    <string name="InfoPlist_NSLocationAlwaysAndWhenInUseUsageDescription">Delta Chat 需要位置权限，以便在您启用位置共享的时间范围内共享您的位置。</string>
-    <string name="InfoPlist_NSLocationWhenInUseUsageDescription">Delta Chat 需要位置权限，以便在您启用位置共享的时间范围内共享您的位置。</string>
-    <string name="InfoPlist_NSMicrophoneUsageDescription">Delta Chat 使用麦克风来录制、发送语音消息和带有声音的视频。</string>
-    <string name="InfoPlist_NSPhotoLibraryUsageDescription">Delta Chat 将让您选择要从图库中发送哪些照片。</string>
-    <string name="InfoPlist_NSPhotoLibraryAddUsageDescription">Delta Chat 想要将图片保存到您的照片库中。</string>
-    <string name="InfoPlist_NSFaceIDUsageDescription">Delta Chat 可以使用 Face ID 保护您的本地配置文件，备份创建和第二台设备设置。</string>
+    <string name="InfoPlist_NSCameraUsageDescription">新星聊 使用相机来拍摄、发送照片和视频以及扫描二维码。</string>
+    <string name="InfoPlist_NSLocationAlwaysAndWhenInUseUsageDescription">新星聊 需要位置权限，以便在您启用位置共享的时间范围内共享您的位置。</string>
+    <string name="InfoPlist_NSLocationWhenInUseUsageDescription">新星聊 需要位置权限，以便在您启用位置共享的时间范围内共享您的位置。</string>
+    <string name="InfoPlist_NSMicrophoneUsageDescription">新星聊 使用麦克风来录制、发送语音消息和带有声音的视频。</string>
+    <string name="InfoPlist_NSPhotoLibraryUsageDescription">新星聊 将让您选择要从图库中发送哪些照片。</string>
+    <string name="InfoPlist_NSPhotoLibraryAddUsageDescription">新星聊 想要将图片保存到您的照片库中。</string>
+    <string name="InfoPlist_NSFaceIDUsageDescription">新星聊 可以使用 Face ID 保护您的本地配置文件，备份创建和第二台设备设置。</string>
 
     <!-- android specific strings, developers: please take care to remove strings that are no longer used! -->
     <string name="pref_instant_delivery">即时传送</string>
@@ -1250,9 +1256,9 @@
     <string name="pref_reliable_service">强制后台连接</string>
     <string name="pref_reliable_service_explain">会形成永久通知</string>
 
-    <string name="pref_background_notifications_rationale">为了保持连接并在后台接收消息，请在下一步中忽略电池优化。\n\nDelta Chat 使用的资源很少，并且会注意不去耗尽电池电量。</string>
+    <string name="pref_background_notifications_rationale">为了保持连接并在后台接收消息，请在下一步中忽略电池优化。\n\n新星聊 使用的资源很少，并且会注意不去耗尽电池电量。</string>
     <!-- disabling "Reliable service" will hide a the maybe annoying permanent-notification with the drawback that new-message-notifications get potentially unreliable -->
-    <string name="perm_enable_bg_reminder_title">点按此处即可在 Delta Chat 处于后台时接收消息。</string>
-    <string name="perm_enable_bg_already_done">您已允许 Delta Chat 在后台接收消息。\n\n若 Delta Chat 在后台时消息仍未到达，请检查系统设置。</string>
+    <string name="perm_enable_bg_reminder_title">点按此处即可在 新星聊 处于后台时接收消息。</string>
+    <string name="perm_enable_bg_already_done">您已允许 新星聊 在后台接收消息。\n\n若 新星聊 在后台时消息仍未到达，请检查系统设置。</string>
 
     </resources>

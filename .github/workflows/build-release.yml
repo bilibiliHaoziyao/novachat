@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   android:
-    name: Build Android APK
+    name: Build Android APK (32-bit + 64-bit)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -41,13 +41,20 @@ jobs:
           cd apps/android
           bash scripts/install-toolchains.sh
 
-      - name: Compile core (arm64-v8a)
+      - name: Compile core (arm64-v8a + armeabi-v7a)
         env:
           ANDROID_NDK_ROOT: ${{ steps.setup-ndk.outputs.ndk-path }}
         run: |
           cd apps/android
           export PATH="${PATH}:${ANDROID_NDK_ROOT}/toolchains/llvm/prebuilt/linux-x86_64/bin/"
+          # `ndk-make.sh` wipes the intermediate `jni/<abi>` dirs on every run,
+          # but the final `ndk-build` output in `libs/` is kept. Running it once
+          # per ABI therefore leaves both ABIs in `libs/`, which is what Gradle
+          # packages into the APK (sourceSets.main.jniLibs.srcDirs = ['libs']).
           bash scripts/ndk-make.sh arm64-v8a
+          bash scripts/ndk-make.sh armeabi-v7a
+          echo "== packaged native libraries =="
+          ls -R libs
 
       - name: Generate CI signing key
         run: |
@@ -59,7 +66,7 @@ jobs:
       - name: Build release APK (foss flavor, signed with the CI key)
         run: |
           cd apps/android
-          ./gradlew --no-daemon -PABI_FILTER=arm64-v8a \
+          ./gradlew --no-daemon \
             -PDC_RELEASE_STORE_FILE="$RUNNER_TEMP/novachat-ci.jks" \
             -PDC_RELEASE_STORE_PASSWORD=novachat-ci \
             -PDC_RELEASE_KEY_ALIAS=nova \
@@ -70,48 +77,15 @@ jobs:
         run: |
           cd apps/android
           APK=$(ls build/outputs/apk/foss/release/*.apk | head -1)
-          cp "$APK" NovaChat-arm64-v8a.apk
-          ls -lh NovaChat-arm64-v8a.apk
+          cp "$APK" NovaChat-universal.apk
+          ls -lh NovaChat-universal.apk
+          echo "== bundled ABIs =="
+          unzip -l NovaChat-universal.apk | grep -E 'lib/[^/]+/libdeltachat\.so'
           BT=$(ls -d ${ANDROID_HOME:-$ANDROID_SDK_ROOT}/build-tools/* 2>/dev/null | sort -V | tail -1)
-          "${BT}/apksigner" verify --print-certs NovaChat-arm64-v8a.apk
+          "${BT}/apksigner" verify --print-certs NovaChat-universal.apk
 
       - name: Upload APK to Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: apps/android/NovaChat-arm64-v8a.apk
-
-  windows:
-    name: Build Windows Installer
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: false
-          persist-credentials: false
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22.x
-
-      - name: Install pnpm
-        run: npm i -g pnpm
-
-      - name: Install dependencies
-        working-directory: apps/desktop
-        run: pnpm install --frozen-lockfile
-
-      - name: Build & package (NSIS + Portable)
-        working-directory: apps/desktop/packages/target-electron
-        run: |
-          pnpm build
-          pnpm run pack:generate_config
-          pnpm run pack:patch-node-modules
-          pnpm electron-builder --win nsis portable --publish never
-
-      - name: Upload installers to Release
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            apps/desktop/packages/target-electron/dist/*.exe
+          files: apps/android/NovaChat-universal.apk

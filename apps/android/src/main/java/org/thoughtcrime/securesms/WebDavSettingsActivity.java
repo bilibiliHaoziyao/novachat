@@ -3,6 +3,7 @@ package org.thoughtcrime.securesms;
 import android.content.DialogInterface;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.MenuItem;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.TextView;
@@ -21,6 +22,7 @@ import org.thoughtcrime.securesms.connect.DcEventCenter;
 import org.thoughtcrime.securesms.connect.DcHelper;
 import org.thoughtcrime.securesms.connect.WebDavSyncManager;
 import org.thoughtcrime.securesms.util.Util;
+import org.thoughtcrime.securesms.util.ViewUtil;
 import org.thoughtcrime.securesms.util.views.ProgressDialog;
 
 /**
@@ -53,6 +55,9 @@ public class WebDavSettingsActivity extends BaseActionBarActivity
     setContentView(R.layout.activity_webdav_settings);
     getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
+    // keep the scrollable content clear of the navigation bar (edge-to-edge)
+    ViewUtil.applyWindowInsets(findViewById(R.id.webdav_scroll), false, false, false, true);
+
     urlInput = findViewById(R.id.webdav_url_input);
     usernameInput = findViewById(R.id.webdav_username_input);
     passwordInput = findViewById(R.id.webdav_password_input);
@@ -74,6 +79,15 @@ public class WebDavSettingsActivity extends BaseActionBarActivity
     super.onDestroy();
     DcHelper.getEventCenter(this).removeObservers(this);
     executor.shutdown();
+  }
+
+  @Override
+  public boolean onOptionsItemSelected(MenuItem item) {
+    if (item.getItemId() == android.R.id.home) {
+      finish();
+      return true;
+    }
+    return super.onOptionsItemSelected(item);
   }
 
   private String getUrl() {

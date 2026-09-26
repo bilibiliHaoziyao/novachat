@@ -11,6 +11,13 @@
         android:entryValues="@array/pref_theme_values"
         android:defaultValue="light" />
 
+    <ListPreference
+        android:key="pref_language"
+        android:title="@string/pref_language"
+        android:entries="@array/pref_language_entries"
+        android:entryValues="@array/pref_language_values"
+        android:defaultValue="system" />
+
     <Preference
         android:key="pref_chat_background"
         android:title="@string/pref_background" />

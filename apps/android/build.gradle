@@ -28,8 +28,8 @@ android {
     useLibrary 'org.apache.http.legacy'
 
     defaultConfig {
-        versionCode 758
-        versionName "2.62.0"
+        versionCode 759
+        versionName "0.2.0"
 
         applicationId "com.b44t.messenger"
         multiDexEnabled true
@@ -40,7 +40,7 @@ android {
         vectorDrawables.useSupportLibrary = true
 
         // base name of the generated apk
-        project.ext.set("archivesBaseName", "deltachat");
+        project.ext.set("archivesBaseName", "novachat");
 
         buildConfigField "boolean", "DEV_BUILD", "false"
 
@@ -141,7 +141,8 @@ android {
             variant.outputs.each { output ->
                 output.outputFileName.set(
                 output.outputFileName.get()
-                .replace("deltachat-android", "deltachat")
+                .replace("deltachat-android", "novachat")
+                .replace("deltachat", "novachat")
                 .replace(".apk", "-${output.versionName.get()}.apk")
                 )
             }

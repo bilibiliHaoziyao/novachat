@@ -18,6 +18,25 @@
         <item>dark</item>
     </string-array>
 
+    <!-- Nova Chat: in-app language selection. Only Chinese (simplified/traditional),
+         English and Japanese are shipped. Language names are always shown in their
+         own language, so they are hardcoded here. -->
+    <string-array name="pref_language_entries">
+        <item>@string/pref_language_system</item>
+        <item>简体中文</item>
+        <item>繁體中文</item>
+        <item>English</item>
+        <item>日本語</item>
+    </string-array>
+
+    <string-array name="pref_language_values" translatable="false">
+        <item>system</item>
+        <item>zh-CN</item>
+        <item>zh-TW</item>
+        <item>en</item>
+        <item>ja</item>
+    </string-array>
+
     <string-array name="pref_led_color_entries">
         <item>@string/purple</item>
         <item>@string/green</item>

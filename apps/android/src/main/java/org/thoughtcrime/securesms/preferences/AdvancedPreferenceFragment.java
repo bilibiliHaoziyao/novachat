@@ -3,7 +3,6 @@ package org.thoughtcrime.securesms.preferences;
 import static android.app.Activity.RESULT_OK;
 import static android.text.InputType.TYPE_TEXT_VARIATION_URI;
 import static org.thoughtcrime.securesms.connect.DcHelper.CONFIG_BCC_SELF;
-import static org.thoughtcrime.securesms.connect.DcHelper.CONFIG_STATS_SENDING;
 
 import android.content.Context;
 import android.content.Intent;
@@ -30,7 +29,6 @@ import java.util.Objects;
 import org.thoughtcrime.securesms.ApplicationPreferencesActivity;
 import org.thoughtcrime.securesms.LogViewActivity;
 import org.thoughtcrime.securesms.R;
-import org.thoughtcrime.securesms.StatsSending;
 import org.thoughtcrime.securesms.WebDavSettingsActivity;
 import org.thoughtcrime.securesms.connect.DcEventCenter;
 import org.thoughtcrime.securesms.proxy.ProxySettingsActivity;
@@ -43,7 +41,6 @@ public class AdvancedPreferenceFragment extends ListSummaryPreferenceFragment
     implements DcEventCenter.DcEventDelegate {
   private static final String TAG = "AdvancedPreferenceFrag";
 
-  CheckBoxPreference selfReportingCheckbox;
   CheckBoxPreference multiDeviceCheckbox;
   CheckBoxPreference e2eeCheckbox;
   private ActivityResultLauncher<Intent> screenLockLauncher;
@@ -119,25 +116,6 @@ public class AdvancedPreferenceFragment extends ListSummaryPreferenceFragment
           });
     }
 
-    selfReportingCheckbox = this.findPreference("pref_stats_sending");
-    if (selfReportingCheckbox != null) {
-      selfReportingCheckbox.setOnPreferenceChangeListener(
-          (preference, newValue) -> {
-            boolean enabled = (Boolean) newValue;
-            if (enabled) {
-              StatsSending.showStatsConfirmationDialog(
-                  requireActivity(),
-                  () -> {
-                    ((CheckBoxPreference) preference).setChecked(true);
-                  });
-              return false;
-            } else {
-              dcContext.setConfigInt(CONFIG_STATS_SENDING, 0);
-              return true;
-            }
-          });
-    }
-
     Preference proxySettings = this.findPreference("proxy_settings_button");
     if (proxySettings != null) {
       proxySettings.setOnPreferenceClickListener(
@@ -208,7 +186,6 @@ public class AdvancedPreferenceFragment extends ListSummaryPreferenceFragment
             ((ApplicationPreferencesActivity) requireActivity()).getSupportActionBar())
         .setTitle(R.string.menu_advanced);
 
-    selfReportingCheckbox.setChecked(0 != dcContext.getConfigInt(CONFIG_STATS_SENDING));
     multiDeviceCheckbox.setChecked(0 != dcContext.getConfigInt(CONFIG_BCC_SELF));
     if (e2eeCheckbox != null) {
       e2eeCheckbox.setChecked(1 == dcContext.getConfigInt("force_encryption"));

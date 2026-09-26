@@ -58,11 +58,6 @@
     <PreferenceCategory>
         <org.thoughtcrime.securesms.components.SwitchPreferenceCompat
             android:defaultValue="false"
-            android:key="pref_stats_sending"
-            android:title="@string/send_stats_to_devs" />
-
-        <org.thoughtcrime.securesms.components.SwitchPreferenceCompat
-            android:defaultValue="false"
             android:key="pref_screen_security"
             android:summary="@string/pref_screen_security_explain"
             android:title="@string/pref_screen_security" />

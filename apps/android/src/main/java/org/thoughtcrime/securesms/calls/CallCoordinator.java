@@ -176,20 +176,20 @@ public class CallCoordinator implements DcEventCenter.DcEventDelegate {
     NotificationChannel incomingChannel =
         new NotificationChannel(
             CHANNEL_ID_INCOMING, "Incoming Calls", NotificationManager.IMPORTANCE_HIGH);
-    incomingChannel.setDescription("Notifications for incoming DeltaChat calls");
+    incomingChannel.setDescription("Notifications for incoming Nova Chat calls");
     incomingChannel.setSound(ringtoneUri, ringtoneAttributes);
     incomingChannel.setVibrationPattern(new long[] {0, 1000, 1000});
 
     NotificationChannel ongoingChannel =
         new NotificationChannel(
             CHANNEL_ID_ONGOING, "Active Calls", NotificationManager.IMPORTANCE_DEFAULT);
-    ongoingChannel.setDescription("Notifications for active DeltaChat calls");
+    ongoingChannel.setDescription("Notifications for active Nova Chat calls");
     ongoingChannel.setSound(null, null);
 
     NotificationChannel missedChannel =
         new NotificationChannel(
             CHANNEL_ID_MISSED, "Missed Calls", NotificationManager.IMPORTANCE_HIGH);
-    missedChannel.setDescription("Notifications for missed DeltaChat calls");
+    missedChannel.setDescription("Notifications for missed Nova Chat calls");
 
     notificationManager.createNotificationChannel(incomingChannel);
     notificationManager.createNotificationChannel(ongoingChannel);
