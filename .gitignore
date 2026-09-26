@@ -1,0 +1,41 @@
+# ---- Node / Electron（桌面端） ----
+node_modules/
+npm-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+dist/
+release/
+
+# ---- Rust（核心） ----
+target/
+**/*.rs.bk
+# 应用/二进制保留 Cargo.lock，库可忽略
+Cargo.lock.orig
+
+# ---- Android / Gradle ----
+.gradle/
+build/
+*.apk
+*.aab
+*.keystore
+local.properties
+.idea/
+*.iml
+.cxx/
+captures/
+
+# ---- 本地环境与密钥 ----
+.env
+.env.*
+*.local
+secrets/
+credentials.json
+
+# ---- 系统文件 ----
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---- 产物 ----
+*.log
+tmp/
