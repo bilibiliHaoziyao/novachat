@@ -79,10 +79,25 @@ jobs:
           APK=$(ls build/outputs/apk/foss/release/*.apk | head -1)
           cp "$APK" NovaChat-universal.apk
           ls -lh NovaChat-universal.apk
-          echo "== bundled ABIs =="
-          unzip -l NovaChat-universal.apk | grep -E 'lib/[^/]+/libdeltachat\.so'
-          BT=$(ls -d ${ANDROID_HOME:-$ANDROID_SDK_ROOT}/build-tools/* 2>/dev/null | sort -V | tail -1)
-          "${BT}/apksigner" verify --print-certs NovaChat-universal.apk
+
+          echo "== bundled native libraries =="
+          unzip -l NovaChat-universal.apk | grep -E 'lib/[^/]+/.*\.so$' || true
+
+          # The Rust core is a *static* lib (libdeltachat.a) that ndk-build links
+          # into libnative-utils.so — that is the shared object that must ship per ABI.
+          echo "== verifying both target ABIs are packaged =="
+          for abi in arm64-v8a armeabi-v7a; do
+            unzip -l NovaChat-universal.apk | grep -q "lib/$abi/libnative-utils.so" \
+              || { echo "ERROR: missing native core for $abi"; exit 1; }
+            echo "ok: $abi"
+          done
+
+          APKSIGNER=$(ls -d "${ANDROID_HOME:-$ANDROID_SDK_ROOT}"/build-tools/*/apksigner 2>/dev/null | sort -V | tail -1 || true)
+          if [ -n "$APKSIGNER" ]; then
+            "$APKSIGNER" verify --print-certs NovaChat-universal.apk
+          else
+            echo "apksigner not found in the SDK; skipping signature check (APK is signed by Gradle)"
+          fi
 
       - name: Upload APK to Release
         if: startsWith(github.ref, 'refs/tags/v')
