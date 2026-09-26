@@ -189,7 +189,7 @@ async function setFuses(context) {
 
   // Apply security fuses for all builds
   let appPath
-  let executableName = context.packager.executableName ?? 'DeltaChat'
+  let executableName = context.packager.executableName ?? 'Nova Chat'
   if (process.env.IS_PREVIEW) {
     executableName = executableName + '-DevBuild'
   }
@@ -198,7 +198,7 @@ async function setFuses(context) {
   } else if (context.electronPlatformName === 'win32') {
     appPath = `${context.appOutDir}/${executableName}.exe`
   } else {
-    appPath = `${context.appOutDir}/${context.packager.executableName ?? 'deltachat-desktop'}`
+    appPath = `${context.appOutDir}/${context.packager.executableName ?? 'novachat'}`
   }
 
   if (!existsSync(appPath)) {

@@ -28,14 +28,14 @@ const env = process.env
 
 /** @type {import('./types').DeepWriteable<import('electron-builder').Configuration>} */
 const build = {}
-build['appId'] = 'chat.delta.desktop.electron'
+build['appId'] = 'chat.nova.desktop.electron'
 
 // electron-builder names the linux executable and the installed desktop file
 // after this, and electron derives the window class (X11 WM_CLASS / Wayland
 // app_id) from `desktopName` below. All three need to match for desktop
 // environments to associate the running window with the launcher entry.
 // see https://github.com/deltachat/deltachat-desktop/issues/6505
-let appName = 'deltachat-desktop'
+let appName = 'novachat'
 
 build['extraMetadata'] = {
   //@ts-ignore
