@@ -1,0 +1,13 @@
+DC_FRONTEND_NO_TLS=true
+PRIVATE_CERTIFICATE_PATH=
+NODE_ENV=test
+
+# URL of chatmail server
+DC_CHATMAIL_DOMAIN=ci-chatmail.testrun.org
+
+# Base URL of non chatmail server
+# If you don't have one, you may skip non-Chatmail tests with
+# `pnpm -w e2e --project=chatmail`
+DC_MAIL_SERVER=
+# Access token of the non-Chatmail server.
+DC_MAIL_SERVER_TOKEN=

@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "../../tsc-dist/renderer",
+    "sourceMap": true,
+    "module": "preserve",
+    "jsx": "react",
+    "allowJs": false,
+    "esModuleInterop": true,
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "noUncheckedIndexedAccess": true,
+    "plugins": [{ "name": "typescript-plugin-css-modules" }]
+  }
+}

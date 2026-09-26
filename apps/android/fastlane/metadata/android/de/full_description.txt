@@ -1,0 +1,19 @@
+Delta Chat ist ein verlässlicher dezentraler Messenger. Er ist einfach und ideal für Freunde, Familie, Gruppen und Organisationen. Entwickelt von einer engagierten Community für freie Software, die mehrmals jährlich Updates für alle Plattformen veröffentlicht.
+
+Funktionen im Überblick:
+
+• Privat: Schneller Start ohne Telefonnummer oder private Daten.
+
+• Familie & Freunde: Nur Chatten mit bekannten Personen. Unbekannte können ohne Zustimmung keine Nachrichten senden.
+
+• Flexibel: Unterstützt mehrere Profile und läuft auf verschiedenen Geräten.
+
+• Erweiterbar: Tools wie Einkaufslisten, Kalender oder Spiele direkt im Chat nutzen.
+
+• Zuverlässig: Funktioniert auch bei schlechter Netzwerkverbindung.
+
+• Sicher: Geprüfte Ende-zu-Ende-Verschlüsselung schützt vor Serverangriffen.
+
+• Unabhängig: Nutzt die eigene E-Mail-Adresse oder den eigenen Server.
+
+• Frei: Komplett quelloffene Software, die auf Internetstandards basiert.

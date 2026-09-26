@@ -23,6 +23,17 @@ novachat/
 ├── LICENSE               # GPL-3.0（应用层）；核心代码沿用 MPL-2.0，见 NOTICE.md
 ├── NOTICE.md             # 上游归属与许可声明
 ├── .gitignore
+├── .github/workflows/
+│   └── build-release.yml # 打 tag(v*) 自动构建 Android APK + Windows 安装包并发布 Release
+├── apps/
+│   ├── android/          # Android 端（源自 deltachat-android，含内嵌 core 子模块 jni/deltachat-core-rust）
+│   │   ├── src/main/java/org/thoughtcrime/securesms/
+│   │   │   ├── WelcomeActivity.java        # 首次向导入口（含"使用自己的邮箱"）
+│   │   │   ├── ClassicLoginActivity.java   # 新增：经典邮箱登录向导
+│   │   │   ├── WebDavSettingsActivity.java # 新增：WebDAV 同步设置
+│   │   │   └── connect/WebDavSyncManager.java  # 新增：WebDAV 加密备份/恢复
+│   │   └── jni/deltachat-core-rust/        # Rust 核心（MPL-2.0，ForceEncryption 默认值已改）
+│   └── desktop/          # Windows/macOS/Linux 桌面端（源自 deltachat-desktop）
 ├── docs/
 │   ├── architecture.md   # 架构总览与模块划分
 │   ├── roadmap.md        # 里程碑路线图
@@ -36,7 +47,7 @@ novachat/
     └── fork-setup.sh     # 一键拉取 Delta Chat 上游并组装开发树
 ```
 
-> **仓库定位说明**：本仓库当前是**协调仓库**（文档 + 脚本 + 后续补丁），实际源码由 `scripts/fork-setup.sh` 从 Delta Chat 上游克隆到本地后改造，以保持仓库轻量、可随时跟踪上游更新。完整落地三个改造后，源码会逐步并入本仓库。
+> **仓库定位说明**：`apps/` 为完整改造后源码（来自 Delta Chat 上游，随上游节奏更新）；`docs/`、`scripts/` 为 Nova Chat 自有的协调与构建配套。
 
 ## 快速开始
 
@@ -68,11 +79,11 @@ bash scripts/fork-setup.sh
 
 | 里程碑 | 内容 | 状态 |
 |---|---|---|
-| M0 | 上游源码组装、双端可构建基线 | 进行中 |
-| M1 | 登录向导优化 | 规划中 |
-| M2 | 端到端加密可关闭 | 规划中 |
-| M3 | WebDAV 账号同步 | 规划中 |
-| M4 | 双端打包、正式发布 | 规划中 |
+| M0 | 上游源码组装、双端可构建基线 | 完成（源码已入仓） |
+| M1 | 登录向导优化（新增邮箱登录向导） | 完成（Android） |
+| M2 | 端到端加密可关闭（默认关闭） | 完成（Android） |
+| M3 | WebDAV 账号同步（加密备份/恢复） | 完成（Android）；桌面端复用 core |
+| M4 | 双端打包、正式发布（GitHub Actions + Release） | 进行中 |
 
 详见 [docs/roadmap.md](docs/roadmap.md)。
 

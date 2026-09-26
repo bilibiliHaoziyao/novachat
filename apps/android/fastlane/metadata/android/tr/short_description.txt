@@ -1,0 +1,1 @@
+Sohbet paylaşımlı araçlar ve oyunlar içeren merkezi olmayan özel mesajlaşma programı.

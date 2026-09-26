@@ -1,0 +1,75 @@
+.imageCropperDialogContent {
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background-color: #000;
+  padding-inline-start: 0;
+  padding-inline-end: 0;
+  margin-bottom: 20px;
+}
+
+.imageCropperWrapper {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 500px;
+}
+
+.imageCropperContainer {
+  width: 500px;
+  height: 500px;
+  flex-shrink: 0;
+  position: relative;
+  overflow: hidden;
+  background: black;
+  transform-origin: center center;
+}
+
+.imageCropperShade {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  opacity: 0.75;
+  background: black;
+  z-index: 1;
+}
+
+.imageCropperCutImage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 2;
+  max-width: none;
+  max-height: none;
+}
+
+.imageCropperFullImage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  background: black;
+  max-width: none;
+  max-height: none;
+}
+
+.imageCropperControls {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 80px;
+  z-index: 10;
+}
+
+.imageCropperControlsButton {
+  display: inline;
+  padding: 10px;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+}

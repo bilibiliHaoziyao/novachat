@@ -1,0 +1,182 @@
+import React from 'react'
+import { C } from '@deltachat/jsonrpc-client'
+
+import { getLogger } from '@deltachat-desktop/shared/logger'
+import { BackendRemote } from '../../../backend-com'
+import { selectedAccountId } from '../../../ScreenController'
+import { confirmDialog } from '../../message/messageFunctions'
+import { saveLastChatId } from '../../../backend/chat'
+import useChat from '../../../hooks/chat/useChat'
+import useDialog from '../../../hooks/dialog/useDialog'
+import useMessage from '../../../hooks/chat/useMessage'
+import useTranslationFunction from '../../../hooks/useTranslationFunction'
+
+import type { T } from '@deltachat/jsonrpc-client'
+import type { DialogProps } from '../../../contexts/DialogContext'
+import SelectChat from '../SelectChat'
+
+import AlertDialog from '../AlertDialog'
+import { unknownErrorToString } from '@deltachat-desktop/shared/unknownErrorToString'
+
+const log = getLogger('ForwardMessage')
+
+type ForwardMessageProps = {
+  messageIds: Array<T.Message['id']>
+  /**
+   * ID of the chat that the {@linkcode messageIds} belong to.
+   */
+  sourceChatId: T.Message['chatId'] | T.BasicChat['id']
+  onClose: DialogProps['onClose']
+}
+
+export default function ForwardMessage(props: ForwardMessageProps) {
+  const { messageIds, sourceChatId, onClose } = props
+
+  const currentAccountId = selectedAccountId()
+
+  const tx = useTranslationFunction()
+  const { openDialog } = useDialog()
+  const { selectChat } = useChat()
+  const { jumpToMessage } = useMessage()
+
+  const onChatClick = async ({
+    targetAccountId,
+    chatId,
+  }: {
+    targetAccountId: number
+    chatId: number
+  }) => {
+    const isCrossAccountForward = targetAccountId !== currentAccountId
+
+    const chat = await BackendRemote.rpc.getBasicChatInfo(
+      targetAccountId,
+      chatId
+    )
+    onClose()
+
+    // If forwarding to a different account, we need to switch accounts first
+    // saveLastChatId makes sure that the selected chat is opened after the switch
+    if (isCrossAccountForward) {
+      await saveLastChatId(targetAccountId, chat.id)
+      await window.__selectAccount(targetAccountId)
+    }
+
+    if (!chat.isSelfTalk) {
+      // show the target chat to avoid unintended forwarding to the wrong chat
+      // For same-account forward, select chat directly
+      // For cross-account forward, the chat is already selected via saveLastChatId
+      if (!isCrossAccountForward) {
+        selectChat(currentAccountId, chat.id)
+      }
+      const yes = await confirmDialog(
+        openDialog,
+        tx('ask_forward_messages', [messageIds.length.toString(), chat.name], {
+          quantity: messageIds.length,
+        }),
+        tx('forward')
+      )
+      if (yes) {
+        try {
+          if (isCrossAccountForward) {
+            // Cross-account forward
+            await BackendRemote.rpc.forwardMessagesToAccount(
+              currentAccountId,
+              messageIds,
+              targetAccountId,
+              chat.id
+            )
+          } else {
+            // Same-account forward
+            await BackendRemote.rpc.forwardMessages(
+              currentAccountId,
+              messageIds,
+              chat.id
+            )
+          }
+        } catch (e) {
+          log.error('error forwarding message:', e)
+          void openDialog(AlertDialog, {
+            message: unknownErrorToString(e),
+          })
+          return false
+        }
+        // get the (new) id of forwarded message
+        // and jump to the message
+        const targetChatMessageIds = await BackendRemote.rpc.getMessageIds(
+          targetAccountId,
+          chatId,
+          false,
+          true
+        )
+        const lastMessage =
+          targetChatMessageIds[targetChatMessageIds.length - 1]
+        if (lastMessage) {
+          if (isCrossAccountForward) {
+            // For cross-account, use the internal jump mechanism
+            // since the hooks were created with the old account context
+            window.__internal_jump_to_message_asap = {
+              accountId: targetAccountId,
+              chatId,
+              jumpToMessageArgs: [
+                {
+                  msgId: lastMessage,
+                  highlight: false,
+                  focus: false,
+                },
+              ],
+            }
+            window.__internal_check_jump_to_message?.()
+          } else {
+            jumpToMessage({
+              accountId: targetAccountId,
+              msgId: lastMessage,
+              msgChatId: chatId,
+              focus: false,
+            })
+          }
+        }
+      } else {
+        // If user cancels and we switched accounts, go back to original account and chat
+        if (isCrossAccountForward) {
+          await saveLastChatId(currentAccountId, sourceChatId)
+          await window.__selectAccount(currentAccountId)
+        } else {
+          selectChat(currentAccountId, sourceChatId)
+        }
+      }
+    } else {
+      try {
+        // Self-talk: forward without confirmation
+        if (isCrossAccountForward) {
+          await BackendRemote.rpc.forwardMessagesToAccount(
+            currentAccountId,
+            messageIds,
+            targetAccountId,
+            chat.id
+          )
+        } else {
+          await BackendRemote.rpc.forwardMessages(
+            currentAccountId,
+            messageIds,
+            chat.id
+          )
+        }
+      } catch (e) {
+        void openDialog(AlertDialog, {
+          message: unknownErrorToString(e),
+        })
+        return false
+      }
+    }
+  }
+
+  return (
+    <SelectChat
+      headerTitle={tx('forward_to')}
+      onChatClick={onChatClick}
+      onClose={onClose}
+      listFlags={C.DC_GCL_FOR_FORWARDING | C.DC_GCL_NO_SPECIALS}
+      enableAccountSwitch
+    />
+  )
+}

@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<org.thoughtcrime.securesms.ConversationUpdateItem
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:background="@drawable/conversation_item_background"
+    android:focusable="true"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:paddingTop="5dp"
+    android:paddingBottom="7dp"
+    android:paddingLeft="28dp"
+    android:paddingRight="28dp">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/conversation_item_update_background"
+        android:paddingLeft="10dp"
+        android:paddingRight="10dp"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:paddingTop="3dp"
+            android:paddingBottom="3dp"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/app_icon"
+                android:layout_width="18sp"
+                android:layout_height="18sp"
+                android:layout_marginEnd="2dp"
+                android:layout_marginRight="2dp"
+                android:layout_gravity="center_vertical"
+                android:scaleType="centerCrop"
+                android:visibility="gone" />
+
+            <!--Links should be clickable, see https://github.com/deltachat/deltachat-android/issues/1546 -->
+            <androidx.appcompat.widget.AppCompatTextView
+                android:id="@+id/conversation_update_body"
+                style="@style/Delta.Text.UpdateHeader"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:autoLink="web"
+                android:gravity="center"
+                android:textColor="?attr/conversation_item_update_text_color"
+                android:textColorLink="?attr/conversation_item_update_text_color"
+                tools:text="Gwen Stacy added to group" />
+
+        </LinearLayout>
+
+        <ImageView
+            android:id="@+id/delivery_indicator"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical|end"
+            android:layout_marginBottom="6dp"
+            app:tint="?attr/conversation_item_update_text_color"
+            android:visibility="gone" />
+
+    </LinearLayout>
+
+</org.thoughtcrime.securesms.ConversationUpdateItem>

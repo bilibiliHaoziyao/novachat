@@ -1,0 +1,35 @@
+$closeButtonSize: 24px;
+
+.inputAndClearButton {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  border-radius: 3px;
+}
+
+input.searchInput {
+  caret-color: var(--navBarText);
+  color: var(--navBarText);
+  height: $closeButtonSize;
+  margin-inline-end: 5px;
+  padding-inline-start: 5px;
+  padding-inline-end: 5px;
+  width: 100%;
+
+  &::placeholder {
+    color: var(--navBarSearchPlaceholder);
+  }
+}
+
+.clearButton {
+  align-items: center;
+  justify-content: center;
+  color: var(--navBarText);
+  border-radius: 10px;
+  height: $closeButtonSize;
+  min-width: $closeButtonSize;
+
+  &:hover {
+    background-color: var(--navBarButtonHover);
+  }
+}

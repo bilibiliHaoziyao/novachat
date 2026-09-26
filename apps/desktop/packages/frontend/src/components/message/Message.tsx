@@ -1,0 +1,1441 @@
+import React, {
+  CSSProperties,
+  useCallback,
+  useContext,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
+import reactStringReplace from 'react-string-replace'
+import classNames from 'classnames'
+import { C, T } from '@deltachat/jsonrpc-client'
+import { debounce } from 'debounce'
+
+import MessageBody from './MessageBody'
+import MessageMetaData, { isMediaWithoutText } from './MessageMetaData'
+import {
+  onDownload,
+  openAttachmentInShell,
+  isMessageEditable,
+  setQuoteInDraft,
+  openMessageHTML,
+  openWebxdc,
+  enterEditMessageMode,
+} from './messageFunctions'
+import Attachment from '../attachment/messageAttachment'
+import { isGenericAttachment, isImage } from '../attachment/Attachment'
+import { runtime } from '@deltachat-desktop/runtime-interface'
+import { ConversationType } from './MessageList'
+import { getDirection } from '../../utils/getDirection'
+import { mapCoreMsgStatus2String } from '../helpers/MapMsgStatus'
+import { ContextMenuItem } from '../ContextMenu'
+import { onDCEvent, BackendRemote } from '../../backend-com'
+import { selectedAccountId } from '../../ScreenController'
+import { ProtectionEnabledDialog } from '../dialogs/ProtectionStatusDialog'
+import useDialog from '../../hooks/dialog/useDialog'
+import useMessage from '../../hooks/chat/useMessage'
+import useOpenViewProfileDialog from '../../hooks/dialog/useOpenViewProfileDialog'
+import useOpenViewGroupDialog from '../../hooks/dialog/useOpenViewGroupDialog'
+import usePrivateReply from '../../hooks/chat/usePrivateReply'
+import useTranslationFunction from '../../hooks/useTranslationFunction'
+import { useReactionsBar, showReactionsUi } from '../ReactionsBar'
+import { ContextMenuContext } from '../../contexts/ContextMenuContext'
+import Reactions from '../Reactions'
+import ShortcutMenu from '../ShortcutMenu'
+import InvalidUnencryptedMailDialog from '../dialogs/InvalidUnencryptedMail'
+import Button from '../Button'
+import VCardComponent from './VCard'
+
+import {
+  matchesLetterShortcut,
+  matchesNonLetterShortcut,
+} from '../../keybindings'
+
+import styles from './styles.module.scss'
+
+import type { OpenDialog } from '../../contexts/DialogContext'
+import type { PrivateReply } from '../../hooks/chat/usePrivateReply'
+import type { JumpToMessage } from '../../hooks/chat/useMessage'
+import { mouseEventToPosition } from '../../utils/mouseEventToPosition'
+import { useMessageFocusAndMultiselect } from './focusAndMultiselect'
+import { avatarInitial } from '@deltachat-desktop/shared/avatarInitial'
+import { getLogger } from '@deltachat-desktop/shared/logger'
+import { IconButton } from '../Icon'
+import { useRpcFetch } from '../../hooks/useFetch'
+import ForwardMessage from '../dialogs/ForwardMessage'
+import MessageDetail from '../dialogs/MessageDetail/MessageDetail'
+import ConfirmDeleteMessageDialog from '../dialogs/ConfirmDeleteMessage'
+import AlertDialog from '../dialogs/AlertDialog'
+
+const log = getLogger('Message')
+
+interface CssWithAvatarColor extends CSSProperties {
+  '--local-avatar-color': string
+}
+
+const Avatar = ({
+  contact,
+  onContactClick,
+  tabIndex,
+}: {
+  contact: T.Contact
+  onContactClick: (contact: T.Contact) => void
+  tabIndex: -1 | 0
+}) => {
+  const { profileImage, color, displayName, address } = contact
+
+  const onClick = () => onContactClick(contact)
+
+  if (profileImage) {
+    return (
+      <button
+        type='button'
+        className='author-avatar'
+        onClick={onClick}
+        tabIndex={tabIndex}
+      >
+        <img alt={displayName} src={runtime.transformBlobURL(profileImage)} />
+      </button>
+    )
+  } else {
+    const initial = avatarInitial(displayName, address)
+    return (
+      <button
+        type='button'
+        className='author-avatar default'
+        aria-label={displayName}
+        onClick={onClick}
+        tabIndex={tabIndex}
+      >
+        <div
+          style={{ '--local-avatar-color': color } as CssWithAvatarColor}
+          className='label'
+        >
+          {initial}
+        </div>
+      </button>
+    )
+  }
+}
+
+const AuthorName = ({
+  contact,
+  onContactClick,
+  overrideSenderName,
+  tabIndex,
+}: {
+  contact: T.Contact
+  onContactClick: (contact: T.Contact) => void
+  overrideSenderName: string | null
+  tabIndex: -1 | 0
+}) => {
+  const accountId = selectedAccountId()
+  const { color, id } = contact
+  const [displayName, setDisplayName] = useState<string>(contact.displayName)
+
+  useEffect(() => {
+    return onDCEvent(accountId, 'ContactsChanged', async ({ contactId }) => {
+      if (contactId !== id) {
+        return
+      }
+
+      const updatedContact = await BackendRemote.rpc.getContact(
+        accountId,
+        contactId
+      )
+      setDisplayName(updatedContact.displayName)
+    })
+  }, [accountId, id])
+
+  return (
+    <button
+      type='button'
+      key='author'
+      className='author'
+      style={{ color }}
+      onClick={() => onContactClick(contact)}
+      tabIndex={tabIndex}
+    >
+      {getAuthorName(displayName, overrideSenderName)}
+    </button>
+  )
+}
+
+const ForwardedTitle = ({
+  contact,
+  onContactClick,
+  direction,
+  conversationType,
+  overrideSenderName,
+  tabIndex,
+}: {
+  contact: T.Contact
+  onContactClick: (contact: T.Contact) => void
+  direction: 'incoming' | 'outgoing'
+  conversationType: ConversationType
+  overrideSenderName: string | null
+  tabIndex: -1 | 0
+}) => {
+  const tx = useTranslationFunction()
+
+  const { displayName, color } = contact
+
+  return (
+    <div className='forwarded-indicator'>
+      {conversationType.hasMultipleParticipants && direction !== 'outgoing' ? (
+        reactStringReplace(
+          tx('forwarded_by', '$$forwarder$$'),
+          '$$forwarder$$',
+          () => (
+            <button
+              type='button'
+              className='forwarded-indicator-button'
+              onClick={() => onContactClick(contact)}
+              tabIndex={tabIndex}
+              key='displayname'
+              style={{ color: color }}
+            >
+              {overrideSenderName ? `~${overrideSenderName}` : displayName}
+            </button>
+          )
+        )
+      ) : (
+        <button
+          type='button'
+          onClick={() => onContactClick(contact)}
+          className='forwarded-indicator-button'
+          tabIndex={tabIndex}
+        >
+          {tx('forwarded_message')}
+        </button>
+      )}
+    </div>
+  )
+}
+
+function buildContextMenu(
+  {
+    accountId,
+    message,
+    text,
+    conversationType,
+    openDialog,
+    privateReply,
+    handleReactClick,
+    chat,
+    jumpToMessage,
+  }: {
+    accountId: number
+    message: T.Message | null
+    text?: string
+    conversationType: ConversationType
+    openDialog: OpenDialog
+    privateReply: PrivateReply
+    handleReactClick: (event: React.MouseEvent<Element, MouseEvent>) => void
+    chat: T.FullChat
+    jumpToMessage: JumpToMessage
+  },
+  clickTarget: HTMLAnchorElement | null
+): (false | ContextMenuItem)[] {
+  const tx = window.static_translate // don't use the i18n context here for now as this component is inefficient (rendered one menu for every message)
+  if (!message) {
+    throw new Error('cannot show context menu for undefined message')
+  }
+
+  const isWebxdcInfo = message.systemMessageType === 'WebxdcInfoMessage'
+  const isLink = Boolean(
+    clickTarget && !clickTarget.getAttribute('x-not-a-link')
+  )
+  const email = clickTarget?.getAttribute('x-target-email')
+  const link: string =
+    clickTarget?.getAttribute('x-target-url') || clickTarget?.href || ''
+  // grab selected text before clicking, otherwise the selection might be already gone
+  const selectedText = window.getSelection()?.toString()
+  const textSelected: boolean = selectedText !== null && selectedText !== ''
+
+  const isSavedMessage = message.savedMessageId !== null
+
+  /** Copy action, is one of the following, (in that order):
+   *
+   * - Copy [selection] to clipboard
+   * - OR Copy link to clipboard
+   * - OR Copy email to clipboard
+   * - Fallback: OR Copy message text to copy
+   */
+  let copy_item: ContextMenuItem | false = {
+    label: tx('menu_copy_text_to_clipboard'),
+    action: () => {
+      text && runtime.writeClipboardText(text)
+    },
+  }
+
+  if (textSelected) {
+    copy_item = {
+      label: tx('menu_copy_selection_to_clipboard'),
+      action: () => {
+        runtime.writeClipboardText(selectedText as string)
+      },
+    }
+  } else if (email) {
+    copy_item = {
+      label: tx('menu_copy_email_to_clipboard'),
+      action: () => runtime.writeClipboardText(email),
+    }
+  }
+  if (copy_item && message.viewType === 'Sticker') {
+    copy_item = false
+  }
+
+  const showAttachmentOptions = !!message.file
+  const showCopyImage =
+    !!message.file && isImage(message.viewType) && message.viewType !== 'Gif'
+  const showResend =
+    message.sender.id === C.DC_CONTACT_ID_SELF && message.viewType !== 'Call'
+
+  // Do not show "reply" in read-only chats, and for info messages.
+  // See
+  // - https://github.com/deltachat/deltachat-desktop/issues/5337
+  // - https://github.com/deltachat/deltachat-android/blob/52c01976821803fa2d8a177f93576fa4082ef5bd/src/main/java/org/thoughtcrime/securesms/ConversationFragment.java#L332-L332
+  const showReply = chat.canSend && !message.isInfo
+
+  // See
+  // - https://github.com/deltachat/deltachat-desktop/issues/4695.
+  // - https://github.com/deltachat/deltachat-desktop/issues/5365.
+  // - https://github.com/deltachat/deltachat-android/blob/fd4a377752cc6778f161590fde2f9ab29c5d3011/src/main/java/org/thoughtcrime/securesms/ConversationFragment.java#L334
+  const showEdit = isMessageEditable(message, chat)
+
+  // Do not show "react" for system messages
+  const showSendReaction = showReactionsUi(message, chat)
+
+  // Only show in groups, don't show on info messages or outgoing messages
+  const showReplyPrivately =
+    (conversationType.chatType === 'Group' ||
+      conversationType.chatType === 'InBroadcast') &&
+    !message.isInfo &&
+    message.fromId > C.DC_CONTACT_ID_LAST_SPECIAL
+
+  return [
+    // Reply
+    showReply && {
+      label: tx('notify_reply_button'),
+      action: setQuoteInDraft.bind(null, message),
+    },
+    // Reply privately
+    showReplyPrivately && {
+      label: tx('reply_privately'),
+      action: () => {
+        privateReply(accountId, message)
+      },
+    },
+    // Forward message
+    {
+      label: tx('forward'),
+      action: () =>
+        openDialog(ForwardMessage, {
+          messageIds: [message.id],
+          sourceChatId: message.chatId,
+        }),
+    },
+    // Save Message
+    // For reference, the conditions when it's shown:
+    // https://github.com/deltachat/deltachat-android/blob/52c01976821803fa2d8a177f93576fa4082ef5bd/src/main/java/org/thoughtcrime/securesms/ConversationFragment.java#L342
+    !chat.isSelfTalk &&
+      !isSavedMessage &&
+      !message.isInfo && {
+        label: tx('save_message'),
+        action: () =>
+          BackendRemote.rpc.saveMsgs(selectedAccountId(), [message.id]),
+      },
+    // Unsave
+    isSavedMessage && {
+      label: tx('unsave'),
+      action: () => {
+        if (message.savedMessageId !== null) {
+          BackendRemote.rpc.deleteMessages(selectedAccountId(), [
+            message.savedMessageId,
+          ])
+        }
+      },
+    },
+    // Send emoji reaction
+    showSendReaction && {
+      label: tx('react'),
+      action: handleReactClick,
+    },
+    showEdit && {
+      // Not `tx('edit_message')`.
+      // See https://github.com/deltachat/deltachat-desktop/issues/4695#issuecomment-2688716592
+      label: tx('global_menu_edit_desktop'),
+      action: enterEditMessageMode.bind(null, message),
+    },
+    { type: 'separator' },
+    // Save attachment as
+    showAttachmentOptions && {
+      label: tx('menu_export_attachment'),
+      action: onDownload.bind(null, message),
+    },
+    // copy link
+    link !== '' &&
+      isLink && {
+        label: tx('menu_copy_link_to_clipboard'),
+        action: () => runtime.writeClipboardText(link),
+      },
+    // copy item (selection or all text)
+    text !== '' && copy_item,
+    // Copy image
+    showCopyImage && {
+      label: tx('menu_copy_image_to_clipboard'),
+      action: () => {
+        runtime.writeClipboardImage(message.file as string)
+      },
+    },
+    // Open Attachment
+    showAttachmentOptions &&
+      message.viewType !== 'Webxdc' &&
+      isGenericAttachment(message.viewType) && {
+        label: tx('open_attachment'),
+        action: openAttachmentInShell.bind(null, message),
+      },
+    // Save Sticker to sticker collection
+    message.viewType === 'Sticker' && {
+      label: tx('add_to_sticker_collection'),
+      action: () =>
+        BackendRemote.rpc.miscSaveSticker(
+          selectedAccountId(),
+          message.id,
+          tx('saved')
+        ),
+    },
+    // Resend Message
+    showResend && {
+      label: tx('resend'),
+      action: () => {
+        BackendRemote.rpc.resendMessages(selectedAccountId(), [message.id])
+      },
+    },
+    // Webxdc Info message: jump to app message
+    Boolean(isWebxdcInfo && message.parentId) && {
+      label: tx('show_app_in_chat'),
+      action: () => {
+        if (message.parentId) {
+          jumpToMessage({
+            accountId,
+            msgId: message.parentId,
+            // Currently the info message is always in the same chat
+            // as the message with `message.parentId`,
+            // but let's not pass `chatId` here, for future-proofing.
+            msgChatId: undefined,
+            highlight: true,
+            focus: true,
+            msgParentId: message.id,
+            scrollIntoViewArg: { block: 'center' },
+          })
+        }
+      },
+    },
+    // Message Info
+    {
+      label: tx('info'),
+      action: () => openDialog(MessageDetail, { id: message.id }),
+    },
+    { type: 'separator' },
+    // Delete message
+    {
+      label: tx('delete_message_desktop'),
+      action: () =>
+        openDialog(ConfirmDeleteMessageDialog, {
+          accountId,
+          messageIds: [message.id],
+          loadedMessages: { [message.id]: message },
+          chat,
+        }),
+      danger: true,
+    },
+  ]
+}
+function buildMultiselectContextMenu(
+  {
+    accountId,
+    messageIds,
+    message: clickedMessage,
+    openDialog,
+    chat,
+  }: {
+    accountId: number
+    messageIds: Array<T.Message['id']>
+    message: T.Message
+    openDialog: OpenDialog
+    chat: T.FullChat
+  },
+  _clickTarget: HTMLAnchorElement | null
+): (false | ContextMenuItem)[] {
+  const tx = window.static_translate
+  return [
+    {
+      label: tx('forward'),
+      action: () =>
+        openDialog(ForwardMessage, {
+          messageIds: messageIds,
+          sourceChatId: chat.id,
+        }),
+    },
+    {
+      label: tx('delete'),
+      action: () =>
+        openDialog(ConfirmDeleteMessageDialog, {
+          accountId,
+          messageIds,
+          loadedMessages: { [clickedMessage.id]: clickedMessage },
+          chat,
+        }),
+      danger: true,
+    },
+  ]
+}
+
+export default function Message(props: {
+  chat: T.FullChat
+  message: T.Message
+  conversationType: ConversationType
+}) {
+  const { message, conversationType, chat } = props
+  const { viewType, text, hasLocation, hasHtml } = message
+  const direction = getDirection(message)
+  const status = mapCoreMsgStatus2String(message.state)
+
+  const tx = useTranslationFunction()
+  const accountId = selectedAccountId()
+
+  const { showReactionsBar } = useReactionsBar()
+  const { openDialog } = useDialog()
+  const privateReply = usePrivateReply()
+  const { openContextMenu } = useContext(ContextMenuContext)
+  const openViewProfileDialog = useOpenViewProfileDialog()
+  const openViewGroupDialog = useOpenViewGroupDialog()
+  const { jumpToMessage } = useMessage()
+  const [messageWidth, setMessageWidth] = useState(0)
+  const ref = useRef<any>(null)
+
+  const focusAndMultiselect = useMessageFocusAndMultiselect(message.id, ref)
+  const resetSelection = focusAndMultiselect.resetSelection
+  const isMultiselectMember =
+    focusAndMultiselect.selectedItems.size > 1 &&
+    focusAndMultiselect.selectedItems.has(message.id)
+
+  const showContextMenu = useCallback(
+    (
+      event: React.MouseEvent<
+        HTMLButtonElement | HTMLAnchorElement | HTMLDivElement,
+        MouseEvent
+      >
+    ) => {
+      event.preventDefault() // prevent default runtime context menu from opening
+
+      const showContextMenuEventPos = mouseEventToPosition(event)
+
+      const handleReactClick = (
+        reactClickEvent: React.MouseEvent<Element, MouseEvent>
+      ) => {
+        // We don't want `OutsideClickHelper` to catch this event, causing
+        // the reaction bar to directly hide again when switching to other
+        // messages by clicking the "react" button
+        reactClickEvent.stopPropagation()
+
+        const reactClickEventPos = mouseEventToPosition(reactClickEvent)
+        // `reactClickEventPos` might have a wrong ((0, 0)) position
+        // if the "react" button was activated with keyboard,
+        // because the element on which it was activated
+        // (the menu item) gets removed from DOM immediately.
+        // Let's fall back to `showContextMenuEventPos` in such a case.
+        const position =
+          reactClickEventPos.x > 0 && reactClickEventPos.y > 0
+            ? reactClickEventPos
+            : showContextMenuEventPos
+
+        showReactionsBar({
+          messageId: message.id,
+          reactions: message.reactions,
+          ...position,
+        })
+      }
+
+      if (!isMultiselectMember) {
+        resetSelection()
+      }
+      // the event.t is a workaround for labled links, as they will be able to contain markdown formatting in the label in the future.
+      const target = ((event as any).t || event.target) as HTMLAnchorElement
+      const common = {
+        accountId,
+        message,
+        text: text || undefined,
+        conversationType,
+        openDialog,
+        privateReply,
+        handleReactClick,
+        chat: props.chat,
+        jumpToMessage,
+      }
+      const items = isMultiselectMember
+        ? buildMultiselectContextMenu(
+            {
+              ...common,
+              messageIds: [...focusAndMultiselect.selectedItems],
+            },
+            target
+          )
+        : buildContextMenu(common, target)
+
+      openContextMenu({
+        ...showContextMenuEventPos,
+        items,
+        ariaAttrs: {
+          'aria-label': tx('a11y_message_context_menu_btn_label'),
+        },
+      })
+    },
+    [
+      accountId,
+      props.chat,
+      conversationType,
+      message,
+      isMultiselectMember,
+      focusAndMultiselect.selectedItems,
+      resetSelection,
+      openContextMenu,
+      openDialog,
+      privateReply,
+      showReactionsBar,
+      text,
+      jumpToMessage,
+      tx,
+    ]
+  )
+  const commonClassName = classNames(
+    focusAndMultiselect.className,
+    'multiselectable-message'
+  )
+  const commonAttrs = {
+    ref,
+    tabIndex: focusAndMultiselect.tabIndex,
+    onKeyDown: (e: React.KeyboardEvent) => {
+      const messageIds =
+        focusAndMultiselect.selectedItems.size === 0
+          ? new Set([message.id])
+          : focusAndMultiselect.selectedItems
+      const thisMsgSelected = messageIds.has(message.id)
+      const onlyThisMsgSelected = thisMsgSelected && messageIds.size === 1
+      // Handle letter shortcuts with Ctrl/Cmd modifier
+      const isCtrlOrMetaKeyPress =
+        (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && message
+
+      // Check if Ctrl/Cmd+"e" is pressed to enter edit mode
+      if (
+        onlyThisMsgSelected &&
+        isCtrlOrMetaKeyPress &&
+        matchesLetterShortcut(e, 'e') &&
+        isMessageEditable(message, props.chat)
+      ) {
+        e.preventDefault()
+        e.stopPropagation()
+        enterEditMessageMode(message)
+        return
+      }
+
+      // Check if Ctrl/Cmd+"r" is pressed to react to message
+      if (
+        onlyThisMsgSelected &&
+        isCtrlOrMetaKeyPress &&
+        matchesLetterShortcut(e, 'r') &&
+        showReactionsUi(message, props.chat)
+      ) {
+        e.preventDefault()
+        e.stopPropagation()
+        // detect bounding box of the message element
+        // to get a position for the reactions bar
+        const boundingBox = (e.target as HTMLElement).getBoundingClientRect()
+        const position = {
+          x: boundingBox.x,
+          y: boundingBox.y + boundingBox.height / 2,
+        }
+        showReactionsBar({
+          messageId: message.id,
+          reactions: message.reactions,
+          ...position,
+        })
+        return
+      }
+
+      // Check if Ctrl/Cmd+"s" is pressed to save message
+      if (
+        isCtrlOrMetaKeyPress &&
+        onlyThisMsgSelected &&
+        matchesLetterShortcut(e, 's') &&
+        !chat.isSelfTalk &&
+        message.savedMessageId === null &&
+        !message.isInfo
+      ) {
+        e.preventDefault()
+        e.stopPropagation()
+        BackendRemote.rpc.saveMsgs(accountId, [message.id])
+        return
+      }
+
+      // Check if Ctrl/Cmd+Shift+"s" is pressed to unsave message
+      if (
+        onlyThisMsgSelected &&
+        (e.ctrlKey || e.metaKey) &&
+        e.shiftKey &&
+        !e.altKey &&
+        matchesLetterShortcut(e, 's') &&
+        message &&
+        message.savedMessageId !== null
+      ) {
+        e.preventDefault()
+        e.stopPropagation()
+        BackendRemote.rpc.deleteMessages(accountId, [message.savedMessageId])
+        return
+      }
+
+      // Check if Delete key is pressed to delete message
+      if (
+        thisMsgSelected &&
+        !e.ctrlKey &&
+        !e.metaKey &&
+        !e.altKey &&
+        !e.shiftKey &&
+        matchesNonLetterShortcut(e, 'Delete', 'Delete') &&
+        message
+      ) {
+        e.preventDefault()
+        e.stopPropagation()
+        openDialog(ConfirmDeleteMessageDialog, {
+          accountId,
+          messageIds: [...messageIds],
+          loadedMessages: { [message.id]: message },
+          chat,
+        })
+        return
+      }
+
+      // Audio / video elements have controls that utilize
+      // arrows. That is seeking, changing volume.
+      // So we don't want to switch focus if all user wanted to do
+      // is to seek the element.
+      //
+      // However, FYI, onKeyDown event doesn't appear to get triggered
+      // when a sub-element of the <audio> element
+      // (seek bar, volume slider), and not the <audio> element itself,
+      // is focused. At least on Chromium.
+      //
+      // But, when the root (`<audio>`) element (and not on of its
+      // sub-elements) is focused, it still listens for arrows
+      // and performs seeking and volume changes,
+      // so, still, we need to ignore such events.
+      //
+      // The same goes for the `useRovingTabindex` code in Gallery.
+      if (
+        e.target instanceof HTMLMediaElement &&
+        // This is purely for future-proofing, in case
+        // the media element is a direct item of the roving tabindex widget,
+        // and not merely a child of such an item.
+        // In such cases we muts not ignore the event, because otherwise
+        // there would be no way to switch focus to another item
+        // using just the keyboard.
+        // Again, at the time of writing we do not have such elements.
+        !e.target.classList.contains(focusAndMultiselect.className)
+      ) {
+        return
+      }
+
+      focusAndMultiselect.onKeyDown(e)
+      // if (e.defaultPrevented)
+    },
+    onFocus: focusAndMultiselect.onFocus,
+    'aria-selected': focusAndMultiselect.selectedItems.has(message.id),
+  } satisfies React.HTMLAttributes<Element> & React.RefAttributes<Element>
+  // When the message is not the active one
+  // `rovingTabindex.tabIndex === -1`, we need to set `tabindex="-1"`
+  // to all its interactive (otherwise "Tabbable to") elements,
+  // such as links, attachments, "view reactions" button, etc.
+  // Only the contents of the "active" (selected) message
+  // should have tab stops.
+  // See https://github.com/deltachat/deltachat-desktop/issues/2141
+  // WhatsApp appears to behave similarly.
+  // The implementation is similar to the "Grid" pattern:
+  // https://www.w3.org/WAI/ARIA/apg/patterns/grid/#gridNav_inside
+  const tabindexForInteractiveContents = focusAndMultiselect.tabIndex
+
+  const messageContainerRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    const el = messageContainerRef.current
+    if (!el) return
+
+    const update = () => {
+      if (
+        isImage(message.viewType) ||
+        message.viewType === 'Sticker' ||
+        window.innerWidth < 900
+      ) {
+        setMessageWidth(el.clientWidth)
+      } else {
+        // Text messages may be narrower than the max image width, but reactions
+        // can always spread to that width, so pass a fixed value.
+        setMessageWidth(450)
+      }
+    }
+
+    // ResizeObserver catches both window resizes and post-image-load reflows,
+    const ro = new ResizeObserver(update)
+    ro.observe(el)
+    update()
+    return () => ro.disconnect()
+  }, [message.viewType])
+
+  // Info Message
+  if (message.isInfo) {
+    const isWebxdcInfo = message.systemMessageType === 'WebxdcInfoMessage'
+    const isProtectionEnabledMsg =
+      message.systemMessageType === 'ChatProtectionEnabled' ||
+      message.systemMessageType === 'ChatE2ee'
+
+    // Message can't be sent because of `Invalid unencrypted mail to <>`
+    // which is sent by chatmail servers.
+    const isInvalidUnencryptedMail =
+      message.systemMessageType === 'InvalidUnencryptedMail'
+
+    // Some info messages can be clicked by the user to receive further information
+    const isInteractive =
+      (isWebxdcInfo && message.parentId) ||
+      message.infoContactId != null ||
+      isProtectionEnabledMsg ||
+      isInvalidUnencryptedMail
+
+    let onClick: undefined | (() => void)
+    if (isInteractive) {
+      onClick = async () => {
+        if (isWebxdcInfo) {
+          // open or focus the webxdc app
+          openWebxdc(message)
+        } else if (
+          message.systemMessageType === 'GroupDescriptionChanged' &&
+          (chat.chatType === 'Group' || chat.chatType === 'OutBroadcast')
+        ) {
+          openViewGroupDialog(
+            chat as typeof chat & { chatType: typeof chat.chatType }
+          )
+        } else if (
+          message.infoContactId != null &&
+          message.infoContactId !== C.DC_CONTACT_ID_SELF
+        ) {
+          openViewProfileDialog(accountId, message.infoContactId)
+        } else if (isProtectionEnabledMsg) {
+          openDialog(ProtectionEnabledDialog)
+        } else if (isInvalidUnencryptedMail) {
+          openDialog(InvalidUnencryptedMailDialog)
+        }
+      }
+    }
+
+    const TagName = onClick ? 'button' : 'div'
+    return (
+      <div
+        className={classNames(
+          'info-message',
+          isWebxdcInfo && 'webxdc-info',
+          isInteractive && 'interactive',
+          isProtectionEnabledMsg && 'e2ee-info' // used in e2e-tests
+        )}
+        id={String(message.id)}
+        onContextMenu={showContextMenu}
+      >
+        <TagName
+          type='button'
+          className={'bubble ' + commonClassName}
+          onClick={e => {
+            focusAndMultiselect.onClick(e)
+            if (e.defaultPrevented) {
+              return
+            }
+            onClick?.()
+          }}
+          {...commonAttrs}
+          // Note that the actual `onContextMenu` listener
+          // is on the wrapper component.
+          aria-haspopup='menu'
+        >
+          {isWebxdcInfo && message.parentId && (
+            <img
+              src={runtime.getWebxdcIconURL(
+                selectedAccountId(),
+                message.parentId
+              )}
+            />
+          )}
+          {text}
+          {direction === 'outgoing' &&
+            (status === 'sending' || status === 'error') && (
+              <div
+                className={classNames('status-icon', status)}
+                aria-label={tx(`a11y_delivery_status_${status}`)}
+              />
+            )}
+        </TagName>
+      </div>
+    )
+  }
+  // Normal Message
+  const onContactClick = async (contact: T.Contact) => {
+    openViewProfileDialog(accountId, contact.id)
+  }
+
+  // Check if the message is saved or has a saved message
+  // in both cases we display the bookmark icon
+  const isOrHasSavedMessage = message.originalMsgId
+    ? true
+    : !!message.savedMessageId
+
+  let content = (
+    <div dir='auto' className='text'>
+      {text !== null ? (
+        <MessageBody
+          text={text}
+          tabindexForInteractiveContents={tabindexForInteractiveContents}
+        />
+      ) : null}
+      {message.viewType === 'Call' && (
+        <CallIconButton
+          accountId={accountId}
+          chatId={message.chatId}
+          messageId={message.id}
+          tabIndex={tabindexForInteractiveContents}
+        />
+      )}
+    </div>
+  )
+
+  const { downloadState } = message
+
+  if (downloadState !== 'Done') {
+    content = (
+      <div className={'download'}>
+        {text} {'- '}
+        {downloadState == 'Failure' && (
+          <span key='fail' className={'failed'}>
+            {tx('download_failed')}
+          </span>
+        )}
+        {downloadState == 'InProgress' && (
+          <span key='downloading'>{tx('downloading')}</span>
+        )}
+        {(downloadState == 'Failure' || downloadState === 'Available') && (
+          <button
+            type='button'
+            onClick={() =>
+              BackendRemote.rpc.downloadFullMessage(accountId, message.id)
+            }
+            tabIndex={tabindexForInteractiveContents}
+          >
+            {tx('download')}
+          </button>
+        )}
+      </div>
+    )
+  }
+
+  /** Whether to show author name and avatar */
+  const showAuthor =
+    conversationType.hasMultipleParticipants ||
+    message?.overrideSenderName ||
+    message?.originalMsgId ||
+    chat.isSelfTalk
+
+  const hasText = text !== null && text !== ''
+  const fileMime = message.fileMime || null
+  const isWithoutText = isMediaWithoutText(hasText, message.viewType)
+  const showAttachment = (message: T.Message) =>
+    message.file &&
+    message.viewType !== 'Webxdc' &&
+    message.viewType !== 'Vcard'
+
+  return (
+    <div
+      onContextMenu={showContextMenu}
+      aria-haspopup='menu'
+      className={classNames(
+        'message',
+        direction,
+        styles.message,
+        commonClassName,
+        isWithoutText && viewType === 'Video' ? 'video-only' : '',
+        {
+          [styles.withReactions]: message.reactions,
+          'type-sticker': viewType === 'Sticker',
+          error: status === 'error',
+          forwarded: message.isForwarded,
+          'has-html': hasHtml,
+          'has-original-msg-button': message.originalMsgId !== null,
+        }
+      )}
+      id={message.id.toString()}
+      // `capture` together with `stopPropagation` makes it harder
+      // to accidentally activate links, images, etc. inside the message
+      // while actually trying to simply Ctrl + Click the message.
+      // Especially usefult for images, which occupy the majority
+      // of the message bubble's area.
+      onClickCapture={e => {
+        focusAndMultiselect.onClick(e)
+        if (e.defaultPrevented) {
+          e.stopPropagation()
+          return
+        }
+      }}
+      {...commonAttrs}
+    >
+      {showAuthor && direction === 'incoming' && (
+        <Avatar
+          contact={message.sender}
+          onContactClick={onContactClick}
+          // The avatar doesn't need to be a tab stop, because
+          // the author name is a tab stop and clicking on it does the same.
+          tabIndex={-1}
+        />
+      )}
+      <div
+        className='msg-container'
+        style={{ borderColor: message.sender.color }}
+        ref={messageContainerRef}
+      >
+        {message.isForwarded && (
+          <ForwardedTitle
+            contact={message.sender}
+            onContactClick={onContactClick}
+            direction={direction}
+            conversationType={conversationType}
+            overrideSenderName={message.overrideSenderName}
+            tabIndex={tabindexForInteractiveContents}
+          />
+        )}
+        {!message.isForwarded && (
+          <div
+            className={classNames('author-wrapper', {
+              'can-hide':
+                (!message.overrideSenderName && direction === 'outgoing') ||
+                !showAuthor,
+            })}
+          >
+            <AuthorName
+              contact={message.sender}
+              onContactClick={onContactClick}
+              overrideSenderName={message.overrideSenderName}
+              tabIndex={tabindexForInteractiveContents}
+            />
+          </div>
+        )}
+        <div
+          className={classNames('msg-body', {
+            call: message.viewType === 'Call',
+          })}
+        >
+          {message.quote !== null && (
+            <Quote
+              quote={message.quote}
+              msgParentId={message.id}
+              // FYI the quote is not always interactive,
+              // e.g. when `quote.kind === 'JustText'`.
+              tabIndex={tabindexForInteractiveContents}
+            />
+          )}
+          {showAttachment(message) && (
+            <Attachment
+              text={text || undefined}
+              message={message}
+              tabindexForInteractiveContents={tabindexForInteractiveContents}
+            />
+          )}
+          {message.viewType === 'Webxdc' && (
+            <WebxdcMessageContent
+              tabindexForInteractiveContents={tabindexForInteractiveContents}
+              message={message}
+            ></WebxdcMessageContent>
+          )}
+          {message.viewType === 'Vcard' && (
+            <VCardComponent
+              message={message}
+              tabindexForInteractiveContents={tabindexForInteractiveContents}
+            ></VCardComponent>
+          )}
+          {content}
+          {hasHtml && (
+            <button
+              type='button'
+              onClick={openMessageHTML.bind(null, message.id)}
+              className='show-html'
+              tabIndex={tabindexForInteractiveContents}
+            >
+              {tx('show_full_message')}
+            </button>
+          )}
+          <footer
+            className={classNames(styles.messageFooter, {
+              [styles.onlyMedia]: isWithoutText,
+              [styles.withReactionsNoText]: isWithoutText && message.reactions,
+            })}
+          >
+            <MessageMetaData
+              messageId={message.id}
+              fileMime={fileMime}
+              direction={direction}
+              status={status}
+              error={message.error || null}
+              downloadState={downloadState}
+              isEdited={message.isEdited}
+              hasText={hasText}
+              hasLocation={hasLocation}
+              timestamp={message.timestamp * 1000}
+              encrypted={message.showPadlock}
+              isSavedMessage={isOrHasSavedMessage}
+              onClickError={() =>
+                openDialog(AlertDialog, {
+                  message: message.error
+                    ? tx('error_x', message.error)
+                    : tx('ok'),
+                  dialogComponentProps: {
+                    width: 600,
+                  },
+                })
+              }
+              viewType={message.viewType}
+              chatType={chat.chatType}
+              tabindexForInteractiveContents={tabindexForInteractiveContents}
+            />
+            <div
+              // TODO the "show ReactionsDialog" button also gets announced.
+              aria-live='polite'
+              aria-relevant='all'
+            >
+              {message.reactions && (
+                <Reactions
+                  message={
+                    message as typeof message & {
+                      reactions: typeof message.reactions
+                    }
+                  }
+                  chatType={chat.chatType}
+                  tabindexForInteractiveContents={
+                    tabindexForInteractiveContents
+                  }
+                  messageWidth={messageWidth}
+                />
+              )}
+            </div>
+          </footer>
+        </div>
+      </div>
+      <ShortcutMenu
+        chat={props.chat}
+        direction={direction}
+        message={message}
+        showContextMenu={showContextMenu}
+        tabindexForInteractiveContents={tabindexForInteractiveContents}
+      />
+    </div>
+  )
+}
+
+export const Quote = ({
+  quote,
+  msgParentId,
+  isEditMessage,
+  tabIndex,
+}: {
+  quote: T.MessageQuote
+  msgParentId?: number
+  /**
+   * Whether this component is passed the message that the user is editing.
+   */
+  isEditMessage?: boolean
+  tabIndex: -1 | 0
+}) => {
+  const tx = useTranslationFunction()
+  const accountId = selectedAccountId()
+  const { jumpToMessage } = useMessage()
+
+  const hasMessage = quote.kind === 'WithMessage'
+
+  const authorStyle = hasMessage ? { color: quote.authorDisplayColor } : {}
+  const borderStyle =
+    !hasMessage || quote.isForwarded
+      ? {}
+      : { borderLeftColor: quote.authorDisplayColor }
+
+  let onClick = undefined
+  if (quote.kind === 'WithMessage') {
+    onClick = () => {
+      jumpToMessage({
+        accountId,
+        msgId: quote.messageId,
+        msgChatId: quote.chatId,
+        highlight: true,
+        focus: true,
+        msgParentId,
+        // Often times the quoted message is already in view,
+        // so let's not scroll at all if so.
+        scrollIntoViewArg: { block: 'nearest' },
+      })
+    }
+  }
+  // TODO a11y: we probably want a separate button
+  // with `aria-label="Jump to message"`.
+  // Having a button with so much content is probably not good.
+  const Tag = onClick ? 'button' : 'div'
+
+  return (
+    <Tag
+      type='button'
+      className='quote-background'
+      onClick={onClick}
+      tabIndex={tabIndex}
+    >
+      <div
+        className={`quote ${hasMessage && 'has-message'}`}
+        style={borderStyle}
+      >
+        <div className='quote-text'>
+          {isEditMessage ? (
+            <div className='quote-author' style={authorStyle}>
+              {tx('edit_message')}
+            </div>
+          ) : (
+            hasMessage && (
+              <>
+                {quote.isForwarded ? (
+                  <div className='quote-author'>
+                    {reactStringReplace(
+                      tx('forwarded_by', '$$forwarder$$'),
+                      '$$forwarder$$',
+                      () => (
+                        <span key='displayname'>
+                          {getAuthorName(
+                            quote.authorDisplayName as string,
+                            quote.overrideSenderName || undefined
+                          )}
+                        </span>
+                      )
+                    )}
+                  </div>
+                ) : (
+                  <div className='quote-author' style={authorStyle}>
+                    {getAuthorName(
+                      quote.authorDisplayName,
+                      quote.overrideSenderName || undefined
+                    )}
+                  </div>
+                )}
+              </>
+            )
+          )}
+          {quote.text && (
+            <div className='quoted-text'>
+              <MessageBody
+                text={
+                  quote.text.slice(0, 3000 /* limit quoted message size */) ||
+                  ''
+                }
+                disableJumbomoji
+                nonInteractiveContent
+                tabindexForInteractiveContents={-1}
+              />
+            </div>
+          )}
+        </div>
+        {hasMessage && quote.image && (
+          <img
+            className='quoted-image'
+            src={runtime.transformBlobURL(quote.image)}
+          />
+        )}
+        {hasMessage && quote.viewType == 'Webxdc' && (
+          <img
+            className='quoted-webxdc-icon'
+            src={runtime.getWebxdcIconURL(selectedAccountId(), quote.messageId)}
+          />
+        )}
+      </div>
+    </Tag>
+  )
+}
+
+export function getAuthorName(
+  displayName: string,
+  overrideSenderName?: string | null
+) {
+  return overrideSenderName ? `~${overrideSenderName}` : displayName
+}
+
+function WebxdcMessageContent({
+  message,
+  tabindexForInteractiveContents,
+}: {
+  message: T.Message
+  tabindexForInteractiveContents: -1 | 0
+}) {
+  const tx = useTranslationFunction()
+  const [webxdcInfo, setWebxdcInfo] = useState<T.WebxdcMessageInfo | null>(null)
+  const [isLoadingWebxdcInfo, setIsLoadingWebxdcInfo] = useState(true)
+  const accountId = selectedAccountId()
+
+  const fetchWebxdcInfo = useCallback(async () => {
+    setIsLoadingWebxdcInfo(true)
+    try {
+      const info = await BackendRemote.rpc.getWebxdcInfo(accountId, message.id)
+      setWebxdcInfo(info)
+    } catch (error) {
+      log.error('Failed to refresh webxdc info for message:', message.id, error)
+    } finally {
+      setIsLoadingWebxdcInfo(false)
+    }
+  }, [accountId, message.id])
+
+  const debouncedFetchWebxdcInfo = useMemo(
+    () => debounce(fetchWebxdcInfo, 500),
+    [fetchWebxdcInfo]
+  )
+
+  useEffect(() => {
+    if (message.viewType !== 'Webxdc') return
+
+    // Initial fetch
+    fetchWebxdcInfo()
+
+    // Listen for updates
+    const cleanup = onDCEvent(
+      accountId,
+      'WebxdcStatusUpdate',
+      async ({ msgId }) => {
+        if (msgId === message.id) {
+          // Debounce the refresh since event might be triggered on every key stroke
+          debouncedFetchWebxdcInfo()
+        }
+      }
+    )
+
+    return cleanup
+  }, [
+    accountId,
+    message.id,
+    message.viewType,
+    fetchWebxdcInfo,
+    debouncedFetchWebxdcInfo,
+  ])
+
+  if (message.viewType !== 'Webxdc') {
+    return null
+  }
+
+  const info = webxdcInfo || {
+    name: isLoadingWebxdcInfo ? tx('loading') : 'INFO MISSING!',
+    document: undefined,
+    summary: isLoadingWebxdcInfo ? '' : 'INFO MISSING!',
+  }
+
+  return (
+    <div className='webxdc'>
+      <img
+        src={runtime.getWebxdcIconURL(selectedAccountId(), message.id)}
+        alt=''
+        // No need to turn this element into a `<button>` for a11y,
+        // because there is a button below that does the same.
+        onClick={() => openWebxdc(message, webxdcInfo ?? undefined)}
+        // Not setting `tabIndex={tabindexForInteractiveContents}` here
+        // because there is a button below that does the same
+      />
+      <div
+        className='info-text'
+        title={`${info.document ? info.document + ' \n' : ''}${info.name}`}
+      >
+        <div className='document'>{info.document}</div>
+        <div className='name'>{info.name}</div>
+      </div>
+      <div className='summary'>{info.summary}</div>
+      <Button
+        className={styles.startWebxdcButton}
+        styling='primary'
+        onClick={() => openWebxdc(message, webxdcInfo ?? undefined)}
+        tabIndex={tabindexForInteractiveContents}
+      >
+        {tx('start_app')}
+      </Button>
+    </div>
+  )
+}
+
+function CallIconButton({
+  accountId,
+  chatId,
+  messageId,
+  tabIndex,
+}: {
+  accountId: number
+  chatId: number
+  messageId: number
+  tabIndex: -1 | 0
+}) {
+  const callInfoFetch = useRpcFetch(BackendRemote.rpc.callInfo, [
+    accountId,
+    messageId,
+  ])
+  const refresh = useEffectEvent(callInfoFetch.refresh)
+  useEffect(() => {
+    return onDCEvent(accountId, 'MsgsChanged', event => {
+      // MsgsChanged event is fired when the call state changes
+      if (event.msgId !== messageId) {
+        return
+      }
+      // update the call info
+      refresh()
+    })
+  }, [accountId, messageId])
+
+  const callInfo = callInfoFetch.result?.ok
+    ? callInfoFetch.result.value
+    : undefined
+
+  const callWindowParams = callInfo
+    ? {
+        accountId,
+        chatId,
+        callMessageId: messageId,
+        callerWebrtcOffer: callInfo.sdpOffer,
+        startWithCameraEnabled: callInfo.hasVideo,
+      }
+    : undefined
+
+  const onClick =
+    callInfo == undefined
+      ? undefined
+      : callInfo.state.kind === 'Alerting' || callInfo.state.kind === 'Active'
+        ? // Focus the existing window (if any) or open the incoming call dialog.
+          () => runtime.openIncomingVideoCallWindow(callWindowParams!)
+        : // Terminated state (Completed, Missed, Declined, Canceled): start a new outgoing call.
+          () =>
+            runtime.startOutgoingVideoCall(accountId, chatId, {
+              startWithCameraEnabled: callInfo.hasVideo,
+            })
+
+  return (
+    <IconButton
+      aria-label='📞'
+      onClick={onClick}
+      aria-busy={callInfoFetch.loading}
+      disabled={onClick == undefined}
+      tabIndex={tabIndex}
+      icon='phone'
+      className='phone-icon'
+      coloring='currentColor'
+      // `size` will be overridden in CSS
+      size={24}
+    />
+  )
+}

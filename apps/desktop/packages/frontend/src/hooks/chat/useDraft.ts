@@ -1,0 +1,759 @@
+import {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useEffectEvent,
+  useRef,
+} from 'react'
+import { T } from '@deltachat/jsonrpc-client'
+
+import { getLogger } from '@deltachat-desktop/shared/logger'
+import { BackendRemote, Type } from '../../backend-com'
+import { MessageTypeAttachmentSubset } from '../../components/attachment/Attachment'
+import { KeybindAction } from '../../keybindings'
+import useMessage from './useMessage'
+import ComposerMessageInput from '../../components/composer/ComposerMessageInput'
+import { type MessageListStore } from '../../stores/messagelist'
+import { debounce } from 'debounce'
+import useTranslationFunction from '../useTranslationFunction'
+import { runtime } from '@deltachat-desktop/runtime-interface'
+import useConfirmationDialog from '../dialog/useConfirmationDialog'
+import useAlertDialog from '../dialog/useAlertDialog'
+
+const log = getLogger('renderer/composer')
+
+export type DraftObject = Pick<
+  Type.Message,
+  'id' | 'file' | 'viewType' | 'vcardContact'
+> &
+  MessageTypeAttachmentSubset & {
+    text: Type.Message['text']
+    quote:
+      | Type.Message['quote']
+      /**
+       * This is for when we've set the quote by `messageId`,
+       * but havent loaded the full quote yet.
+       */
+      | { kind: 'WithMessage'; messageId: number }
+  }
+
+function emptyDraft(): DraftObject {
+  return {
+    id: 0,
+    text: '',
+    file: null,
+    fileBytes: 0,
+    fileMime: null,
+    fileName: null,
+    quote: null,
+    viewType: 'Text',
+    vcardContact: null,
+  }
+}
+
+function isDraftEmpty(draft: DraftObject): boolean {
+  return !(
+    (draft.text && draft.text.length > 0) ||
+    (draft.file && draft.file != '') ||
+    !!draft.quote
+  )
+}
+
+export function useDraft(
+  messageListState: MessageListStore['state'],
+  accountId: number,
+  chatId: number | null,
+  canSend: boolean, // no draft needed in chats we can't send messages
+  inputRef: React.RefObject<ComposerMessageInput | null>
+): {
+  draftState: DraftObject
+  /**
+   * Whether the initial loading of the draft is being performed,
+   * e.g. after switching the chat, or after a
+   * {@linkcode BackendRemote.rpc.miscSetDraft} from outside of
+   * {@linkcode useDraft}.
+   */
+  draftIsLoading: boolean
+  onSelectReplyToShortcut: (
+    upOrDown:
+      | KeybindAction.Composer_SelectReplyToUp
+      | KeybindAction.Composer_SelectReplyToDown
+  ) => void
+  removeQuote: () => void
+  updateDraftText: (text: string, InputChatId: number) => void
+  addFileToDraft: (
+    file: string,
+    fileName: string | null,
+    viewType: T.Viewtype
+  ) => Promise<void>
+  removeFile: () => void
+  clearDraftState: () => void
+  setDraftState: (newValue: DraftObject) => void
+} {
+  const tx = useTranslationFunction()
+  const openConfirmationDialog = useConfirmationDialog()
+  const openAlertDialog = useAlertDialog()
+
+  const focusComposerIfRendered = useEffectEvent(() => {
+    inputRef.current?.focus()
+  })
+
+  const [draftState, _setDraftState] = useState<DraftObject>(() => emptyDraft())
+  const draftStateRef = useRef(draftState)
+  /**
+   * This is like a regular React's `setState` with a function argument,
+   * but it applies the function synchronously, and returns the new state.
+   *
+   * This will not save the draft to the backend.
+   */
+  // We need this workaround to be able to call `miscSetDraft` without waiting
+  // for a re-render to see the final `draftState`.
+  // Because the next re-render might just not ever happen,
+  // e.g. because the composer got unmounted / re-created with another key.
+  //
+  // Otherwise a `useEffect` would probably be enough for `rpc.miscSetDraft()`.
+  const setDraftState = useCallback(
+    (
+      draftSetter: (prevDraftState: DraftObject) => DraftObject
+    ): DraftObject => {
+      draftStateRef.current = draftSetter(draftStateRef.current)
+      _setDraftState(draftStateRef.current)
+      return draftStateRef.current
+    },
+    []
+  )
+
+  const clearDraftState = useCallback(() => {
+    setDraftState(() => emptyDraft())
+  }, [setDraftState])
+
+  const [draftIsLoading_, setDraftIsLoading] = useState(true)
+  const skipLoadingDraft = chatId === null
+  const draftIsLoading = skipLoadingDraft ? false : draftIsLoading_
+  const effectRanRef = useRef(false)
+  useEffect(() => {
+    if (effectRanRef.current) {
+      log.warn(
+        "useEffect to load draft already ran. `useDraft` doesn't support this well"
+      )
+    }
+    effectRanRef.current = true
+
+    if (skipLoadingDraft) {
+      return
+    }
+    setDraftIsLoading(true)
+    BackendRemote.rpc
+      .getDraft(accountId, chatId)
+      .then(newDraft => {
+        if (newDraft) {
+          setDraftState(_old => ({
+            id: newDraft.id,
+            text: newDraft.text,
+            file: newDraft.file,
+            fileBytes: newDraft.fileBytes,
+            fileMime: newDraft.fileMime,
+            fileName: newDraft.fileName,
+            viewType: newDraft.viewType,
+            quote: newDraft.quote,
+            vcardContact: newDraft.vcardContact,
+          }))
+        }
+        setDraftIsLoading(false)
+        setTimeout(focusComposerIfRendered)
+      })
+      .catch(error => {
+        setDraftIsLoading(false)
+        throw error
+      })
+  }, [accountId, chatId, skipLoadingDraft, setDraftState])
+
+  /**
+   * Saving (uploading) the draft to the backend is not always enough.
+   * We also need to then immediately refetch the draft from the backend,
+   * in cases such as
+   * - Setting the quote. Because we only set its `messageId`,
+   *   without setting the quote's text and the author locally.
+   * - Adding an attachment ({@linkcode addFileToDraft}).
+   *   Because the file name might get changed
+   *   by the backend, and because we don't set the file size locally.
+   *
+   * TODO fix: when adding an attachment, the composer quickly flashes
+   * the new attachment as "file <path>; 0 bytes",
+   * even if it is a media attachment or a contact.
+   * The same flash happens when setting a quote.
+   */
+  const saveAndRefetchDraft_ = useCallback(
+    async (chatId: number, draft: DraftObject) => {
+      if (!isDraftEmpty(draft)) {
+        await BackendRemote.rpc.miscSetDraft(
+          accountId,
+          chatId,
+          draft.text,
+          draft.file !== '' ? draft.file : null,
+          draft.fileName,
+          draft.quote?.kind === 'WithMessage' ? draft.quote.messageId : null,
+          draft.viewType
+        )
+      } else {
+        await BackendRemote.rpc.removeDraft(accountId, chatId)
+      }
+
+      const newDraft = await BackendRemote.rpc.getDraft(accountId, chatId)
+
+      // don't load text to prevent bugging back
+      if (newDraft) {
+        setDraftState(old => ({
+          text: old.text,
+
+          id: newDraft.id,
+          file: newDraft.file,
+          fileBytes: newDraft.fileBytes,
+          fileMime: newDraft.fileMime,
+          fileName: newDraft.fileName,
+          viewType: newDraft.viewType,
+          quote: newDraft.quote,
+          vcardContact: newDraft.vcardContact,
+        }))
+      } else {
+        setDraftState(old => ({
+          ...emptyDraft(),
+          text: old.text,
+        }))
+      }
+    },
+    [accountId, setDraftState]
+  )
+  const saveAndRefetchDraft = useMemo(
+    () =>
+      chatId != null && canSend
+        ? (newDraftState: DraftObject) =>
+            saveAndRefetchDraft_(chatId, newDraftState)
+        : null,
+    [canSend, chatId, saveAndRefetchDraft_]
+  )
+  const debouncedSaveAndRefetchDraft = useMemo(
+    () =>
+      // IDK what ESLint is warning about here.
+      // We're basically making a callback and nothing more.
+      // eslint-disable-next-line react-hooks/refs
+      saveAndRefetchDraft == null
+        ? null
+        : // Maybe we could also specify `maxWait` option,
+          // but only Lodash's `debounce` supports it.
+          // eslint-disable-next-line react-hooks/refs
+          debounce(saveAndRefetchDraft, 15_000),
+    [saveAndRefetchDraft]
+  )
+  // Flush the draft to backend when ~~switching chats~~ unmounting.
+  // Note that specifying `chatId` as a dependency is not necessary,
+  // because `debouncedSaveAndRefetchDraft` itself already depends on it.
+  useEffect(() => {
+    return () => {
+      debouncedSaveAndRefetchDraft?.flush()
+    }
+  }, [accountId, chatId, debouncedSaveAndRefetchDraft])
+  // Flush when alt-tabbing and stuff.
+  // This should also work for when quitting the app,
+  // but it doesn't manage to finish in time, unfortunately.
+  useEffect(() => {
+    if (debouncedSaveAndRefetchDraft == null) {
+      return
+    }
+    const flushIfHidden = () => {
+      if (document.visibilityState === 'hidden') {
+        debouncedSaveAndRefetchDraft.flush()
+      }
+    }
+    document.addEventListener('visibilitychange', flushIfHidden)
+    return () => document.removeEventListener('visibilitychange', flushIfHidden)
+  }, [debouncedSaveAndRefetchDraft])
+  // TODO also flush when unfocusing the element?
+  // For example, to cover the case where the user goes to quit the app
+  // (though this will not cover `Ctrl + Q` shortcut),
+  // or to turn off the machine.
+
+  const setAndDebouncedSaveAndRefetchDraft = useMemo(
+    () =>
+      debouncedSaveAndRefetchDraft == null
+        ? null
+        : (draftSetter: (prevDraftState: DraftObject) => DraftObject) => {
+            const newDraftState = setDraftState(draftSetter)
+            debouncedSaveAndRefetchDraft(newDraftState)
+          },
+    [debouncedSaveAndRefetchDraft, setDraftState]
+  )
+
+  const updateDraftText = (text: string, InputChatId: number) => {
+    if (chatId !== InputChatId) {
+      log.warn("chat Id and InputChatId don't match, do nothing")
+    } else {
+      setAndDebouncedSaveAndRefetchDraft?.(prevDraftState => ({
+        ...prevDraftState,
+        text,
+      }))
+    }
+  }
+
+  const removeQuote = useCallback(() => {
+    setAndDebouncedSaveAndRefetchDraft?.(prevDraftState => ({
+      ...prevDraftState,
+      quote: null,
+    }))
+    inputRef.current?.focus()
+  }, [inputRef, setAndDebouncedSaveAndRefetchDraft])
+
+  const removeFile = useCallback(() => {
+    setAndDebouncedSaveAndRefetchDraft?.(prevDraftState => ({
+      ...prevDraftState,
+      file: '',
+      fileName: null,
+      fileBytes: 0,
+      fileMime: null,
+      // VCard is derived from the file. When we remove `file`,
+      // the re-fetched draft object will also have removed `vcardContact`.
+      // But we can skip a flush here, so let's set it to `null` manually.
+      vcardContact: null,
+      viewType: 'Text',
+    }))
+
+    inputRef.current?.focus()
+  }, [inputRef, setAndDebouncedSaveAndRefetchDraft])
+
+  // Note that this function could get called from inside an async function,
+  // for example, when pasting a big file with Ctrl + V.
+  // This means that for example, the draft's text
+  // could have been changed already by the time this function got called.
+  // It's even possible that the composer component has unmounted
+  // by the time this got called.
+  // This is why we shouldn't set the new state
+  // based on the captured `draftState` object,
+  // otherwise we could override the changes.
+  // The same goes for other functions that we return,
+  // but this one is the most prominent.
+  const addFileToDraft = useCallback(
+    async (file: string, fileName: string | null, viewType: T.Viewtype) => {
+      if (debouncedSaveAndRefetchDraft == null || saveAndRefetchDraft == null) {
+        return
+      }
+
+      // Cannot use `setAndDebouncedSaveAndRefetchDraft`
+      // because it doesn't return the Promise.
+      const newDraftState = setDraftState(prevDraftState => ({
+        ...prevDraftState,
+        file,
+        fileName,
+        viewType,
+        fileBytes: 0,
+        fileMime: null,
+      }))
+      debouncedSaveAndRefetchDraft?.clear()
+      return saveAndRefetchDraft(newDraftState)
+    },
+    [setDraftState, saveAndRefetchDraft, debouncedSaveAndRefetchDraft]
+  )
+
+  const quoteMessage = useMemo(
+    () =>
+      // eslint-disable-next-line react-hooks/refs
+      setAndDebouncedSaveAndRefetchDraft == null ||
+      debouncedSaveAndRefetchDraft == null
+        ? null
+        : (messageOrMessageId: number | T.Message) => {
+            let setNewDraftState: Parameters<
+              typeof setAndDebouncedSaveAndRefetchDraft
+            >[0]
+            let needRefetch: boolean
+            const isFullMessage = typeof messageOrMessageId !== 'number'
+            if (isFullMessage) {
+              const fullQuote = messageToQuote(messageOrMessageId)
+              setNewDraftState = prevDraftState => ({
+                ...prevDraftState,
+                quote: fullQuote.quote,
+              })
+              needRefetch = fullQuote.needRefetch
+            } else {
+              setNewDraftState = prevDraftState => ({
+                ...prevDraftState,
+                quote: {
+                  kind: 'WithMessage',
+                  messageId: messageOrMessageId,
+                },
+              })
+              needRefetch = true
+            }
+
+            setAndDebouncedSaveAndRefetchDraft(setNewDraftState)
+            if (needRefetch) {
+              // Need an immediate refetch, to get the "full" quote,
+              // with the author's name, text, etc.
+              debouncedSaveAndRefetchDraft.flush()
+            }
+          },
+    [setAndDebouncedSaveAndRefetchDraft, debouncedSaveAndRefetchDraft]
+  )
+
+  const { jumpToMessage } = useMessage()
+
+  /**
+   * Support the Ctrl/Cmd+Up/Down shortcuts to select a message
+   * to reply to and set the quote in the draft accordingly
+   */
+  const onSelectReplyToShortcut = (
+    upOrDown:
+      | KeybindAction.Composer_SelectReplyToUp
+      | KeybindAction.Composer_SelectReplyToDown
+  ) => {
+    if (
+      quoteMessage == null ||
+      setAndDebouncedSaveAndRefetchDraft == null ||
+      // These are implied by `setAndDebouncedSaveAndRefetchDraft == null`,
+      // but TypeScript doesn't know
+      debouncedSaveAndRefetchDraft == null ||
+      chatId == undefined ||
+      !canSend
+    ) {
+      return
+    }
+    const quoteAndJumpToMessage = (messageOrMessageId: number | T.Message) => {
+      const isFullMessage = typeof messageOrMessageId !== 'number'
+      quoteMessage(messageOrMessageId)
+      jumpToMessage({
+        accountId,
+        msgId: isFullMessage ? messageOrMessageId.id : messageOrMessageId,
+        msgChatId: chatId,
+        highlight: true,
+        focus: false,
+        // The message is usually already in view,
+        // so let's not scroll at all if so.
+        scrollIntoViewArg: { block: 'nearest' },
+      })
+    }
+
+    const direction =
+      upOrDown === KeybindAction.Composer_SelectReplyToUp ? -1 : +1
+    /**
+     * Iterate message list items up or down, starting from `fromInd`
+     * and skipping messages that definitely can't be replied to
+     *
+     * Messages that are not loaded are not skipped,
+     * it's up to the caller how to handle them.
+     */
+    const quoteCandidatesFrom = (fromInd: number) => {
+      return valuesFromInd({
+        arr: messageListState.messageListItems,
+        fromInd,
+        direction,
+      })
+        .filter(item => item.kind === 'message')
+        .map(({ msg_id }) => msg_id)
+        .map(msg_id => {
+          const fromCache = messageListState.messageCache[msg_id]
+          if (fromCache == undefined) {
+            return { kind: 'notLoaded', msg_id } as const
+          }
+
+          // see https://github.com/deltachat/deltachat-desktop/blob/77a1f88a351df49e5df38a14c3a1704a76ecdcb3/packages/frontend/src/components/message/Message.tsx#L274-L278
+          return fromCache.kind === 'message' && fromCache.isInfo === false
+            ? ({ kind: 'quotable', msg_id } as const)
+            : ({ kind: 'notQuotable', msg_id } as const)
+        })
+        .filter(item => item.kind !== 'notQuotable')
+    }
+
+    const currQuote = draftState.quote
+    if (!currQuote) {
+      if (upOrDown === KeybindAction.Composer_SelectReplyToUp) {
+        // Note that if we're in the middle of a chat,
+        // this will quote the last loaded (and quotable) message.
+        const newQuoteRes = quoteCandidatesFrom(
+          messageListState.messageListItems.length - 1
+        )
+          .filter(item => item.kind !== 'notLoaded')
+          .next()
+        if (newQuoteRes.done) {
+          // No quotable messages in the cache. Either the chat is empty,
+          // or the messages haven't been loaded yet
+          return
+        }
+        newQuoteRes.value.kind satisfies 'quotable'
+        const id = newQuoteRes.value.msg_id
+        const fromCache = messageListState.messageCache[id]
+        quoteAndJumpToMessage(fromCache?.kind === 'message' ? fromCache : id)
+      }
+      return
+    }
+    if (currQuote.kind !== 'WithMessage') {
+      // Or shall we override with the last message?
+      return
+    }
+    const currQuoteMessageIdInd =
+      messageListState.messageListItems.findLastIndex(
+        item => item.kind === 'message' && item.msg_id === currQuote.messageId
+      )
+    if (currQuoteMessageIdInd === -1) {
+      // message not found at all, remove quote
+      removeQuote()
+      return
+    }
+
+    const newQuoteRes = quoteCandidatesFrom(
+      currQuoteMessageIdInd + direction
+    ).next()
+    if (newQuoteRes.done) {
+      if (upOrDown === KeybindAction.Composer_SelectReplyToDown) {
+        // Currently quoted message was the last message of the chat
+        removeQuote()
+      } else {
+        // Currently quoted message is the first message of the chat,
+        // just do nothing.
+      }
+      return
+    }
+    if (newQuoteRes.value.kind === 'notLoaded') {
+      // message is in the full list, just not in the cache (yet)
+      // -> jump to it, it will be loaded then (and the surrounding messages)
+      jumpToMessage({
+        accountId,
+        msgId: newQuoteRes.value.msg_id,
+        msgChatId: chatId,
+        highlight: true,
+        focus: false,
+        scrollIntoViewArg: { block: 'nearest' },
+      })
+      return
+    }
+
+    newQuoteRes.value.kind satisfies 'quotable'
+    const newId = newQuoteRes.value.msg_id
+    const fromCache = messageListState.messageCache[newId]
+    quoteAndJumpToMessage(fromCache?.kind === 'message' ? fromCache : newId)
+  }
+
+  useEffect(() => {
+    window.__setQuoteInDraft = (
+      messageOrMessageId: Parameters<Exclude<typeof quoteMessage, null>>[0]
+    ) => {
+      quoteMessage?.(messageOrMessageId)
+      focusComposerIfRendered()
+    }
+    return () => {
+      window.__setQuoteInDraft = null
+    }
+  }, [quoteMessage])
+
+  /**
+   * Handle {@linkcode window.__setDraftRequest} which might have been set
+   * before the chat was loaded to set a draft with specified text and/or file.
+   */
+  const handleSetDraftRequest = useCallback(() => {
+    if (
+      window.__setDraftRequest == undefined ||
+      draftIsLoading ||
+      window.__setDraftRequest.accountId !== accountId ||
+      window.__setDraftRequest.chatId !== chatId
+    ) {
+      return
+    }
+
+    const setDraftRequest = window.__setDraftRequest
+    window.__setDraftRequest = undefined
+
+    if (saveAndRefetchDraft == null) {
+      // This is expected to happen if `!canSend`.
+      openAlertDialog({
+        message: tx(
+          'error_x',
+          'Could not set draft message\n' + JSON.stringify({ canSend, chatId })
+        ),
+      })
+      return
+    }
+
+    ;(async () => {
+      const newDraftState = { ...draftState }
+
+      let askConfirm = false
+      if (setDraftRequest.text !== undefined) {
+        if (
+          draftState.text.length > 0 &&
+          draftState.text !== (setDraftRequest.text satisfies string)
+        ) {
+          askConfirm = true
+        }
+
+        newDraftState.text = setDraftRequest.text
+      }
+      if (setDraftRequest.file !== undefined) {
+        if (
+          draftState.file != null &&
+          draftState.file?.length > 0 &&
+          draftState.file !== (setDraftRequest.file.path satisfies string)
+        ) {
+          askConfirm = true
+        }
+
+        // Same as in `addFileToDraft`.
+        newDraftState.file = setDraftRequest.file.path
+        newDraftState.fileName = setDraftRequest.file.name ?? null
+        newDraftState.viewType = setDraftRequest.file.viewType
+        newDraftState.fileMime = null
+        newDraftState.fileBytes = 0
+      }
+
+      if (askConfirm) {
+        // perf: we could add `chat` argument to `useDraft`,
+        // but let's not change API for such a minor thing
+        const chatName: string = await BackendRemote.rpc
+          .getBasicChatInfo(accountId, chatId)
+          .then(c => c.name)
+          .catch(() => tx('chat'))
+
+        const continueProcess: boolean = await openConfirmationDialog({
+          message: tx('confirm_replace_draft', chatName),
+          confirmLabel: tx('replace_draft'),
+        })
+        if (!continueProcess) {
+          return
+        }
+      }
+
+      // Cannot use `setAndDebouncedSaveAndRefetchDraft`
+      // because it doesn't return the Promise. See also `addFileToDraft`.
+      //
+      // `await` is important here, it makes sure
+      // that we don't delete the file before we're done storing it
+      // to the Core.
+      setDraftState(() => newDraftState)
+      debouncedSaveAndRefetchDraft?.clear()
+      await saveAndRefetchDraft(newDraftState)
+    })().finally(() => {
+      if (setDraftRequest.file?.deleteTempFileWhenDone) {
+        runtime.removeTempFile(setDraftRequest.file.path)
+      }
+    })
+  }, [
+    accountId,
+    canSend,
+    chatId,
+    debouncedSaveAndRefetchDraft,
+    draftIsLoading,
+    draftState,
+    setDraftState,
+    openAlertDialog,
+    openConfirmationDialog,
+    saveAndRefetchDraft,
+    tx,
+  ])
+  const handleSetDraftRequestEffectEvent = useEffectEvent(handleSetDraftRequest)
+  useEffect(() => {
+    handleSetDraftRequestEffectEvent()
+  })
+  useEffect(() => {
+    window.__checkSetDraftRequest = handleSetDraftRequestEffectEvent
+    return () => {
+      if (window.__checkSetDraftRequest === handleSetDraftRequestEffectEvent) {
+        window.__checkSetDraftRequest = undefined
+      }
+    }
+  }, [])
+
+  return {
+    draftState,
+    draftIsLoading,
+    onSelectReplyToShortcut,
+    removeQuote,
+    updateDraftText,
+    addFileToDraft,
+    removeFile,
+    clearDraftState: useCallback(() => {
+      clearDraftState()
+      debouncedSaveAndRefetchDraft?.clear()
+    }, [clearDraftState, debouncedSaveAndRefetchDraft]),
+    setDraftState: useCallback(
+      (newState: DraftObject) => {
+        setDraftState(() => newState)
+        debouncedSaveAndRefetchDraft?.clear()
+      },
+      [setDraftState, debouncedSaveAndRefetchDraft]
+    ),
+  }
+}
+
+function messageToQuote(
+  message: Pick<
+    T.Message,
+    | 'id'
+    | 'chatId'
+    | 'sender'
+    | 'viewType'
+    | 'text'
+    | 'file'
+    | 'isForwarded'
+    | 'overrideSenderName'
+  >
+): {
+  quote: T.MessageQuote
+  /**
+   * Whether the accuracy of the conversion is good enough
+   * to show the returned quote in the UI,
+   * or whether we need to re-fetch the quote from core right away.
+   */
+  needRefetch: boolean
+} {
+  return {
+    needRefetch: !(
+      // Obscure `viewType`s usually have some special quote text.
+      // For example, quotes with a contact attachment
+      // have `text` '<person emoji> <Contact name>',
+      // even if the original message doens't have any text.
+      // So let's refetch those.
+      // See https://github.com/chatmail/core/blob/347938a9f991c44f304f20e562c460ed66ef13a4/deltachat-jsonrpc/src/api/types/message.rs#L157-L177.
+      (
+        message.viewType === 'Text' ||
+        // Images and stickers also have `text` '<emoji> Image',
+        // but it's probably fine not to refetch.
+        message.viewType === 'Image' ||
+        message.viewType === 'Sticker' ||
+        message.viewType === 'Gif'
+      )
+    ),
+    quote: {
+      kind: 'WithMessage',
+      chatId: message.chatId,
+      isForwarded: message.isForwarded,
+      overrideSenderName: message.overrideSenderName,
+      authorDisplayColor: message.sender.color,
+      authorDisplayName: message.sender.displayName,
+
+      text: message.text,
+      viewType: message.viewType,
+      image:
+        message.viewType === 'Image' ||
+        message.viewType === 'Sticker' ||
+        message.viewType === 'Gif'
+          ? message.file
+          : null,
+      messageId: message.id,
+    },
+  }
+}
+
+/**
+ * Iterate from an arbitrary index, up or down.
+ */
+function* valuesFromInd<T>({
+  arr,
+  fromInd,
+  direction,
+}: {
+  arr: T[]
+  fromInd: number
+  direction: 1 | -1
+}) {
+  for (let i = fromInd; i >= 0 && i < arr.length; i += direction) {
+    const item: T = arr[i]!
+    yield item
+  }
+}

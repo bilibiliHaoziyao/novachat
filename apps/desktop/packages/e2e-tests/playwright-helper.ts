@@ -1,0 +1,771 @@
+import {
+  expect,
+  test as base,
+  Browser,
+  BrowserContext,
+  Locator,
+  Page,
+} from '@playwright/test'
+import path from 'path'
+import https from 'https'
+import { loadEnv } from './load-env.js'
+import net from 'net'
+
+loadEnv()
+
+export const DC_FRONTEND_NO_TLS: boolean =
+  process.env.DC_FRONTEND_NO_TLS === 'true' ||
+  process.env.DC_FRONTEND_NO_TLS === '1'
+export const NUM_APP_INSTANCES = 2
+type InstanceInd = 0 | 1
+export function instancePort(index: InstanceInd): number {
+  return 3000 + index
+}
+export function instanceBaseURL(index: InstanceInd): string {
+  const protocol = DC_FRONTEND_NO_TLS ? 'http' : 'https'
+  return `${protocol}://localhost:${instancePort(index)}`
+}
+export async function openInstancePage(
+  browser: Browser,
+  index: InstanceInd
+): Promise<{ context: BrowserContext; page: Page }> {
+  const context = await browser.newContext({ baseURL: instanceBaseURL(index) })
+  const page = await context.newPage()
+  await page.goto('/')
+  return { context, page }
+}
+
+export const chatmailServerDomain = process.env.DC_CHATMAIL_DOMAIN
+  ? process.env.DC_CHATMAIL_DOMAIN
+  : // Use fallback so that the tests can run on people's forks
+    // without them having to specify this env variable in repository settings.
+    'ci-chatmail.testrun.org'
+
+/**
+ * True if `host` is a bare IP address rather than a DNS name.
+ */
+export function isIpAddress(host: string): boolean {
+  return net.isIP(host) !== 0
+}
+
+/**
+ * Create an account on a (self-signed, IP-only) chatmail relay via its
+ * `POST /new` endpoint and return the `dclogin_url` it hands back
+ */
+export async function createAccountOnRelay(relayIp: string): Promise<string> {
+  const body = await new Promise<string>((resolve, reject) => {
+    const req = https.request(
+      {
+        method: 'POST',
+        host: relayIp,
+        path: '/new',
+        // LAN relays are self-signed and reachable only by IP.
+        rejectUnauthorized: false,
+      },
+      res => {
+        let data = ''
+        res.on('data', chunk => (data += chunk))
+        res.on('end', () => {
+          if (res.statusCode && res.statusCode >= 400) {
+            reject(
+              new Error(
+                `relay POST /new failed: ${res.statusCode} ${data.slice(0, 200)}`
+              )
+            )
+          } else {
+            resolve(data)
+          }
+        })
+      }
+    )
+    req.on('error', reject)
+    req.end()
+  })
+  let parsed: { email?: string; password?: string; dclogin_url?: string }
+  try {
+    parsed = JSON.parse(body)
+  } catch {
+    throw new Error(`unexpected /new response: ${body.slice(0, 200)}`)
+  }
+  if (parsed.dclogin_url) {
+    return parsed.dclogin_url
+  }
+  // Fallback for relays that return only credentials: build the DCLOGIN url
+  // ourselves, pinning imap/smtp to the relay IP and accepting its
+  // self-signed cert (`ic=3`).
+  if (parsed.email && parsed.password) {
+    const p = encodeURIComponent(parsed.password)
+    return `dclogin:${parsed.email}?p=${p}&v=1&ih=${relayIp}&sh=${relayIp}&ic=3`
+  }
+  throw new Error(
+    `relay /new response has neither dclogin_url nor email+password: ${body.slice(0, 200)}`
+  )
+}
+
+export const mailServerUrl = process.env.DC_MAIL_SERVER
+
+export const mailServerToken = process.env.DC_MAIL_SERVER_TOKEN
+
+export const userNames = ['Alice', 'Bob', 'Chris', 'Denis', 'Eve']
+
+export const groupName = 'TestGroup'
+
+export type User = {
+  name: string
+  id: string
+  address: string
+  password?: string
+}
+
+export type TestOptions = {
+  isChatmail: boolean
+}
+
+/**
+ * extend all tests with chatmail option
+ */
+export const test = base.extend<TestOptions>({
+  // can be overriden in the config.
+  isChatmail: [true, { option: true }],
+})
+
+/**
+ * we skip tests that use instant onboarding against a self-signed relay
+ * because the DCACCOUNT mechanism does not work yet with self-signed relays
+ *
+ * https://github.com/chatmail/core/issues/8211
+ */
+export function skipOnIpRelay() {
+  test.skip(
+    isIpAddress(chatmailServerDomain),
+    'cannot onboard against a self-signed IP-only relay, see chatmail/core#8211'
+  )
+}
+
+const fixturesPath = path.join(import.meta.dirname, 'fixtures')
+
+export async function reloadPage(page: Page): Promise<void> {
+  await page.goto(`/`)
+}
+
+export async function clickThroughTestIds(
+  page: Page,
+  testIds: string[]
+): Promise<void> {
+  for await (const testId of testIds) {
+    await page.getByTestId(testId).click()
+  }
+}
+
+export async function switchToProfile(
+  page: Page,
+  accountId: string
+): Promise<void> {
+  await page.getByTestId(`account-item-${accountId}`).hover() // without click is not received!
+  await page.getByTestId(`account-item-${accountId}`).click()
+  await expect(page.getByTestId(`selected-account:${accountId}`)).toHaveCount(
+    1,
+    { timeout: 10000 }
+  )
+  // Move the pointer off the account item, otherwise its hover tooltip
+  // (AccountHoverInfo) stays open and intercepts clicks on elements
+  // underneath it, e.g. the qr-scan-button.
+  await page.mouse.move(0, 0)
+}
+
+/**
+ * Helper function to wait for all account items to finish loading
+ * by waiting for all aria-busy attributes to be false and the text not being '⏳'
+ * note that even if there are no accounts yet, there will be one account item
+ * created preparing the InstantOnboarding process.
+ */
+export async function waitForAccountItemsToFinishLoading(
+  page: Page
+): Promise<void> {
+  await page.waitForFunction(() => {
+    const accountItems = document.querySelectorAll(
+      '[data-testid^="account-item-"]'
+    )
+
+    // If no account items exist return false,
+    // no accounts loaded yet so keep waiting
+    if (accountItems.length === 0) {
+      return false
+    }
+
+    return Array.from(accountItems).every(item => {
+      const ariaBusy = item.getAttribute('aria-busy')
+      const text = item.textContent
+      return ariaBusy === 'false' && text !== null && text !== '⏳'
+    })
+  })
+}
+
+export async function sendMessage(
+  page: Page,
+  userName: string,
+  messageText: string
+): Promise<void> {
+  await page
+    .locator('.chat-list .chat-list-item')
+    .filter({ hasText: userName })
+    .click()
+  await page.locator('.create-or-edit-message-input').fill(messageText)
+  await page.locator('button.send-button').click()
+  const sentMessageText = page
+    .locator(`.message.outgoing`)
+    .last()
+    .locator('.msg-body .text')
+  await expect(sentMessageText).toHaveText(messageText)
+}
+
+export async function createUser(
+  userName: string,
+  page: Page,
+  existingProfiles: User[],
+  isFirstOnboarding: boolean,
+  useChatmail: boolean = true
+): Promise<User> {
+  const user = await createNewProfile(
+    page,
+    userName,
+    isFirstOnboarding,
+    useChatmail
+  )
+
+  expect(user.id).toBeDefined()
+
+  existingProfiles.push(user)
+  console.log(`User ${user.name} was created!`, user)
+  return user
+}
+
+export const getUser = (index: number, existingProfiles: User[]) => {
+  if (
+    !existingProfiles ||
+    existingProfiles.length < index + 1 ||
+    existingProfiles[index] == undefined
+  ) {
+    throw new Error(
+      `Not enough profiles for test! Found ${existingProfiles?.length}`
+    )
+  }
+  return existingProfiles[index]
+}
+
+/**
+ * create a profile after pasting DCACCOUNT link
+ */
+export async function createNewProfile(
+  page: Page,
+  name: string,
+  isFirstOnboarding: boolean,
+  useChatmail: boolean
+): Promise<User> {
+  await page.waitForSelector('.styles_module_account')
+  const accountList = page.locator('.styles_module_account')
+
+  if (!isFirstOnboarding) {
+    // add account to show onboarding screen
+    await page.getByTestId('add-account-button').click()
+  }
+  // create a new account
+  await page.getByTestId('create-account-button').click()
+
+  let dcAccountLink: string
+  if (useChatmail) {
+    if (!chatmailServerDomain) {
+      throw new Error('DC_CHATMAIL_DOMAIN env var not set, cannot run tests')
+    }
+    if (isIpAddress(chatmailServerDomain)) {
+      // A bare-IP relay can't be onboarded via DCACCOUNT (core would try the
+      // unresolvable `imap.<ip>`), so we create the account on the relay and
+      // use DCLOGIN url to create the profile
+      dcAccountLink = await createAccountOnRelay(chatmailServerDomain)
+    } else {
+      dcAccountLink = `dcaccount:${chatmailServerDomain satisfies string}`
+    }
+  } else {
+    if (!mailServerUrl || mailServerToken == undefined) {
+      throw new Error(
+        'DC_MAIL_SERVER or DC_MAIL_SERVER_TOKEN env var not set, cannot run tests'
+      )
+    }
+    dcAccountLink = `dcaccount:${mailServerUrl satisfies string}//new_email?t=${mailServerToken satisfies string}&n=ci_github`
+  }
+  await page.evaluate(`navigator.clipboard.writeText('${dcAccountLink}')`)
+  await clickThroughTestIds(page, [
+    'other-login-button',
+    'scan-qr-login',
+    'paste',
+  ])
+
+  // Wait for the dialog to close, so that the underlying content
+  // becomes interactive, otherwise `fill()` might silently do nothing.
+  await expect(page.getByTestId('qrscan-dialog')).not.toBeVisible()
+
+  const nameInput = page.locator('#displayName')
+
+  await expect(nameInput).toBeVisible()
+
+  await nameInput.fill(name)
+
+  await page.getByTestId('login-button').click()
+
+  const newAccountList = page.locator('.styles_module_account')
+  await expect(newAccountList.last()).toHaveClass(
+    /(^|\s)styles_module_active(\s|$)/
+  )
+  // open settings to validate the name and to get
+  // the (randomly) created mail address
+  const settingsButton = page.getByTestId('open-settings-button')
+  await settingsButton.click()
+
+  await expect(page.locator('.styles_module_profileDisplayName')).toHaveText(
+    name
+  )
+  await page.getByTestId('open-advanced-settings').click()
+  await page.getByTestId('open-transport-settings').click()
+  await page.getByLabel('Edit Relay').first().click()
+  const addressLocator = page.locator('#addr')
+  await expect(addressLocator).toHaveValue(/.+@.+/)
+  const address = await addressLocator.inputValue()
+
+  await page.getByTestId('cancel').click()
+  await page.getByTestId('transports-settings-close').click()
+  await page.getByTestId('settings-advanced-close').click()
+
+  const newId = await accountList
+    .last()
+    .getAttribute('x-account-sidebar-account-id')
+
+  expect(newId).not.toBeNull()
+
+  if (newId && address) {
+    return {
+      id: newId,
+      name,
+      address,
+    }
+  } else {
+    throw new Error(`User ${name} could not be created!`)
+  }
+}
+
+/**
+ * Assumes that the "Add Profile" dialog is already open
+ * (which is the case if there are no accounts).
+ */
+export async function importDummyProfileFromBackup(page: Page) {
+  await page.getByRole('button', { name: 'I Already Have a Profile' }).click()
+
+  const fileChooserPromise = page.waitForEvent('filechooser')
+  await page.getByRole('button', { name: 'Restore from Backup' }).click()
+  const fileChooser = await fileChooserPromise
+  await fileChooser.setFiles(
+    path.join(fixturesPath, 'dummy-account-backup.tar')
+  )
+}
+
+export async function getProfile(
+  page: Page,
+  accountId: string,
+  includePasswd = false
+): Promise<User> {
+  await page.getByTestId(`account-item-${accountId}`).click({ button: 'right' })
+  await page.getByTestId('open-settings-menu-item').click()
+  const nameLocator = page.getByTestId('profile-display-name')
+  await expect(nameLocator).not.toBeEmpty()
+  const name = await nameLocator.textContent()
+
+  await page.getByTestId('open-advanced-settings').click()
+  await page.getByTestId('open-transport-settings').click()
+  await page.getByLabel('Edit Relay').first().click()
+  const addressLocator = page.locator('#addr')
+  await expect(addressLocator).toHaveValue(/.+@.+/)
+  const address = await addressLocator.inputValue()
+  let password = ''
+  if (includePasswd) {
+    const passwdLocator = page.locator('#password')
+    password = await passwdLocator.inputValue()
+  }
+  await page.getByTestId('cancel').click()
+  await page.getByTestId('transports-settings-close').click()
+  await page.getByTestId('settings-advanced-close').click()
+
+  return {
+    id: accountId,
+    name: name ?? '',
+    address: address ?? '',
+    password: password,
+  }
+}
+
+/**
+ * Toggle the "Enforce Encryption for All Relays" setting
+ * Unencrypted ("New Email") chats can only be created when it is disabled.
+ */
+export async function setForceEncryption(
+  page: Page,
+  accountId: string,
+  enabled: boolean
+): Promise<void> {
+  await page.getByTestId(`account-item-${accountId}`).click({ button: 'right' })
+  await page.getByTestId('open-settings-menu-item').click()
+  await page.getByTestId('open-advanced-settings').click()
+  await page.getByTestId('open-transport-settings').click()
+  await page.getByLabel('Edit Relay').first().click()
+  await page.locator('#show-advanced-button').click()
+  const switchInput = page.getByRole('checkbox', {
+    name: 'Enforce Encryption for All Relays',
+  })
+  if ((await switchInput.isChecked()) !== enabled) {
+    await switchInput.press('Space')
+  }
+  await expect(switchInput).toBeChecked({ checked: enabled })
+  await page.getByTestId('ok').click()
+  // Wait for the re-configuration to finish and the edit dialog to close.
+  await expect(page.locator('#addr')).not.toBeVisible({ timeout: 60_000 })
+  await page.getByTestId('transports-settings-close').click()
+  await page.getByTestId('settings-advanced-close').click()
+}
+
+export async function createProfiles(
+  number: number,
+  existingProfiles: User[],
+  page: Page,
+  browserName: string,
+  useChatmail: boolean = true
+): Promise<void> {
+  const hasProfileWithName = (name: string): boolean => {
+    let hasProfile = false
+    if (existingProfiles.length > 0) {
+      existingProfiles.forEach(user => {
+        if (user.name === name) {
+          hasProfile = true
+        }
+      })
+    }
+    return hasProfile
+  }
+  if (browserName.toLowerCase().indexOf('chrom') > -1) {
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
+  }
+  for (let n = 0; n < number; n++) {
+    const name = userNames[n]
+    if (name == undefined) {
+      throw new Error('not enough userNames')
+    }
+    if (!hasProfileWithName(name)) {
+      await createUser(name, page, existingProfiles, n === 0, useChatmail)
+    } else {
+      console.log('User already exists')
+    }
+  }
+}
+
+export async function deleteAllProfiles(
+  page: Page,
+  existingProfiles: User[]
+): Promise<void> {
+  for (const profileToDelete of existingProfiles) {
+    const deleted = await deleteProfile(page, profileToDelete.id)
+    expect(deleted).toContain(profileToDelete.name)
+    if (deleted) {
+      console.log(`User ${profileToDelete.name} was deleted!`)
+    }
+  }
+}
+
+/**
+ * can be used to load existing profiles from db
+ * if fixtures are used, and the profiles are already created
+ */
+export async function loadExistingProfiles(page: Page): Promise<User[]> {
+  // await page.goto('/')
+  const existingProfiles: User[] = []
+  await page.waitForSelector('.main-container')
+  await expect(page.locator('.main-container')).toBeVisible()
+  // TODO: the next waitFor calls are needed when loading existing profiles
+  // and skipping the createProfiles step, but will never succeed if there
+  // are no profiles yet
+  await page.waitForSelector('button.styles_module_account')
+  await page.waitForSelector('button.styles_module_account[aria-busy=false]')
+  const accountList = page.locator('button.styles_module_account')
+  const existingAccountItems = await accountList.count()
+  console.log('existingAccountItems', existingAccountItems)
+  if (existingAccountItems > 0) {
+    if (existingAccountItems === 1) {
+      const welcomeDialog = await page
+        .locator('.styles_module_welcome')
+        .isVisible()
+      if (welcomeDialog) {
+        // special case: when no account exists on app start a new empty
+        // account is created but not yet persisted, so there are no
+        // existing profiles in database yet
+        return []
+      }
+    }
+    for (let i = 0; i < existingAccountItems; i++) {
+      const account = accountList.nth(i)
+      const id = await account.getAttribute('x-account-sidebar-account-id')
+      console.log(`Found account ${id}`)
+      if (id) {
+        const p = await getProfile(page, id)
+        existingProfiles.push(p)
+      }
+    }
+    return existingProfiles
+  }
+  return []
+}
+
+export async function deleteProfile(
+  page: Page,
+  accountId?: string // if empty, the last account will be deleted
+): Promise<string | null> {
+  await page.waitForSelector('.styles_module_account')
+  const accountList = page.locator('.styles_module_account')
+  await expect(accountList.last()).toBeVisible()
+  const accounts = await accountList.all()
+  if (accounts.length > 0) {
+    if (accountId) {
+      await page
+        .getByTestId(`account-item-${accountId}`)
+        .click({ button: 'right' })
+    } else {
+      await accountList.last().click({ button: 'right' })
+    }
+    // await page.screenshot({ path: 'accountList.png' })
+    await page.getByTestId('delete-account-menu-item').click()
+    await expect(page.getByTestId('account-deletion-dialog')).toBeVisible()
+    const userName: string | null = await page
+      .locator('.styles_module_accountName > div')
+      .nth(0)
+      .textContent()
+    const deleteButton = page.getByTestId('delete-account')
+    await expect(deleteButton).toBeVisible()
+    await deleteButton.click()
+    await expect(page.locator('.styles_module_infoBox')).toBeVisible()
+    if (accountId) {
+      await expect(page.getByTestId(`account-item-${accountId}`)).toHaveCount(0)
+    }
+    return userName
+  }
+  return null
+}
+
+export async function deleteSelectedProfile(page: Page) {
+  const selectedProfile = page
+    .getByRole('navigation', { name: /Profiles?/ })
+    .getByRole('tab', { selected: true })
+  await selectedProfile.click({ button: 'right' })
+  await page.getByRole('menuitem', { name: 'Delete' }).click()
+  await page
+    .getByRole('dialog')
+    .filter({ hasText: 'Delete Profile' })
+    .getByRole('button', { name: 'Delete' })
+    .click()
+  await expect(selectedProfile).not.toBeVisible()
+}
+
+export async function createDummyChat(page: Page, chatName: string) {
+  await page.getByRole('button', { name: 'New Chat' }).click()
+  await page.getByRole('button', { name: 'New Group' }).click()
+  await page.getByRole('textbox', { name: 'Group Name' }).fill(chatName)
+  await page.getByTestId('group-create-button').click()
+}
+/**
+ * This RegExp ensures that we don't select by draft or last message text.
+ * `\w` is for the avatar initial.
+ */
+export const makeChatNameRegex = (chatName: string) =>
+  new RegExp(`^\\w?${chatName}`)
+export function getChat(page: Page, chatName: string | RegExp) {
+  return page
+    .getByLabel('Chats')
+    .getByRole('tablist')
+    .getByRole('tab', {
+      name: chatName instanceof RegExp ? chatName : makeChatNameRegex(chatName),
+    })
+}
+export async function deleteChat(page: Page, chatName: string | RegExp) {
+  await getChat(page, chatName).click({ button: 'right' })
+  await page.getByRole('menuitem', { name: /.*(Delete|Leave).*/ }).click()
+  await page.getByRole('button', { name: 'Delete' }).click()
+}
+export async function createNDummyChats(
+  page: Page,
+  n: number,
+  chatNamePrefix = 'Some chat '
+) {
+  for (let i = 0; i < n; i++) {
+    await createDummyChat(page, `${chatNamePrefix}${(i + 1).toString()}`)
+  }
+  const chatList = page.getByLabel('Chats').getByRole('tablist')
+  await expect(
+    chatList.getByRole('tab', { name: chatNamePrefix })
+  ).toContainText(
+    Array(n)
+      .fill(null)
+      .map((_val, i) => `${chatNamePrefix}${(i + 1).toString()}`)
+      .reverse()
+  )
+}
+
+export async function selectChat(
+  page: Page,
+  chatName: string,
+  options?: { dontWaitForLoaded?: boolean }
+) {
+  const chatList = page.getByLabel('Chats').getByRole('tablist')
+  await getChat(page, chatName).click()
+
+  if (options?.dontWaitForLoaded) {
+    return
+  }
+
+  // Waiting for the chat to get loaded is useful to avoid the tests
+  // trying to do something in the previous chat without
+  // while the new one is being loaded, e.g. filling the textarea.
+  //
+  // We should probably consider making sure that the old chat
+  // cannot be interacted with anymore when we have initiated chat switching.
+  // For example, by disabling the composer, or applying `aria-busy`.
+  // When we have done that, we can remove this code.
+  await expect(chatList.getByRole('tab', { selected: true })).toContainText(
+    chatName
+  )
+  await expect(
+    page
+      .getByRole('region', { name: /chat(?!s)/i })
+      .filter({ has: page.getByRole('list', { name: 'Messages' }) })
+      .getByRole('heading')
+  ).toContainText(chatName)
+}
+
+export async function openReactionsBar(
+  page: Page,
+  message: Locator
+): Promise<Locator> {
+  await message.click({ button: 'right' })
+  await page.getByRole('menu').getByRole('menuitem', { name: 'React' }).click()
+  return page.getByRole('menu', { name: 'React' })
+}
+
+export const createChat = async (
+  userA: User,
+  userB: User,
+  page: Page,
+  browserName: string
+) => {
+  if (browserName.toLowerCase().indexOf('chrom') > -1) {
+    await page.context().grantPermissions(['clipboard-read', 'clipboard-write'])
+  }
+  await switchToProfile(page, userA.id)
+  // copy invite link from user A
+  await clickThroughTestIds(page, [
+    'qr-scan-button',
+    'copy-qr-code',
+    'confirm-qr-code',
+  ])
+
+  await switchToProfile(page, userB.id)
+  // paste invite link in account of userB
+  await clickThroughTestIds(page, ['qr-scan-button', 'show-qr-scan', 'paste'])
+  const confirmDialog = page.getByTestId('confirm-start-chat')
+  await expect(confirmDialog).toContainText(userA.name)
+
+  await page.getByTestId('confirm-start-chat').getByTestId('confirm').click()
+  const chatListItem = page
+    .locator('.chat-list .chat-list-item')
+    .filter({ hasText: userA.name })
+    .first()
+  await expect(chatListItem).toBeVisible()
+
+  // Send a message from userB to userA so that userA learns userB's display name
+  await page
+    .locator('.chat-list .chat-list-item')
+    .filter({ hasText: userA.name })
+    .click()
+  await page
+    .locator('textarea.create-or-edit-message-input')
+    .fill(`Hello ${userA.name}!`)
+  await page.locator('button.send-button').click()
+  await expect(
+    page.locator('.message.outgoing').last().locator('.msg-body .text')
+  ).toHaveText(`Hello ${userA.name}!`)
+}
+
+/**
+ * Create a profile from an invite link and start a chat
+ * based on that link
+ */
+export const createProfileAndJoinChat = async (
+  inviterName: string,
+  inviteeName: string,
+  page: Page
+) => {
+  const confirmDialog = page.getByTestId('ask-create-profile-and-join-chat')
+  await expect(confirmDialog).toContainText(inviterName)
+
+  await confirmDialog.getByTestId('confirm').click()
+
+  // we have to wait till both dialogs are closed since
+  // the displayName input is just behind these dialogs
+  await expect(confirmDialog).not.toBeVisible()
+
+  await expect(page.getByTestId('qr-reader-settings')).not.toBeVisible()
+
+  const nameInput = page.locator('#displayName')
+
+  await expect(nameInput).toBeVisible()
+
+  await nameInput.fill(inviteeName)
+
+  await page.getByTestId('login-button').click()
+}
+
+export const createGroupChat = async (
+  page: Page,
+  groupName: string,
+  creator: User,
+  member: User
+) => {
+  await switchToProfile(page, creator.id)
+  const chatUserB = page
+    .locator('.chat-list .chat-list-item')
+    .filter({ hasText: member.name })
+  await expect(chatUserB).toBeVisible()
+  await page.locator('#new-chat-button').click()
+  await page.locator('#newgroup button').click()
+  await page.locator('.group-name-input').fill(groupName)
+  await page.getByPlaceholder('Description').fill('Test group description')
+  await page.locator('#addmember button').click()
+  const addMemberDialog = page.getByTestId('add-member-dialog')
+  await addMemberDialog
+    .locator('.contact-list-item')
+    .filter({ hasText: member.name })
+    .click()
+
+  await addMemberDialog.getByTestId('ok').click()
+  await page.getByTestId('group-create-button').click()
+  const chatListItem = page
+    .locator('.chat-list .chat-list-item')
+    .filter({ hasText: groupName })
+  await expect(chatListItem).toBeVisible()
+  // Send a message to make it an active group
+  await page
+    .locator('textarea.create-or-edit-message-input')
+    .fill('Hello group!')
+  await page.locator('button.send-button').click()
+}
+
+export const makeDummyContactInviteLink = (
+  contactName: string
+) => `https://i.delta.chat/\
+#AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA\
+&a=echo%40${chatmailServerDomain}\
+&n=${encodeURIComponent(contactName)}\
+&i=aaaaaaaaaaaaaaaaaaaaaaaa\
+&s=aaaaaaaaaaaaaaaaaaaaaaaa`

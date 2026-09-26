@@ -1,0 +1,43 @@
+@use '../../../scss/mixins';
+
+.root {
+  display: grid;
+  grid-template-columns: auto min-content;
+
+  background-color: var(--accountSidebarBg);
+  border-left: 1px solid var(--accountSidebarInnerBorderColor);
+
+  // We're using account sidebar color scheme,
+  // which is always dark. This ensures that the browser
+  // also uses dark native colors for the audio player.
+  color-scheme: dark;
+}
+.audioElContainer {
+  // Otherwise the `<audio>` has some extra margin.
+  line-height: 0;
+
+  audio {
+    width: 100%;
+  }
+  audio::-webkit-media-controls-enclosure {
+    border-radius: 0;
+    background: transparent;
+  }
+  audio::-webkit-media-controls-panel {
+    // No need to have extra space from the "close" button,
+    // because we want to make it look as part of a single widget.
+    padding-right: 0;
+  }
+}
+.closeButton {
+  @include mixins.button-reset;
+  border-radius: 9999999px;
+  padding: 0.5rem;
+  line-height: 0;
+  align-self: center;
+
+  .closeButtonIcon {
+    vertical-align: middle;
+    background-color: var(--accountSidebarIconColor);
+  }
+}

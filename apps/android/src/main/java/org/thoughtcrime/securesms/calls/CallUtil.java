@@ -1,0 +1,180 @@
+package org.thoughtcrime.securesms.calls;
+
+import android.content.Context;
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.Icon;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
+import android.os.Build;
+import android.util.Log;
+import android.widget.Toast;
+import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.AlertDialog;
+import androidx.core.telecom.CallEndpointCompat;
+import com.b44t.messenger.DcChat;
+import com.b44t.messenger.DcContext;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
+import org.thoughtcrime.securesms.R;
+import org.thoughtcrime.securesms.connect.DcHelper;
+import org.thoughtcrime.securesms.contacts.avatars.ContactPhoto;
+import org.thoughtcrime.securesms.mms.GlideApp;
+import org.thoughtcrime.securesms.recipients.Recipient;
+import org.thoughtcrime.securesms.util.BitmapUtil;
+
+public class CallUtil {
+  private static final String TAG = "CallUtil";
+
+  @RequiresApi(api = Build.VERSION_CODES.O)
+  public static void startAudioCall(Context context, int chatId) {
+    Log.d(TAG, "Starting audio call to " + chatId);
+    startCall(context, chatId, false);
+  }
+
+  @RequiresApi(api = Build.VERSION_CODES.O)
+  public static void startVideoCall(Context context, int chatId) {
+    Log.d(TAG, "Starting video call to " + chatId);
+    startCall(context, chatId, true);
+  }
+
+  @RequiresApi(api = Build.VERSION_CODES.O)
+  private static void startCall(Context context, int chatId, boolean startsWithVideo) {
+    if (chatId < 0) {
+      Log.e(TAG, "Cannot start call: wrong chatId");
+      return;
+    }
+
+    CallCoordinator coordinator = CallCoordinator.getInstance(context);
+
+    if (coordinator.hasActiveCall()) {
+      Toast.makeText(context, R.string.already_in_call, Toast.LENGTH_SHORT).show();
+      Intent intent = new Intent(context, CallActivity.class);
+      intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+      context.startActivity(intent);
+      return;
+    }
+
+    Runnable proceedWithCall =
+        () -> {
+          int accId = DcHelper.getContext(context).getAccountId();
+          coordinator.initiateOutgoingCall(accId, chatId, startsWithVideo);
+        };
+
+    if (!isNetworkAvailable(context)) {
+      new AlertDialog.Builder(context)
+          .setMessage(context.getString(R.string.call_requires_connection))
+          .setPositiveButton(R.string.perm_continue, (dialog, which) -> proceedWithCall.run())
+          .setNegativeButton(android.R.string.cancel, null)
+          .show();
+      return;
+    }
+
+    proceedWithCall.run();
+  }
+
+  @Nullable
+  @RequiresApi(api = Build.VERSION_CODES.M)
+  protected static Icon getIconFromChat(Context context, DcChat dcChat) {
+    Log.d(TAG, "getIconFromChat: thread=" + Thread.currentThread().getName());
+
+    try {
+      Recipient recipient = new Recipient(context, dcChat);
+      ContactPhoto contactPhoto = recipient.getContactPhoto(context);
+
+      int wh = context.getResources().getDimensionPixelSize(R.dimen.contact_photo_target_size);
+      Bitmap bitmap;
+
+      if (contactPhoto != null) {
+        bitmap =
+            GlideApp.with(context)
+                .asBitmap()
+                .load(contactPhoto)
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .circleCrop()
+                .submit(wh, wh)
+                .get();
+      } else {
+        Drawable drawable =
+            recipient
+                .getFallbackContactPhoto()
+                .asDrawable(context, recipient.getFallbackAvatarColor());
+        bitmap = BitmapUtil.createFromDrawable(drawable, wh, wh);
+      }
+
+      if (bitmap != null) {
+        Log.d(
+            TAG,
+            "Bitmap loaded: "
+                + bitmap.getWidth()
+                + "x"
+                + bitmap.getHeight()
+                + ", config="
+                + bitmap.getConfig()
+                + ", recycled="
+                + bitmap.isRecycled());
+        Icon icon = Icon.createWithBitmap(bitmap);
+        Log.d(TAG, "Icon created successfully");
+        return icon;
+      }
+
+    } catch (Exception e) {
+      Log.e(TAG, "Failed to load caller icon", e);
+    }
+
+    Log.w(TAG, "Returning null icon");
+    return null;
+  }
+
+  protected static String getNameFromChat(DcChat dcChat) {
+    return dcChat.getName();
+  }
+
+  @RequiresApi(api = Build.VERSION_CODES.O)
+  public static int getIconResByCallEndpoint(CallEndpointCompat endpoint) {
+    int iconRes;
+    switch (endpoint.getType()) {
+      case CallEndpointCompat.TYPE_EARPIECE:
+        iconRes = R.drawable.ic_phone_in_talk;
+        break;
+      case CallEndpointCompat.TYPE_SPEAKER:
+        iconRes = R.drawable.ic_volume_up;
+        break;
+      case CallEndpointCompat.TYPE_BLUETOOTH:
+        iconRes = R.drawable.ic_bluetooth_audio;
+        break;
+      case CallEndpointCompat.TYPE_WIRED_HEADSET:
+        iconRes = R.drawable.ic_headset;
+        break;
+      case CallEndpointCompat.TYPE_STREAMING:
+        iconRes = R.drawable.ic_cast;
+        break;
+      default:
+        iconRes = R.drawable.ic_volume_up;
+        break;
+    }
+    return iconRes;
+  }
+
+  @RequiresApi(api = Build.VERSION_CODES.M)
+  private static boolean isNetworkAvailable(Context context) {
+    ConnectivityManager manager =
+        (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE);
+    if (manager == null) return true;
+
+    boolean networkAvailable = false;
+    Network network = manager.getActiveNetwork();
+    if (network != null) {
+      NetworkCapabilities caps = manager.getNetworkCapabilities(network);
+      networkAvailable =
+          caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET);
+    }
+
+    boolean serverConnected =
+        DcHelper.getContext(context).getConnectivity() >= DcContext.DC_CONNECTIVITY_WORKING;
+
+    return networkAvailable || serverConnected;
+  }
+}

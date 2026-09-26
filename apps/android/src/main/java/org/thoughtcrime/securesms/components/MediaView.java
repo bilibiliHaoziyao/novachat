@@ -1,0 +1,109 @@
+package org.thoughtcrime.securesms.components;
+
+import android.content.Context;
+import android.net.Uri;
+import android.util.AttributeSet;
+import android.view.View;
+import android.view.Window;
+import android.widget.FrameLayout;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import java.io.IOException;
+import org.thoughtcrime.securesms.R;
+import org.thoughtcrime.securesms.mms.GlideRequests;
+import org.thoughtcrime.securesms.mms.VideoSlide;
+import org.thoughtcrime.securesms.util.views.Stub;
+import org.thoughtcrime.securesms.video.VideoPlayer;
+
+public class MediaView extends FrameLayout {
+
+  private ZoomingImageView imageView;
+  private Stub<VideoPlayer> videoView;
+  private @Nullable VideoPlayer.ControlsVisibilityListener controlsVisibilityListener;
+  private boolean isVideo;
+
+  public MediaView(@NonNull Context context) {
+    super(context);
+    initialize();
+  }
+
+  public MediaView(@NonNull Context context, @Nullable AttributeSet attrs) {
+    super(context, attrs);
+    initialize();
+  }
+
+  public MediaView(@NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
+    super(context, attrs, defStyleAttr);
+    initialize();
+  }
+
+  public MediaView(
+      @NonNull Context context, @Nullable AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+    super(context, attrs, defStyleAttr, defStyleRes);
+    initialize();
+  }
+
+  private void initialize() {
+    inflate(getContext(), R.layout.media_view, this);
+
+    this.imageView = findViewById(R.id.image);
+    this.videoView = new Stub<>(findViewById(R.id.video_player_stub));
+  }
+
+  public void set(
+      @NonNull GlideRequests glideRequests,
+      @NonNull Window window,
+      @NonNull Uri source,
+      @Nullable String fileName,
+      @Nullable String mediaType,
+      long size,
+      boolean autoplay)
+      throws IOException {
+    mediaType = mediaType == null ? "null" : mediaType;
+    isVideo = mediaType.startsWith("video/");
+    if (mediaType.startsWith("image/")) {
+      imageView.setVisibility(View.VISIBLE);
+      if (videoView.resolved()) videoView.get().setVisibility(View.GONE);
+      imageView.setImageUri(glideRequests, source, mediaType);
+    } else if (isVideo) {
+      VideoPlayer player = videoView.get();
+      player.setVisibility(View.VISIBLE);
+      player.setWindow(window);
+      player.setControlsVisibilityListener(controlsVisibilityListener);
+      player.setVideoSource(new VideoSlide(getContext(), source, fileName, size), autoplay);
+    } else {
+      throw new IOException("Unsupported media type: " + mediaType);
+    }
+  }
+
+  public void pause() {
+    if (this.videoView.resolved()) {
+      this.videoView.get().pause();
+    }
+  }
+
+  public void cleanup() {
+    this.imageView.cleanup();
+    if (this.videoView.resolved()) {
+      this.videoView.get().cleanup();
+    }
+  }
+
+  public void setOnImageTapListener(@Nullable Runnable listener) {
+    imageView.setOnImageTapListener(listener);
+  }
+
+  public void setControlsVisibilityListener(
+      @Nullable VideoPlayer.ControlsVisibilityListener listener) {
+    this.controlsVisibilityListener = listener;
+    if (videoView.resolved()) videoView.get().setControlsVisibilityListener(listener);
+  }
+
+  public boolean isVideo() {
+    return isVideo;
+  }
+
+  public void setControlsVisible(boolean visible) {
+    if (isVideo && videoView.resolved()) videoView.get().setControlsVisible(visible);
+  }
+}

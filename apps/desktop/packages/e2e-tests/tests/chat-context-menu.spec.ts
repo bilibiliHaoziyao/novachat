@@ -1,0 +1,592 @@
+import { expect, type Page } from '@playwright/test'
+
+import {
+  createProfiles,
+  User,
+  loadExistingProfiles,
+  deleteAllProfiles,
+  reloadPage,
+  test,
+  switchToProfile,
+  clickThroughTestIds,
+  getUser,
+  createGroupChat,
+  createChat,
+} from '../playwright-helper.js'
+
+/**
+ * E2E tests for chat context menus used in 2 scenarios:
+ * 1. Chat list items (right-click context menu)
+ * 2. Main chat view (3-dot menu button)
+ *
+ * These tests verify that the context menu items are
+ * correct and that the menu items work as expected.
+ */
+
+test.describe.configure({
+  mode: 'serial',
+})
+
+expect.configure({ timeout: 5_000 })
+test.setTimeout(60_000)
+
+let existingProfiles: User[] = []
+
+const numberOfProfiles = 2
+
+let page: Page
+
+const groupName = 'Test Context Menu Group'
+
+// Helper functions
+const openMainViewThreeDotMenu = async (p: Page) => {
+  await p.locator('#three-dot-menu-button').click()
+  await expect(p.getByRole('menu')).toBeVisible()
+}
+
+const openChatListContextMenu = async (p: Page, chatName: string) => {
+  await p
+    .locator('.chat-list .chat-list-item')
+    .filter({ hasText: chatName })
+    .click({ button: 'right' })
+  await expect(p.getByRole('menu')).toBeVisible()
+}
+
+const getMenuItems = (p: Page) => p.getByRole('menu').getByRole('menuitem')
+
+const closeMenu = async (p: Page) => {
+  await p.keyboard.press('Escape')
+  await expect(p.getByRole('menu')).not.toBeVisible()
+}
+
+test.beforeAll(async ({ browser, isChatmail }) => {
+  const contextForProfileCreation = await browser.newContext()
+  const pageForProfileCreation = await contextForProfileCreation.newPage()
+
+  await reloadPage(pageForProfileCreation)
+
+  existingProfiles =
+    (await loadExistingProfiles(pageForProfileCreation)) ?? existingProfiles
+
+  await createProfiles(
+    numberOfProfiles,
+    existingProfiles,
+    pageForProfileCreation,
+    browser.browserType().name(),
+    isChatmail
+  )
+
+  const userA = getUser(0, existingProfiles)
+  const userB = getUser(1, existingProfiles)
+
+  await createChat(
+    userA,
+    userB,
+    pageForProfileCreation,
+    browser.browserType().name()
+  )
+
+  await createGroupChat(pageForProfileCreation, groupName, userA, userB)
+
+  await contextForProfileCreation.close()
+  page = await browser.newPage()
+  await reloadPage(page)
+})
+
+test.afterEach(async () => {
+  // Pressing Escape a bunch of times should reset the UI state
+  for (let i = 0; i < 5; i++) {
+    await page.keyboard.press('Escape')
+  }
+})
+
+test.afterAll(async ({ browser }) => {
+  await page?.close()
+
+  const context = await browser.newContext()
+  const pageForProfileDeletion = await context.newPage()
+  await reloadPage(pageForProfileDeletion)
+  await deleteAllProfiles(pageForProfileDeletion, existingProfiles)
+  await context.close()
+})
+
+test.describe('Main View - 3-Dot Menu', () => {
+  test('shows correct menu items for DM chat', async () => {
+    const userA = existingProfiles[0]
+    const userB = existingProfiles[1]
+
+    await switchToProfile(page, userA.id)
+    await page
+      .locator('.chat-list .chat-list-item')
+      .filter({ hasText: userB.name })
+      .click()
+
+    await openMainViewThreeDotMenu(page)
+
+    // Main view menu items for DM chat
+    await expect(getMenuItems(page)).toHaveText([
+      'Search in Chat',
+      'Disappearing Messages',
+      'Mute Notifications',
+      'Archive Chat',
+      'Block Contact',
+      'Clear Chat',
+      'Delete Chat',
+    ])
+
+    await closeMenu(page)
+  })
+
+  test('shows correct menu items for Group chat', async () => {
+    const userA = existingProfiles[0]
+
+    await switchToProfile(page, userA.id)
+    await page
+      .locator('.chat-list .chat-list-item')
+      .filter({ hasText: groupName })
+      .click()
+
+    await openMainViewThreeDotMenu(page)
+
+    await expect(getMenuItems(page)).toHaveText([
+      'Search in Chat',
+      'Disappearing Messages',
+      'Mute Notifications',
+      'Archive Chat',
+      'Clone Chat',
+      'Clear Chat',
+      'Leave Group',
+    ])
+
+    await closeMenu(page)
+  })
+
+  test('Leave Group opens leave dialog with correct options', async () => {
+    const userA = existingProfiles[0]
+
+    await switchToProfile(page, userA.id)
+    await page
+      .locator('.chat-list .chat-list-item')
+      .filter({ hasText: groupName })
+      .click()
+
+    await openMainViewThreeDotMenu(page)
+    await page.getByRole('menuitem', { name: 'Leave Group' }).click()
+
+    // Verify leave dialog opens with the expected options
+    const dialog = page.getByRole('dialog')
+    await expect(dialog).toContainText('Are you sure you want to leave?')
+    await expect(dialog.getByRole('button', { name: 'Cancel' })).toBeVisible()
+    await expect(
+      dialog.getByRole('button', { name: 'Leave & Delete for Me' })
+    ).toBeVisible()
+    await expect(
+      dialog.getByRole('button', { name: 'Leave Group' })
+    ).toBeVisible()
+
+    // Cancel to preserve state
+    await dialog.getByRole('button', { name: 'Cancel' }).click()
+  })
+
+  test('after leaving group, Delete Chat replaces Leave Group', async () => {
+    const userA = existingProfiles[0]
+    const disposableGroupName = 'Leave Then Delete Group'
+
+    await switchToProfile(page, userA.id)
+
+    // Create a group
+    await page.locator('#new-chat-button').click()
+    await page.getByRole('button', { name: 'New Group' }).click()
+    await page
+      .getByRole('textbox', { name: 'Group Name' })
+      .fill(disposableGroupName)
+    await page.getByTestId('group-create-button').click()
+
+    // Verify the group is selected and Leave Group is shown
+    await openMainViewThreeDotMenu(page)
+    await expect(
+      page.getByRole('menuitem', { name: 'Leave Group' })
+    ).toBeVisible()
+    await expect(
+      page.getByRole('menuitem', { name: 'Delete' })
+    ).not.toBeVisible()
+
+    // Leave the group (without deleting)
+    await page.getByRole('menuitem', { name: 'Leave Group' }).click()
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Leave Group' })
+      .click()
+
+    // After leaving, re-open menu: Delete Chat should replace Leave Group
+    await openMainViewThreeDotMenu(page)
+    await expect(
+      page.getByRole('menuitem', { name: 'Delete Chat' })
+    ).toBeVisible()
+    await expect(
+      page.getByRole('menuitem', { name: 'Leave' })
+    ).not.toBeVisible()
+    await closeMenu(page)
+
+    // delete the chat
+    await openMainViewThreeDotMenu(page)
+    await page.getByRole('menuitem', { name: 'Delete Chat' }).click()
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Delete' })
+      .click()
+    await expect(
+      page
+        .locator('.chat-list .chat-list-item')
+        .filter({ hasText: disposableGroupName })
+    ).not.toBeVisible()
+  })
+
+  test('search in chat focuses search input', async () => {
+    const userA = existingProfiles[0]
+    const userB = existingProfiles[1]
+
+    await switchToProfile(page, userA.id)
+    await page
+      .locator('.chat-list .chat-list-item')
+      .filter({ hasText: userB.name })
+      .click()
+
+    await openMainViewThreeDotMenu(page)
+    await page.getByRole('menuitem', { name: 'Search in Chat' }).click()
+
+    // Verify search input is focused
+    const searchInput = page.getByRole('textbox', { name: 'Search' })
+    await expect(searchInput).toBeFocused()
+  })
+
+  test('archive and unarchive chat from main view', async () => {
+    const userA = existingProfiles[0]
+    const userB = existingProfiles[1]
+
+    await switchToProfile(page, userA.id)
+    await page
+      .locator('.chat-list .chat-list-item')
+      .filter({ hasText: userB.name })
+      .click()
+
+    // Archive the chat
+    await openMainViewThreeDotMenu(page)
+    await page.getByRole('menuitem', { name: 'Archive Chat' }).click()
+
+    // Verify chat is no longer in main list
+    await expect(
+      page.locator('.chat-list .chat-list-item').filter({ hasText: userB.name })
+    ).not.toBeVisible()
+
+    // Open archived chats
+    await page.getByRole('button', { name: 'Archived Chats' }).click()
+    await expect(
+      page.locator('.chat-list .chat-list-item').filter({ hasText: userB.name })
+    ).toBeVisible()
+
+    // Select archived chat and unarchive
+    await page
+      .locator('.chat-list .chat-list-item')
+      .filter({ hasText: userB.name })
+      .click()
+
+    await openMainViewThreeDotMenu(page)
+    await expect(
+      page.getByRole('menuitem', { name: 'Unarchive Chat' })
+    ).toBeVisible()
+    await page.getByRole('menuitem', { name: 'Unarchive Chat' }).click()
+
+    // Go back to main list using the back button
+    await page.getByRole('button', { name: 'back' }).click()
+    await expect(
+      page.locator('.chat-list .chat-list-item').filter({ hasText: userB.name })
+    ).toBeVisible()
+  })
+
+  test('mute and unmute chat from main view', async () => {
+    const userA = existingProfiles[0]
+    const userB = existingProfiles[1]
+
+    await switchToProfile(page, userA.id)
+    await page
+      .locator('.chat-list .chat-list-item')
+      .filter({ hasText: userB.name })
+      .click()
+
+    // Mute the chat
+    await openMainViewThreeDotMenu(page)
+    await page.getByRole('menuitem', { name: 'Mute Notifications' }).click()
+    await page.getByRole('menuitem', { name: 'Mute for 1 hour' }).click()
+
+    // Verify mute icon appears in chat list
+    const chatListItem = page
+      .locator('.chat-list .chat-list-item')
+      .filter({ hasText: userB.name })
+    await expect(chatListItem.getByLabel('Muted')).toBeVisible()
+
+    // Unmute the chat
+    await openMainViewThreeDotMenu(page)
+    await expect(page.getByRole('menuitem', { name: 'Unmute' })).toBeVisible()
+    await page.getByRole('menuitem', { name: 'Unmute' }).click()
+
+    // Verify mute icon is gone
+    await expect(chatListItem.getByLabel('Muted')).not.toBeVisible()
+  })
+
+  test('clear chat removes messages', async () => {
+    const userA = existingProfiles[0]
+    const userB = existingProfiles[1]
+
+    await switchToProfile(page, userA.id)
+    await page
+      .locator('.chat-list .chat-list-item')
+      .filter({ hasText: userB.name })
+      .click()
+
+    // Clear the chat
+    await openMainViewThreeDotMenu(page)
+    await page.getByRole('menuitem', { name: 'Clear Chat' }).click()
+
+    // Confirm the dialog (2 messages since we have a system message and the test message)
+    await expect(page.getByRole('dialog')).toContainText('Delete 2 messages?')
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Clear Chat' })
+      .click()
+
+    // Verify messages are cleared
+    await expect(page.locator('.message')).toHaveCount(0)
+  })
+})
+
+test.describe('Chat List Context Menu - Single Selection', () => {
+  test('shows correct menu items for DM chat', async () => {
+    const userA = existingProfiles[0]
+    const userB = existingProfiles[1]
+
+    await switchToProfile(page, userA.id)
+
+    await openChatListContextMenu(page, userB.name)
+
+    // Chat list menu items for DM chat
+    await expect(getMenuItems(page)).toHaveText([
+      'Pin Chat',
+      'Unread',
+      'Mute Notifications',
+      'Archive Chat',
+      'View Profile',
+      'Block Contact',
+      'Delete',
+    ])
+
+    await closeMenu(page)
+  })
+
+  test('shows correct menu items for Group chat', async () => {
+    const userA = existingProfiles[0]
+
+    await switchToProfile(page, userA.id)
+
+    await openChatListContextMenu(page, groupName)
+
+    // Chat list menu items for group chat
+    await expect(getMenuItems(page)).toHaveText([
+      'Pin Chat',
+      'Unread',
+      'Mute Notifications',
+      'Archive Chat',
+      'View Profile',
+      'Leave Group',
+    ])
+
+    await closeMenu(page)
+  })
+
+  test('shows Unpin Chat when chat is pinned', async () => {
+    const userA = existingProfiles[0]
+    const userB = existingProfiles[1]
+
+    await switchToProfile(page, userA.id)
+
+    // Pin the chat first
+    await openChatListContextMenu(page, userB.name)
+    await page.getByRole('menuitem', { name: 'Pin Chat' }).click()
+    await closeMenu(page)
+    // Open context menu again and verify Unpin is shown as first item
+    await openChatListContextMenu(page, userB.name)
+    await expect(getMenuItems(page).first()).toHaveText('Unpin Chat')
+    // Unpin to restore state
+    await page.getByRole('menuitem', { name: 'Unpin Chat' }).click()
+    await closeMenu(page)
+
+    // Verify Pin Chat is back
+    await openChatListContextMenu(page, userB.name)
+    await expect(getMenuItems(page).first()).toHaveText('Pin Chat')
+    await closeMenu(page)
+  })
+
+  test('View Profile opens profile dialog', async () => {
+    const userA = existingProfiles[0]
+    const userB = existingProfiles[1]
+
+    await switchToProfile(page, userA.id)
+
+    await openChatListContextMenu(page, userB.name)
+    await page.getByRole('menuitem', { name: 'View Profile' }).click()
+
+    // Verify profile dialog opens
+    await expect(page.getByRole('dialog')).toBeVisible()
+    await expect(page.getByRole('dialog')).toContainText(userB.name)
+
+    await page.keyboard.press('Escape')
+  })
+
+  test('Encryption Info opens encryption dialog', async () => {
+    const userA = existingProfiles[0]
+    const userB = existingProfiles[1]
+
+    await switchToProfile(page, userA.id)
+
+    await openChatListContextMenu(page, userB.name)
+    await page.getByRole('menuitem', { name: 'View Profile' }).click()
+    await page.locator('#view-profile-menu').click()
+    await page.getByTestId('encryption-info').click()
+
+    // Verify encryption info dialog opens
+    await expect(page.getByRole('dialog').last()).toContainText('Encryption')
+
+    await page.keyboard.press('Escape')
+    await page.keyboard.press('Escape')
+  })
+
+  test('Clone Chat option for groups', async () => {
+    const userA = existingProfiles[0]
+
+    await switchToProfile(page, userA.id)
+
+    await openChatListContextMenu(page, groupName)
+    await page.getByRole('menuitem', { name: 'View Profile' }).click()
+    await page.getByTestId('view-group-menu').click()
+    await page.getByTestId('clone-chat').click()
+
+    // Verify clone chat dialog opens,
+    await expect(page.locator('.group-name-input')).toBeVisible()
+
+    // close clone dialog and group profile dialog
+    await page.keyboard.press('Escape')
+    await page.keyboard.press('Escape')
+  })
+})
+
+test.describe('Removal actions', () => {
+  test('delete chat from main view closes the chat', async () => {
+    const userA = existingProfiles[0]
+    const userB = existingProfiles[1]
+
+    await switchToProfile(page, userA.id)
+
+    // Create group to delete
+    const leaveGroupName = 'Leave Notify Test Group'
+    await page.locator('#new-chat-button').click()
+    await page.getByRole('button', { name: 'New Group' }).click()
+    await page.getByRole('textbox', { name: 'Group Name' }).fill(leaveGroupName)
+    await page.locator('#addmember button').click()
+    const addMemberDialog = page.getByTestId('add-member-dialog')
+    await addMemberDialog
+      .locator('.contact-list-item')
+      .filter({ hasText: userB.name })
+      .click()
+    await addMemberDialog.getByTestId('ok').click()
+    await page.getByTestId('group-create-button').click()
+
+    // Verify the chat is selected
+    await expect(
+      page
+        .locator('.chat-list .chat-list-item')
+        .filter({ hasText: leaveGroupName })
+    ).toBeVisible()
+
+    // send a message to activate the chat
+    await page
+      .locator('textarea.create-or-edit-message-input')
+      .fill('Hello group!')
+    await page.locator('button.send-button').click()
+
+    // "Leave Group" replaces "Delete Chat" in main view.
+    await openMainViewThreeDotMenu(page)
+    await page.getByRole('menuitem', { name: 'Leave Group' }).click()
+
+    // Confirm leave and delete via the leave dialog
+    const leaveDialog = page.getByRole('dialog')
+    await expect(leaveDialog).toContainText('Are you sure you want to leave?')
+    await leaveDialog
+      .getByRole('button', { name: 'Leave & Delete for Me' })
+      .click()
+
+    // Verify chat is deleted from list
+    await expect(
+      page
+        .locator('.chat-list .chat-list-item')
+        .filter({ hasText: leaveGroupName })
+    ).not.toBeVisible()
+
+    // Check the "Group left by..." system message was sent to the group
+    await switchToProfile(page, userB.id)
+    await page
+      .locator('.chat-list .chat-list-item')
+      .filter({ hasText: leaveGroupName })
+      .click()
+
+    await expect(
+      page
+        .getByRole('list', { name: 'Messages' })
+        .getByRole('listitem')
+        .filter({ hasText: `Group left by ${userA.name}.` })
+    ).toBeVisible({ timeout: 15_000 })
+  })
+
+  test('block contact from main view', async () => {
+    const userA = existingProfiles[0]
+    const userB = existingProfiles[1]
+
+    await switchToProfile(page, userA.id)
+
+    // First, ensure we have a chat with userB by selecting it
+    await page
+      .locator('.chat-list .chat-list-item')
+      .filter({ hasText: userB.name })
+      .click()
+
+    // Block contact
+    await openMainViewThreeDotMenu(page)
+    await page.getByRole('menuitem', { name: 'Block Contact' }).click()
+
+    // Confirm blocking
+    await expect(page.getByRole('dialog')).toContainText('Block')
+    await page
+      .getByRole('dialog')
+      .getByRole('button', { name: 'Block' })
+      .click()
+
+    // Verify chat is removed (blocked contacts' chats are archived)
+    await expect(
+      page.locator('.chat-list .chat-list-item').filter({ hasText: userB.name })
+    ).not.toBeVisible()
+
+    // Unblock the contact to restore state for other tests
+    await clickThroughTestIds(page, ['open-settings-button'])
+    await page.getByRole('button', { name: 'Chats' }).click()
+    await page.getByRole('button', { name: 'Blocked Contacts' }).click()
+
+    // Find and unblock userB
+    await page
+      .locator('.contact-list-item')
+      .filter({ hasText: userB.name })
+      .getByRole('button', { name: userB.name })
+      .click()
+
+    await page.keyboard.press('Escape')
+    await page.keyboard.press('Escape')
+  })
+})

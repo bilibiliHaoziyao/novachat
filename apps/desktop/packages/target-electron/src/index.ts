@@ -1,0 +1,625 @@
+// eslint-disable-next-line no-console
+console.time('init')
+
+import { existsSync, mkdirSync, Stats, watchFile } from 'fs'
+import fsPromises from 'fs/promises'
+import { app as rawApp, dialog, ipcMain, protocol, clipboard } from 'electron'
+import { BrowserWindow } from 'electron/main'
+import rc from './rc.js'
+import contextMenu from './electron-context-menu.js'
+import { appx, initIsWindowsStorePackageVar } from './isAppx.js'
+import { getHelpMenu } from './help_menu.js'
+import { initialisePowerMonitor } from './resume_from_sleep.js'
+
+// Hardening: prohibit all DNS queries
+// The `^NOTFOUND` string is here:
+// https://source.chromium.org/chromium/chromium/src/+/main:net/dns/mapped_host_resolver.cc;l=71;drc=c1b102f35ec290df46da5093c2ab90d6616134c6
+// Chromium docs that touch on `--host-resolver-rules` and DNS:
+// https://www.chromium.org/developers/design-documents/network-stack/socks-proxy/
+// https://www.chromium.org/developers/design-documents/dns-prefetching/
+const hostRules = 'MAP * ^NOTFOUND'
+rawApp.commandLine.appendSwitch('host-resolver-rules', hostRules)
+// We used to also apply `host-rules` for good measure,
+// but it has been removed from Chromium:
+// https://chromium-review.googlesource.com/c/chromium/src/+/4867872.
+// We're still not sure what the differences between the two are,
+// but specifying `host-resolver-rules` appears to be enough based on our tests.
+// rawApp.commandLine.appendSwitch('host-rules', hostRules)
+
+rawApp.commandLine.appendSwitch('disable-features', 'IsolateSandboxedIframes')
+
+rawApp.commandLine.appendSwitch(
+  'enable-features',
+  'WebRtcPipeWireCamera,WebRtcPipeWireScreenCapturer'
+)
+
+if (rc['version'] === true || rc['v'] === true) {
+  // eslint-disable-next-line no-console
+  console.info(BuildInfo.VERSION)
+  process.exit()
+}
+
+if (rc['help'] === true || rc['h'] === true) {
+  getHelpMenu()
+  process.exit()
+}
+
+import { callsWebappElectronScheme } from './windows/video-call.js'
+protocol.registerSchemesAsPrivileged([
+  {
+    scheme: 'webxdc',
+    privileges: {
+      // This gives apps access to APIs such as
+      // - Web Cryptography
+      // - Web Share
+      // , also see https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts/features_restricted_to_secure_contexts
+      //
+      // To give a brief explanation of what "secure context" is:
+      // Generally all websites served thorugh `https` (and not through `http`)
+      // are in a "secure context".
+      //
+      // For reference:
+      // - https://support.delta.chat/t/allow-access-to-camera-geolocation-other-web-apis/2446?u=wofwca
+      //
+      // Note that APIs requiring explicit user permission (such as camera)
+      // still don't work, see
+      // https://github.com/deltachat/deltachat-desktop/blob/455a4d01501ed82f9d8e0a36064ffbc3981722ee/src/main/deltachat/webxdc.ts#L457-L473
+      //
+      // In terms of `isSecureContext`, webxdc apps are similar to files,
+      // extensions, and FirefoxOS apps, i.e. ["Packaged Applications"]
+      // (https://w3c.github.io/webappsec-secure-contexts/#packaged-applications),
+      // so `secure: true` is applicable.
+      secure: true,
+
+      allowServiceWorkers: true,
+      standard: true,
+      supportFetchAPI: true,
+      stream: true, // needed for audio playback
+    },
+  },
+  callsWebappElectronScheme,
+])
+
+const app = rawApp as ExtendedAppMainProcess
+app.rc = rc
+
+// requestSingleInstanceLock always returns false on mas (mac app store) builds
+// due to electron issue https://github.com/electron/electron/issues/35540
+// dc-desktop issue: https://github.com/deltachat/deltachat-desktop/issues/3938
+if (
+  !process.mas &&
+  !app.requestSingleInstanceLock() &&
+  !process.env.DC_TEST_DIR
+) {
+  // eslint-disable-next-line no-console
+  console.error('Only one instance allowed. Quitting.')
+  app.quit()
+  process.exit(0)
+}
+
+// Setup folders
+import {
+  getConfigPath,
+  getLogsPath,
+  getAccountsPath,
+  getCustomThemesPath,
+} from './application-constants.js'
+mkdirSync(getConfigPath(), { recursive: true })
+mkdirSync(getLogsPath(), { recursive: true })
+mkdirSync(getCustomThemesPath(), { recursive: true })
+
+// Setup Logger
+import {
+  cleanupLogFolder,
+  createLogHandler,
+} from '@deltachat-desktop/shared/log-handler.js'
+const logHandler = createLogHandler(getLogsPath(), {
+  onWriteError: (err, logFilePath) => {
+    // Trigger our `uncaughtException` listener.
+    throw new Error(
+      `Failed to write to logfile (${logFilePath}): ${err.message}`,
+      { cause: err }
+    )
+  },
+})
+import { getLogger, setLogHandler } from '@deltachat-desktop/shared/logger.js'
+const log = getLogger('main/index')
+setLogHandler(logHandler.log, rc)
+log.info(
+  `Deltachat Version ${BuildInfo.VERSION} ${BuildInfo.GIT_REF} ${BuildInfo.BUILD_TIMESTAMP}`
+)
+process.on('exit', logHandler.end)
+
+// Report uncaught exceptions
+process.on('uncaughtException', err => {
+  const error = { message: err.message, stack: err.stack }
+  if (log) {
+    log.error('uncaughtError', error)
+  } else {
+    // eslint-disable-next-line no-console
+    console.error('uncaughtException', error)
+  }
+  dialog.showErrorBox(
+    'Error - uncaughtException',
+    `See the logfile (${logHandler.logFilePath()}) for details and contact the developers about this issue:\n\n` +
+      error.message +
+      '\n\n' +
+      error.stack
+  )
+})
+
+import setLanguage, { getCurrentLocaleDate, tx } from './load-translations.js'
+import { findLegacyAccountData } from './legacy_account_data.js'
+import * as ipc from './ipc.js'
+import { init as initMenu } from './menu.js'
+import { DesktopSettings } from './desktop_settings.js'
+import * as mainWindow from './windows/main.js'
+import { ExtendedAppMainProcess } from './types.js'
+import { updateTrayIcon, hideDeltaChat, showDeltaChat } from './tray.js'
+import './notifications.js'
+import { acceptThemeCLI } from './themes.js'
+import {
+  WEBXDC_PARTITION_PREFIX,
+  webxdcStartUpCleanup,
+} from './deltachat/webxdc.js'
+import { openExternalWhitelistedOrPromptToCopy } from './deltachat/link-clicks.js'
+import {
+  cleanupDraftTempDir,
+  cleanupInternalTempDirs,
+} from './cleanup_temp_dir.js'
+import { shouldHandleLinkInMainApp } from '@deltachat-desktop/shared/util.js'
+
+app.ipcReady = false
+app.isQuitting = false
+
+Promise.all([
+  new Promise((resolve, _reject) => app.on('ready', resolve)),
+  DesktopSettings.load(),
+  initIsWindowsStorePackageVar(),
+  webxdcStartUpCleanup(),
+])
+  .then(onReady)
+  .catch(error => {
+    log.critical('Fatal Error during init', error)
+    dialog.showErrorBox(
+      'Fatal Error during init',
+      `[Version: ${BuildInfo.VERSION} | ${platform()} | ${arch()}]]
+${error}
+
+Also make sure you are not trying to run multiple instances of deltachat.`
+    )
+    process.exit(1)
+  })
+
+let ipc_shutdown_function: (() => void) | null = null
+
+const accountsPathExistsP = fsPromises
+  .access(getAccountsPath())
+  .then(() => true)
+  .catch(() => false)
+
+async function onReady([_appReady, _loadedState, _appx, _webxdc_cleanup]: [
+  any,
+  any,
+  any,
+  any,
+]) {
+  // can fail due to user error so running it first is better (cli argument)
+  acceptThemeCLI()
+  setLanguage(
+    DesktopSettings.state.locale || app.getLocale().split('-')[0] || 'en'
+  ) // can consist of 2 strings like in en-GB
+
+  // Warn users if data exists from a different installation variant
+  // (e.g. Mac App Store vs DMG, or Windows Store APPX vs Setup.exe),
+  // but only when there are no accounts yet in the current location.
+  if (!(await accountsPathExistsP)) {
+    let otherStoreName = 'App Store'
+    let otherAccountsPath: string | undefined
+
+    if (process.platform === 'darwin' && !process.mas) {
+      const { homedir } = await import('os')
+      const sandboxPath = join(
+        homedir(),
+        'Library/Containers/chat.delta.desktop.electron/Data/Library/Application Support/DeltaChat/accounts'
+      )
+      if (existsSync(sandboxPath)) {
+        otherAccountsPath = sandboxPath
+      }
+    } else if (process.platform === 'win32') {
+      const { homedir } = await import('os')
+      const normalPath = join(homedir(), 'AppData/Local/DeltaChat/accounts')
+      const appxPath = join(
+        homedir(),
+        'AppData/Local/Packages/merlinux.DeltaChat_v2ry5hvxhdhyy/LocalCache/Local/DeltaChat/accounts'
+      )
+      const otherPath = appx ? normalPath : appxPath
+      if (existsSync(otherPath)) {
+        // note that it seems per default if data exists in normalPath it will be used by the appx version
+        // but in that case we expect the previous accounts to be used, so this warning will not appear
+        if (appx) {
+          otherStoreName = 'get.delta.chat'
+        }
+        otherAccountsPath = otherPath
+      }
+    }
+
+    if (otherStoreName && otherAccountsPath) {
+      const result = await dialog.showMessageBox({
+        type: 'warning',
+        title: tx('warning'),
+        message: tx('data_found_other_installation_message', otherStoreName),
+        buttons: [tx('perm_continue'), tx('global_menu_file_quit_desktop')],
+        defaultId: 0,
+        cancelId: 1,
+      })
+      if (result.response === 1) {
+        app.quit()
+        return
+      }
+    }
+  }
+
+  const legacyAccountData = await findLegacyAccountData(getAccountsPath())
+  if (legacyAccountData) {
+    const { path: legacyPath, moveTo } = legacyAccountData
+    const message = `Your profiles were created by a very old version of Delta Chat (before 1.22) and cannot be opened by this version.
+
+  To keep them:
+     1. Quit now
+     2. Install Delta Chat Desktop 2.59.x and start it once,
+        it converts your profiles to the current format
+     3. Relaunch this version
+
+     Your old data will be kept at:
+     ${moveTo ?? legacyPath}
+
+     Continue without your previous profiles?`
+    const result = await dialog.showMessageBox({
+      type: 'warning',
+      title: tx('warning'),
+      message: message,
+      buttons: [tx('perm_continue'), tx('global_menu_file_quit_desktop')],
+      defaultId: 1,
+      cancelId: 1,
+    })
+    if (result.response === 1) {
+      app.quit()
+      return
+    }
+    if (moveTo) {
+      // core refuses to start on an accounts folder that has files but no
+      // accounts.toml, so the old profiles have to be moved out of the way
+      try {
+        await fsPromises.rename(legacyPath, moveTo)
+        log.info(`moved old profiles from "${legacyPath}" to "${moveTo}"`)
+      } catch (error) {
+        log.error('failed to move old profiles out of the way', error)
+        dialog.showErrorBox(
+          tx('error'),
+          `Could not move "${legacyPath}" to "${moveTo}":\n${error}`
+        )
+        app.quit()
+        return
+      }
+    }
+  }
+
+  const cwd = getAccountsPath()
+  log.info(`cwd ${cwd}`)
+  ipc_shutdown_function = await ipc.init(cwd, logHandler)
+
+  mainWindow.init({
+    hidden: app.rc['minimized'],
+    hideMenuBar: DesktopSettings.state.hideMenuBar,
+  })
+  initMenu(logHandler)
+
+  if (rc.devmode) {
+    mainWindow.toggleDevTools()
+  }
+
+  if (app.rc['translation-watch']) {
+    watchFile(
+      join(getLocaleDirectoryPath(), '/_untranslated_en.json'),
+      (curr: Stats, prev: Stats) => {
+        if (curr.mtime !== prev.mtime) {
+          log.info('translation-watch: File changed reloading translation data')
+          mainWindow.chooseLanguage(getCurrentLocaleDate().locale)
+          log.info('translation-watch: reloading translation data - done')
+        }
+      }
+    )
+  }
+
+  cleanupLogFolder(getLogsPath()).catch(err =>
+    log.error('Cleanup of old logfiles failed: ', err)
+  )
+  cleanupDraftTempDir()
+  cleanupInternalTempDirs()
+  // NOTE: Make sure to use `powerMonitor` only when electron signals it is ready
+  initialisePowerMonitor()
+}
+
+app.once('ipcReady' as any, () => {
+  if (!mainWindow.window) {
+    throw new Error('window does not exist, this should never happen')
+  }
+  // eslint-disable-next-line no-console
+  console.timeEnd('init')
+  if (process.env.NODE_ENV === 'test') {
+    mainWindow.window.maximize()
+  }
+
+  updateTrayIcon()
+
+  mainWindow.window.on('close', e => {
+    log.debug("mainWindow.window.on('close')")
+    if (!app.isQuitting) {
+      e.preventDefault()
+      if (app.rc['minimized'] || DesktopSettings.state.minimizeToTray) {
+        log.debug("mainWindow.window.on('close') Hiding main window")
+        hideDeltaChat()
+      } else {
+        if (process.platform === 'darwin') {
+          log.debug(
+            "mainWindow.window.on('close') We are on mac, so lets hide the main window"
+          )
+          hideDeltaChat()
+        } else {
+          log.debug("mainWindow.window.on('close') Quitting deltachat")
+          quit(e)
+        }
+      }
+    }
+  })
+})
+
+export function quit(e?: Electron.Event) {
+  if (app.isQuitting) return
+
+  app.isQuitting = true
+  e?.preventDefault()
+
+  log.info('Starting app shutdown process')
+  // close window
+  try {
+    mainWindow.window?.close()
+    mainWindow.window?.destroy()
+  } catch (error) {
+    log.error('failed to close window, error:', error)
+  }
+
+  // does stop io and other things
+  ipc_shutdown_function && ipc_shutdown_function()
+
+  cleanupDraftTempDir()
+
+  function doQuit() {
+    log.info('Quitting now. Bye.')
+    app.quit()
+  }
+  DesktopSettings.saveImmediate().then(() => {
+    // timeout here to ensure core messages that come after quit are still logged
+    // (there should not be core activity after quit, but sometimes there are)
+    setTimeout(doQuit, 500)
+  })
+  setTimeout(() => {
+    log.error('Saving state took too long. Quitting.')
+    doQuit()
+  }, 4000)
+}
+app.on('activate', () => {
+  log.debug("app.on('activate')")
+  if (!mainWindow.window) {
+    log.warn('window not set, this is normal on startup')
+    return
+  }
+  if (mainWindow.window.isVisible() === false) {
+    log.debug("app.on('activate') showing main window")
+    showDeltaChat()
+  } else {
+    log.debug("app.on('activate') mainWindow is visible, no need to show it")
+  }
+})
+app.on('before-quit', e => quit(e))
+app.on('window-all-closed', () => quit())
+
+app.on('web-contents-created', (_ev, contents) => {
+  const is_webxdc =
+    contents.session.storagePath &&
+    contents.session.storagePath.indexOf(
+      WEBXDC_PARTITION_PREFIX satisfies 'webxdc_'
+    ) !== -1
+  if (is_webxdc) {
+    let initialUrl:
+      | { protocol: string; hostname: string; port: string }
+      | undefined
+
+    let linkClickDialogIsOpen = false
+    let userCancelledDialogAtLeastOnce = false
+    let preventOpeningLinkClickDialogs = false
+
+    const webxdcOpenUrl = async (url: string) => {
+      if (shouldHandleLinkInMainApp(url)) {
+        // handle mailto in dc, without any prompt.
+        // Note that such links can also lead to exfiltration,
+        // however this has been regarded as acceptable,
+        // given that the network activity only happens after another dialog:
+        // https://github.com/deltachat/deltachat-desktop/issues/5785#issuecomment-3598142182.
+        open_url(url)
+        mainWindow.window?.show()
+        return
+      }
+
+      // Note that the app could just `setInterval(() => link.click(), 1)`,
+      // i.e. the user clicking a link is not the only way
+      // to get this code to execute.
+      //
+      // The following basically implements `safeDialogs`:
+      // https://www.electronjs.org/docs/latest/api/browser-window.
+      // Note that here we could have also utilized
+      // the native Electron `safeDialogs` directly,
+      // e.g. with `executeJavaScriptInIsolatedWorld('confirm("open link?")')`.
+      //
+      // TODO fix: we should probably also disallow opening this dialog
+      // when the window is not focused, or otherwise
+      // if there is no "user gesture" that caused the event.
+      if (linkClickDialogIsOpen) {
+        // This is important because otherwise a malicious app
+        // can make the machine unusable until reboot.
+        log.warn(
+          "WebXDC link: a dialog is already open, won't open another one to prevent app from spamming a bunch of them"
+        )
+        return
+      }
+      if (preventOpeningLinkClickDialogs) {
+        // This is important, because otherwise the app could spam the user
+        // until they give up and press "Open",
+        // leading to exfiltration, phishing or whatever, i.e.
+        // this is not only about annoying spam.
+        log.info(
+          'Prevented WebXDC app from opening "Open link?" dialog, as requested by user'
+        )
+        return
+      }
+
+      // This part should not be necessary
+      // because Electron already passes us a URL and not an arbitrary string,
+      // but let's double-check.
+      const parsedUrl = URL.parse(url)
+      if (parsedUrl == null) {
+        log.warn(`open WebXDC link: not a valid URL: ${url} - we'll proceed`)
+      }
+      // `href` is supposed to be an ASCII-string:
+      // https://url.spec.whatwg.org/
+      const asciiUrl = parsedUrl?.href ?? url
+      if (url !== asciiUrl) {
+        log.warn(
+          `open WebXDC link: passed a non-ASCII URL. We'll handle this, but it's not expected. Original: ${url}, ASCII: ${asciiUrl}`
+        )
+      }
+
+      const win = BrowserWindow.fromWebContents(contents)
+      if (win == null) {
+        log.error(
+          'Failed to handle WebXDC link: WebContents is not associated with a Window'
+        )
+        return
+      }
+
+      // Note that this dialog will also be shown for internal `webxdc://` links
+      // that the user Shift / Ctrl + clicked.
+      // There is probably no need to have special handling for that
+      // because maybe there is a reason that the user held Shift or Ctrl,
+      // so let's not be overly smart.
+
+      linkClickDialogIsOpen = true
+      const { response, checkboxChecked } = await dialog.showMessageBox(win, {
+        title: tx('open_url_confirmation'),
+        // TODO this truncates links that are really long.
+        message: tx('open_url_confirmation') + '\n\n' + asciiUrl,
+        type: 'question',
+        buttons: [
+          tx('cancel'),
+          tx('global_menu_edit_copy_desktop'),
+          tx('open'),
+        ],
+        checkboxLabel: userCancelledDialogAtLeastOnce
+          ? tx('prevent_dialog_spam_checkbox')
+          : undefined,
+        defaultId: 0,
+        cancelId: 0,
+      })
+      linkClickDialogIsOpen = false
+
+      preventOpeningLinkClickDialogs = checkboxChecked
+
+      switch (response) {
+        case 0:
+          userCancelledDialogAtLeastOnce = true
+          return
+        case 1: {
+          clipboard.writeText(asciiUrl)
+          break
+        }
+        case 2: {
+          await openExternalWhitelistedOrPromptToCopy(win, url)
+          break
+        }
+        default: {
+          log.error(
+            `Unexpected "Copy Link?" dialog response ${response}. Are there more than 3 buttons?`
+          )
+          return
+        }
+      }
+    }
+
+    contents.on('will-frame-navigate', ev => {
+      const navigationUrl = new URL(ev.url)
+      // Note that, as docs say,
+      // https://www.electronjs.org/docs/latest/api/web-contents#event-will-frame-navigate
+      // > This event will not emit when the navigation
+      // > is started programmatically with APIs like `webContents.loadURL`
+      // So we expect this to be the URL that we set with `loadURL()`
+      // when initializing the WebXDC app window.
+      if (initialUrl == undefined) {
+        initialUrl = new URL(contents.getURL())
+      }
+
+      const isSaneWebxdcUrl =
+        navigationUrl.protocol === 'webxdc:' &&
+        navigationUrl.hostname.endsWith('.webxdc') &&
+        navigationUrl.port === ''
+      const isSameOrigin =
+        navigationUrl.protocol === initialUrl.protocol &&
+        navigationUrl.hostname === initialUrl.hostname &&
+        navigationUrl.port === initialUrl.port
+
+      if (isSaneWebxdcUrl && isSameOrigin) {
+        // allow internal webxdc nav
+        return
+      } else {
+        ev.preventDefault()
+        webxdcOpenUrl(ev.url)
+      }
+    })
+
+    contents.setWindowOpenHandler(_details => {
+      webxdcOpenUrl(_details.url)
+      // prevent new windows from being created when clicking on links
+      return { action: 'deny' }
+    })
+  } else {
+    contents.on('will-navigate', (e, navigationUrl) => {
+      log.warn('blocked navigation attempt to', navigationUrl)
+      e.preventDefault()
+    })
+    contents.setWindowOpenHandler(_details => {
+      // prevent new windows from being created when clicking on links
+      return { action: 'deny' }
+    })
+  }
+
+  // Prevent webview tags from being created,
+  // if you need them make sure to read https://www.electronjs.org/docs/latest/tutorial/security#12-verify-webview-options-before-creation
+  // to not indroduce security risks
+  contents.on('will-attach-webview', (event, _webPreferences, _params) => {
+    event.preventDefault()
+  })
+})
+
+contextMenu()
+
+import { openUrlsAndFilesFromArgv, open_url } from './open_url.js'
+import { getLocaleDirectoryPath } from './getLocaleDirectory.js'
+import { join } from 'path'
+import { BuildInfo } from './get-build-info.js'
+import { arch, platform } from 'os'
+openUrlsAndFilesFromArgv(process.argv)
+
+ipcMain.handle('restart_app', async _ev => {
+  app.relaunch()
+  app.quit()
+})

@@ -1,0 +1,267 @@
+import { C } from '@deltachat/jsonrpc-client'
+import {
+  DesktopSettingsType,
+  RC_Config,
+} from '@deltachat-desktop/shared/shared-types'
+import { BackendRemote, Type } from '../backend-com'
+import { onReady } from '../onready'
+import { runtime } from '@deltachat-desktop/runtime-interface'
+import { Store, useStore } from './store'
+import { throttledUpdateBadgeCounter } from '../system-integration/badge-counter'
+import { Proxy } from '../components/Settings/DefaultCredentials'
+
+export interface SettingsStoreState {
+  accountId: number
+  selfContact: Type.Contact
+  isConfigured: boolean
+  settings: {
+    [P in (typeof settingsKeys)[number]]: {
+      displayname: string
+      selfstatus: string
+      mdns_enabled: string
+      bcc_self: string
+      delete_device_after: string
+      download_limit: string
+      force_encryption: '0' | '1'
+      media_quality: string
+      who_can_call_me: WhoCanCallMe
+      'ui.mentions_enabled': '0' | '1'
+      proxy_enabled: Proxy
+      proxy_url: string
+      team_profile: '0' | '1'
+    }[P]
+  }
+  rc: RC_Config
+}
+
+const settingsKeys = [
+  'displayname',
+  'selfstatus',
+  'mdns_enabled',
+  'bcc_self',
+  'delete_device_after',
+  'download_limit',
+  'force_encryption',
+  'media_quality',
+  'who_can_call_me',
+  'ui.mentions_enabled',
+  'proxy_enabled',
+  'proxy_url',
+  'team_profile',
+] as const
+
+export const enum WhoCanCallMe {
+  Everybody = '0',
+  Contacts = '1',
+  Nobody = '2',
+}
+
+export const mentionsEnabledDefaultVal: SettingsStoreState['settings']['ui.mentions_enabled'] =
+  '1'
+
+class DesktopSettingsStore extends Store<DesktopSettingsType | null> {
+  reducer = {
+    setState: (newState: DesktopSettingsType) => {
+      this.setState(_state => {
+        return newState
+      }, 'setState')
+    },
+    set: <T extends keyof DesktopSettingsType>(
+      key: T,
+      value: DesktopSettingsType[T]
+    ) => {
+      this.setState(state => {
+        if (state == null) {
+          this.log.warn(
+            'trying to update local version of desktop settings object, but it was not loaded yet'
+          )
+          return
+        }
+        return {
+          ...state,
+          [key]: value,
+        }
+      }, 'set')
+    },
+  }
+  effect = {
+    load: async () => {
+      this.reducer.setState(await runtime.getDesktopSettings())
+    },
+    set: async <T extends keyof DesktopSettingsType>(
+      key: T,
+      value: (string | number | boolean | undefined) & DesktopSettingsType[T]
+    ) => {
+      try {
+        await runtime.setDesktopSetting(key, value)
+        if (key === 'syncAllAccounts') {
+          if (value) {
+            BackendRemote.rpc.startIoForAllAccounts()
+          } else {
+            BackendRemote.rpc.stopIoForAllAccounts()
+          }
+          if (SettingsStoreInstance.state?.accountId) {
+            BackendRemote.rpc.startIo(SettingsStoreInstance.state?.accountId)
+          }
+          throttledUpdateBadgeCounter()
+          window.__updateAccountListSidebar?.()
+        }
+        this.reducer.set(key, value)
+      } catch (error) {
+        this.log.error('failed to apply desktop setting:', error)
+      }
+    },
+  }
+}
+
+class SettingsStore extends Store<SettingsStoreState | null> {
+  reducer = {
+    setState: (newState: SettingsStoreState | null) => {
+      this.setState(_state => {
+        return newState
+      }, 'set')
+    },
+    setSelfContact: (selfContact: Type.Contact) => {
+      this.setState(state => {
+        if (state === null) return
+        return {
+          ...state,
+          selfContact,
+        }
+      }, 'setSelfContact')
+    },
+    setCoreSetting: (
+      key: keyof SettingsStoreState['settings'],
+      value: string | boolean
+    ) => {
+      this.setState(state => {
+        if (state === null) {
+          this.log.warn(
+            'trying to update local version of core settings object, but it was not loaded yet'
+          )
+          return
+        }
+        return {
+          ...state,
+          settings: {
+            ...state.settings,
+            [key]: value,
+          },
+        }
+      }, 'setCoreSetting')
+    },
+  }
+  effect = {
+    clear: () => {
+      this.reducer.setState(null)
+      this.log.info('cleared settings store')
+    },
+    load: async () => {
+      const accountId = window.__selectedAccountId
+      if (accountId === undefined) {
+        throw new Error('can not load settings when no account is selected')
+      }
+
+      const [settings, selfContact, isConfigured] = await Promise.all([
+        BackendRemote.rpc.batchGetConfig(
+          accountId,
+          settingsKeys as unknown as Array<(typeof settingsKeys)[number]>
+        ) as Promise<SettingsStoreState['settings']>,
+        BackendRemote.rpc.getContact(accountId, C.DC_CONTACT_ID_SELF),
+        BackendRemote.rpc.isConfigured(accountId),
+      ])
+
+      if (settings['ui.mentions_enabled'] == null) {
+        settings['ui.mentions_enabled'] = mentionsEnabledDefaultVal
+      }
+
+      const rc = runtime.getRC_Config()
+      this.reducer.setState({
+        settings,
+        selfContact,
+        isConfigured,
+        accountId,
+        rc,
+      })
+    },
+    loadCoreKey: async (
+      accountId: number,
+      key: keyof SettingsStoreState['settings']
+    ) => {
+      if (
+        this.state &&
+        this.state.accountId === accountId &&
+        settingsKeys.includes(key)
+      ) {
+        const newValue = await BackendRemote.rpc.getConfig(
+          this.state.accountId,
+          key
+        )
+        // console.info('loadCoreKey', key, newValue)
+
+        this.setState(state => {
+          if (state === null || state.accountId !== accountId) {
+            return
+          }
+          return { ...state, settings: { ...state.settings, [key]: newValue } }
+        }, 'set')
+      }
+    },
+    setCoreSetting: async (
+      key: keyof SettingsStoreState['settings'],
+      value: string | boolean
+    ) => {
+      try {
+        if (!this.state) {
+          throw new Error('no account selected')
+        }
+        await BackendRemote.rpc.setConfig(
+          this.state.accountId,
+          key,
+          String(value)
+        )
+        this.reducer.setCoreSetting(key, value)
+      } catch (error) {
+        this.log.warn('setConfig failed:', error)
+      }
+    },
+  }
+}
+
+onReady(() => {
+  const updateSelfAvatar = async (accountId: number) => {
+    if (accountId === window.__selectedAccountId) {
+      const selfContact = await BackendRemote.rpc.getContact(
+        accountId,
+        C.DC_CONTACT_ID_SELF
+      )
+      SettingsStoreInstance.reducer.setSelfContact(selfContact)
+    }
+  }
+  // SelfavatarChanged is marked as deprecated in jsonrpc api, but ConfigSynced does not have selfavatar yet
+  // will probably change with https://github.com/deltachat/deltachat-core-rust/pull/5158
+  BackendRemote.on('SelfavatarChanged', updateSelfAvatar)
+  BackendRemote.on('ConfigSynced', (accountId, { key }) => {
+    if (key === 'selfavatar') {
+      updateSelfAvatar(accountId)
+    }
+    SettingsStoreInstance.effect.loadCoreKey(accountId, key as any)
+  })
+
+  runtime.onDesktopSettingChanged = (key, value) => {
+    DesktopSettingsStoreInstance.reducer.set(key, value)
+  }
+  DesktopSettingsStoreInstance.effect.load()
+})
+
+const SettingsStoreInstance = new SettingsStore(null, 'SettingsStore')
+export const useSettingsStore = () => useStore(SettingsStoreInstance)
+const DesktopSettingsStoreInstance = new DesktopSettingsStore(
+  null,
+  'DesktopSettingsStore'
+)
+export const useDesktopSettingsStore = () =>
+  useStore(DesktopSettingsStoreInstance)
+
+export default SettingsStoreInstance
+export { DesktopSettingsStoreInstance }

@@ -1,0 +1,49 @@
+*.keystore
+.classpath
+project.properties
+.project
+.settings
+bin/
+gen/
+/gplay/
+.idea/
+*.iml
+*.so
+out
+tests
+lint.xml
+local.properties
+ant.properties
+.DS_Store
+build.log
+build-log.xml
+.gradle
+build
+signing.properties
+library/lib/
+library/obj/
+ffpr
+test/androidTestEspresso/res/values/arrays.xml
+obj/
+jni/libspeex/.deps/
+ndkArch
+
+# ignore debug symbols created by ./tools/upload-release.sh
+*-symbols.zip
+
+# ignore private scripts and directories, eg. local2github.prv.sh
+*.prv*
+
+# contains files for ndk-build when done from gradle.
+.externalNativeBuild
+
+# no vi tmp files
+*.swp
+
+jni/x86
+jni/x86_64
+jni/armeabi
+jni/armeabi-v7a
+jni/arm64-v8a
+
+*~

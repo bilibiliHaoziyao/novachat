@@ -1,0 +1,15 @@
+.aboutContent {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
+  align-items: center;
+  margin-bottom: 20px;
+
+  img {
+    width: 40%;
+  }
+}
+
+.appName {
+  margin-bottom: 15px;
+}

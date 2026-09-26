@@ -1,0 +1,19 @@
+டெல்டா Chat is a reliable decentralized instant messenger that is easy and fun பெறுநர் use க்கு friends, family, groups and organizations. டெல்டா Chat is developed by a dedicated FOSS contributor community that jointly releases refinements and புதிய நற்பொருத்தங்கள் several பெருக்கல் a year, across many stores and platforms world-wide.
+
+Features at a glance:
+
+• Private. Instant on-boarding without a phone எண் or மற்றொன்று தனிப்பட்ட data.
+
+• Friends & Family: Only chat with people you know. தெரியவில்லை பயனர்கள் cannot செய்தி or follow you without mutual consent.
+
+• Flexible. Supports multiple chat profiles and is easy பெறுநர் setup on multiple devices.
+
+• Extensible. கூட்டு கருவிகள் like shopping lists, calendars or gaming apps பெறுநர் any chat.
+
+• Reliable. Works under bad and adversarial பிணையம் conditions.
+
+• Secure. Audited End-to-End encryption safe against பிணையம் and சேவையகம் attacks.
+
+• Sovereign. Can be ஓடு with your own மின்னஞ்சல் முகவரி or server.
+
+• FOSS. Fully திற Source/Free Software, built on Internet Standards.

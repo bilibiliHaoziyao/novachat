@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "sourceMap": true,
+    "module": "NodeNext",
+    "allowJs": false,
+    "moduleResolution": "NodeNext",
+    "noUncheckedIndexedAccess": true
+  }
+}

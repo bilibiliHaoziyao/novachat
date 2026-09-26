@@ -1,0 +1,19 @@
+Delta Chat to niezawodny, zdecentralizowany komunikator, z którego korzystanie jest łatwe i przyjemne – zarówno dla przyjaciół, rodziny, jak i grup oraz organizacji. Delta Chat jest tworzony przez zaangażowaną społeczność współpracowników FOSS, która wspólnie kilka razy w roku udostępnia ulepszenia i nowe funkcje w wielu sklepach i na różnych platformach na całym świecie.
+
+Najważniejsze cechy:
+
+• Prywatność. Natychmiastowa rejestracja bez podawania numeru telefonu ani innych danych osobowych.
+
+• Przyjaciele i rodzina: Rozmawiaj wyłącznie z osobami, które znasz. Nieznani użytkownicy nie mogą wysyłać Ci wiadomości ani obserwować Cię bez obopólnej zgody.
+
+• Elastyczność. Obsługuje wiele profili czatu i jest łatwy w konfiguracji na wielu urządzeniach.
+
+• Rozszerzalność. Możliwość dodawania narzędzi, takich jak listy zakupów, kalendarze czy aplikacje do gier, do dowolnego czatu.
+
+• Niezawodność. Działa nawet w trudnych i nieprzyjaznych warunkach sieciowych.
+
+• Bezpieczeństwo. Sprawdzone szyfrowanie typu end-to-end, chroniące przed atakami sieciowymi i serwerowymi.
+
+• Niezależność. Możliwość uruchamiania przy użyciu własnego adresu e-mail lub serwera.
+
+• Oprogramowanie wolne i otwarte (FOSS). W pełni otwarte i bezpłatne oprogramowanie, oparte na standardach internetowych.

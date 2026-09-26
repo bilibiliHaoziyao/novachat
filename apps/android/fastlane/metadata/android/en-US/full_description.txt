@@ -1,0 +1,19 @@
+Delta Chat is a reliable decentralized instant messenger that is easy and fun to use for friends, family, groups and organizations. Delta Chat is developed by a dedicated FOSS contributor community that jointly releases refinements and new features several times a year, across many stores and platforms world-wide.
+
+Features at a glance:
+
+• Private. Instant on-boarding without a phone number or other private data.
+
+• Friends & Family: Only chat with people you know. Unknown users cannot message or follow you without mutual consent.
+
+• Flexible. Supports multiple chat profiles and is easy to setup on multiple devices.
+
+• Extensible. Add tools like shopping lists, calendars or gaming apps to any chat.
+
+• Reliable. Works under bad and adversarial network conditions.
+
+• Secure. Audited End-to-End encryption safe against network and server attacks.
+
+• Sovereign. Can be run with your own e-mail address or server.
+
+• FOSS. Fully Open Source/Free Software, built on Internet Standards.

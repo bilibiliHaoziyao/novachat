@@ -1,0 +1,37 @@
+/* Set theme variables used for theme Generation */
+@use './_themebase' with (
+  $themeDarkOrLight: dark,
+  $accentColor: #cc12ac,
+  $bgChatView: #252540,
+  $bgImage: none,
+  $bgMessageBubbleIncoming: #303030,
+  $bgMessageBubbleOutgoing: #354535,
+  $messageOutgoingStatusColor: #e4d4d3,
+  $bgNavBar: #4e1479,
+  $bgPrimary: #222333,
+  $bgSecondary: #333444,
+  $chatListItemSelectedBg: #4c6e7d,
+  $colorDanger: #ff5c5a,
+  $colorNone: #a0a0a0,
+  $colorPrimary: #42a5f5,
+  $newChatButtonBg: #4e1479,
+  $keybindingSectionHeaderBackground: #555555,
+  $keybindingActionBackground: #333444,
+  $keybindingKeyBorder: rgba(0, 0, 0, 0.6),
+  $scrollbarTransparency: 0.34,
+  $textNavBar: #ddddf0,
+  $textPrimary: #fff,
+  $textSecondary: #ddd,
+  $btnPrimaryText: #fff
+);
+
+.theme-meta {
+  --name: 'Dark Purple';
+  --description: 'A clean theme that highlights our purple nature';
+}
+
+/* overwrite themedata */
+:root {
+}
+
+/* overwrite css */

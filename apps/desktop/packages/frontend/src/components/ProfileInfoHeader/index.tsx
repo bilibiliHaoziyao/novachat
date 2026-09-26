@@ -1,0 +1,58 @@
+import React from 'react'
+import type { T } from '@deltachat/jsonrpc-client'
+
+import { Avatar, ClickForFullscreenAvatarWrapper } from '../Avatar'
+import { parseAndRenderMessage } from '../message/MessageParser'
+
+import styles from './styles.module.scss'
+
+type Props = {
+  address?: string
+  avatarPath?: string
+  color?: string
+  displayName: string
+  freshness?: T.ContactFreshness
+  description: string | undefined
+  subtitle?: React.ReactNode
+} & Pick<
+  Parameters<typeof ClickForFullscreenAvatarWrapper>[0],
+  'disableFullscreen'
+>
+
+export default function ProfileInfoHeader({
+  avatarPath,
+  color,
+  displayName,
+  freshness,
+  description = '',
+  subtitle,
+  disableFullscreen,
+}: Props) {
+  return (
+    <div className={styles.profileInfoHeader}>
+      <ClickForFullscreenAvatarWrapper
+        filename={avatarPath}
+        disableFullscreen={disableFullscreen}
+      >
+        <Avatar
+          displayName={displayName}
+          avatarPath={avatarPath}
+          color={color}
+          freshness={freshness}
+          className='very-large'
+        />
+      </ClickForFullscreenAvatarWrapper>
+      <div className={styles.infoContainer}>
+        <p className={styles.displayName} data-testid='profile-display-name'>
+          {displayName}
+        </p>
+        {subtitle}
+        {description && (
+          <p className={styles.description} data-testid='profile-description'>
+            {parseAndRenderMessage(description, false, 0)}
+          </p>
+        )}
+      </div>
+    </div>
+  )
+}

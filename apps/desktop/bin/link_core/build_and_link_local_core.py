@@ -1,0 +1,272 @@
+#!/usr/bin/env python3
+"""
+Script to build and link a local development version of deltachat-core to the desktop app.
+
+Usage: python build_and_link_local_core.py <core_path>
+
+Run this script from the desktop repository directory.
+"""
+
+import subprocess
+import sys
+import os
+import json
+import re
+
+# Check Python version
+if sys.version_info < (3, 6):
+    print("Error: This script requires Python 3.6 or higher")
+    sys.exit(1)
+
+
+def run_command(cmd, cwd=None):
+    """Run a command and exit on failure."""
+    print(f"\n>>> Running: {cmd}")
+    if cwd:
+        print(f"    in: {cwd}")
+    result = subprocess.run(cmd, shell=True, cwd=cwd)
+    if result.returncode != 0:
+        print(f"Error: Command failed with exit code {result.returncode}")
+        sys.exit(result.returncode)
+
+
+def get_core_version(core_path):
+    """Get the core version from Cargo.toml."""
+    cargo_toml = os.path.join(core_path, "Cargo.toml")
+    try:
+        with open(cargo_toml, "r") as f:
+            for line in f:
+                if line.strip().startswith("version"):
+                    # Parse: version = "1.2.3"
+                    return line.split("=")[1].strip().strip('"').strip("'")
+    except Exception:
+        pass
+    return "unknown"
+
+
+def get_git_branch(core_path):
+    """Get the current git branch name."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            cwd=core_path,
+            capture_output=True,
+            text=True
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+    except Exception:
+        pass
+    return None
+
+
+def parse_version(version_str):
+    """Parse version string into tuple of integers for comparison."""
+    # Extract version numbers (e.g., "9.1.0" from "pnpm 9.1.0" or "cargo 1.75.0 (...)")
+    match = re.search(r'(\d+)\.(\d+)\.(\d+)', version_str)
+    if match:
+        return tuple(int(x) for x in match.groups())
+    # Try major.minor format (e.g., "1.88")
+    match = re.search(r'(\d+)\.(\d+)', version_str)
+    if match:
+        return (int(match.group(1)), int(match.group(2)), 0)
+    # Try major only format (e.g., "22" or "^22")
+    match = re.search(r'(\d+)', version_str)
+    if match:
+        return (int(match.group(1)), 0, 0)
+    return (0, 0, 0)
+
+
+def get_required_pnpm_version(desktop_path):
+    """Get required pnpm version from package.json."""
+    try:
+        package_json = os.path.join(desktop_path, "package.json")
+        with open(package_json, "r") as f:
+            data = json.load(f)
+            pnpm_req = data.get("engines", {}).get("pnpm", "")
+            # Parse ">=9.6.0" or "^9.6.0" -> (9, 6, 0)
+            return parse_version(pnpm_req)
+    except Exception:
+        return None
+
+
+def get_required_node_version(desktop_path):
+    """Get required Node.js version from package.json."""
+    try:
+        package_json = os.path.join(desktop_path, "package.json")
+        with open(package_json, "r") as f:
+            data = json.load(f)
+            node_req = data.get("engines", {}).get("node", "")
+            # Parse "^22" -> (22, 0, 0)
+            return parse_version(node_req)
+    except Exception:
+        return None
+
+
+def get_required_rust_version(core_path):
+    """Get required rust version from core."""
+    try:
+        cargo_toml = os.path.join(core_path, "Cargo.toml")
+        with open(cargo_toml, "r") as f:
+            for line in f:
+                if line.strip().startswith("rust-version"):
+                    # Parse: rust-version = "1.88"
+                    version = line.split("=")[1].strip().strip('"').strip("'")
+                    return parse_version(version)
+    except Exception:
+        pass
+    return None
+
+
+def check_tool(name, min_version=None):
+    """Check if a tool is installed and optionally meets minimum version."""
+    try:
+        result = subprocess.run(
+            [name, "--version"],
+            capture_output=True,
+            text=True
+        )
+        if result.returncode == 0:
+            version_output = result.stdout.strip().split('\n')[0]
+            version = parse_version(version_output)
+
+            if min_version and version < min_version:
+                min_str = '.'.join(str(x) for x in min_version)
+                print(f"  {name}: {version_output} (requires >= {min_str})")
+                return False
+
+            print(f"  {name}: {version_output}")
+            return True
+    except FileNotFoundError:
+        pass
+    print(f"  {name}: NOT FOUND")
+    return False
+
+
+def check_required_tools(desktop_path, core_path):
+    """Check that all required tools are installed."""
+    print("Checking required tools...")
+    all_ok = True
+    node_failed = False
+
+    # Get required versions from project files
+    node_min = get_required_node_version(desktop_path)
+    pnpm_min = get_required_pnpm_version(desktop_path)
+    rust_min = get_required_rust_version(core_path)
+
+    if not check_tool("node", min_version=node_min):
+        all_ok = False
+        node_failed = True
+    if not check_tool("npm"):
+        all_ok = False
+    if not check_tool("pnpm", min_version=pnpm_min):
+        all_ok = False
+    if not check_tool("rustc", min_version=rust_min):
+        all_ok = False
+    if not check_tool("cargo"):
+        all_ok = False
+
+    if not all_ok:
+        print("\nError: Missing or outdated required tools")
+        if node_failed:
+            nvmrc_path = os.path.join(desktop_path, ".nvmrc")
+            if os.path.exists(nvmrc_path):
+                with open(nvmrc_path, "r") as f:
+                    nvmrc_version = f.read().strip()
+                print(f"\nNote: This project requires Node.js {nvmrc_version} (see .nvmrc)")
+        sys.exit(1)
+    print()
+
+
+def set_links_in_package_json(package_json_path, links):
+    with open(package_json_path, "r") as f:
+        data = json.load(f)
+
+    sections = ("dependencies", "devDependencies")
+    linked = []
+    for dep_name, link_spec in links.items():
+        for section in sections:
+            if dep_name in data.get(section, {}):
+                data[section][dep_name] = link_spec
+                linked.append(dep_name)
+                break
+
+    with open(package_json_path, "w") as f:
+        json.dump(data, f, indent=2)
+        f.write("\n")
+    print(f">>> Linked {', '.join(linked)} in {package_json_path}")
+
+
+def main():
+    if len(sys.argv) != 2:
+        print(f"Usage: {sys.argv[0]} <core_path>")
+        print("Run this script from the desktop repository directory.")
+        sys.exit(1)
+
+    core_path = os.path.abspath(sys.argv[1])
+    desktop_path = os.getcwd()
+
+    if not os.path.isdir(core_path):
+        print(f"Error: core_path does not exist: {core_path}")
+        sys.exit(1)
+
+    check_required_tools(desktop_path, core_path)
+
+    print(f"Core directory: {core_path}")
+    print(f"Desktop directory: {desktop_path}")
+
+    # Step 1: Run make_local_dev_version.py in core_path
+    make_local_script = os.path.join("deltachat-rpc-server", "npm-package", "scripts", "make_local_dev_version.py")
+    run_command(
+        f"{sys.executable} {make_local_script}",
+        cwd=core_path
+    )
+
+    # Step 2: npm install in deltachat-jsonrpc-bindings/typescript/
+    jsonrpc_ts_dir = os.path.join(core_path, "deltachat-jsonrpc-bindings", "typescript")
+    run_command("npm install", cwd=jsonrpc_ts_dir)
+
+    # Step 3: npm run build in deltachat-jsonrpc-bindings/typescript/
+    run_command("npm run build", cwd=jsonrpc_ts_dir)
+
+    # Step 4: Replace dependencies with local link in all desktop packages
+    #
+    # note: it is necessary to edit every package.json instead of `pnpm add ...@link:` per package. 
+    # Running `pnpm add` made the lockfile internally inconsistent: some importers
+    # kept resolving @deltachat/jsonrpc-client to the registry node (e.g. 2.51.0(ws@8.21.0))
+    # Now we run pnpm install only once after all package.json files are updated
+    stdio_rpc_path = os.path.join(core_path, "deltachat-rpc-server", "npm-package")
+    links = {
+        "@deltachat/jsonrpc-client": f"link:{jsonrpc_ts_dir}",
+        "@deltachat/stdio-rpc-server": f"link:{stdio_rpc_path}",
+    }
+
+    packages_to_link = [
+        "target-electron",
+        "target-browser",
+        "frontend",
+        "runtime",
+        "shared",
+    ]
+    for pkg in packages_to_link:
+        set_links_in_package_json(
+            os.path.join(desktop_path, "packages", pkg, "package.json"),
+            links,
+        )
+
+    # Step 5: Run pnpm install in desktop_path to re-resolve all links and update the lockfile.
+
+    run_command("pnpm install --force", cwd=desktop_path)
+
+    version = get_core_version(core_path)
+    branch = get_git_branch(core_path)
+
+    version_str = version
+    if branch:
+        version_str = f"{version} ({branch})"
+
+    print(f"\n✓ Done! Desktop is now linked to core {version_str}")
+
+
+if __name__ == "__main__":
+    main()

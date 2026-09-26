@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root_layout"
+    android:background="?android:attr/windowBackground"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <include layout="@layout/status_bar_background" />
+
+    <LinearLayout
+        android:id="@+id/group_image_holder"
+        android:layout_width="fill_parent"
+        android:layout_height="106dp"
+        android:paddingStart="14dp"
+        android:paddingEnd="18dp"
+        android:paddingTop="14dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <androidx.appcompat.widget.AppCompatImageView
+            android:id="@+id/avatar"
+            android:layout_width="70dp"
+            android:layout_height="70dp"
+            android:layout_marginEnd="10dp"
+            android:contentDescription="@string/group_avatar" />
+
+        <androidx.appcompat.widget.AppCompatEditText
+            android:id="@+id/group_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_vertical"
+            android:padding="10dp"
+            android:lines="1"
+            android:maxLength="255"
+            android:inputType="textAutoCorrect"
+            android:hint="@string/group_name">
+            <requestFocus />
+        </androidx.appcompat.widget.AppCompatEditText>
+    </LinearLayout>
+
+    <com.google.android.material.textfield.TextInputLayout
+        android:id="@+id/chat_description_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="8dp">
+
+        <androidx.appcompat.widget.AppCompatEditText
+            android:id="@+id/chat_description"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="top|start"
+            android:hint="@string/chat_description"
+            android:inputType="textMultiLine"
+            android:maxLines="3" />
+    </com.google.android.material.textfield.TextInputLayout>
+
+    <TextView
+        android:id="@+id/chat_hints"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="start"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:layout_marginTop="16dp"
+        android:textSize="18sp"
+        android:text="@string/chat_new_channel_hint" />
+
+    <!-- clipToPadding is needed so ViewUtil.applyWindowInsets() works properly -->
+    <ListView
+        android:id="@+id/selected_contacts_list"
+        android:clipToPadding="false"
+        android:layout_marginTop="16dp"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:dividerHeight="0dp"
+        android:divider="@null" />
+
+</LinearLayout>

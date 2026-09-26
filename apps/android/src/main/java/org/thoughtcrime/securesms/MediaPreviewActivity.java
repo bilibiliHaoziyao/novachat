@@ -1,0 +1,897 @@
+/*
+ * Copyright (C) 2014 Open Whisper Systems
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package org.thoughtcrime.securesms;
+
+import android.Manifest;
+import android.annotation.SuppressLint;
+import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
+import android.os.AsyncTask;
+import android.os.Bundle;
+import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.Window;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.widget.Toolbar;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
+import androidx.loader.app.LoaderManager;
+import androidx.loader.content.Loader;
+import androidx.recyclerview.widget.RecyclerView;
+import androidx.viewpager2.widget.ViewPager2;
+import com.b44t.messenger.DcChat;
+import com.b44t.messenger.DcContext;
+import com.b44t.messenger.DcMediaGalleryElement;
+import com.b44t.messenger.DcMsg;
+import java.io.IOException;
+import java.util.WeakHashMap;
+import org.thoughtcrime.securesms.components.MediaView;
+import org.thoughtcrime.securesms.connect.DcHelper;
+import org.thoughtcrime.securesms.database.Address;
+import org.thoughtcrime.securesms.database.loaders.PagingMediaLoader;
+import org.thoughtcrime.securesms.mms.GlideApp;
+import org.thoughtcrime.securesms.mms.GlideRequests;
+import org.thoughtcrime.securesms.mms.Slide;
+import org.thoughtcrime.securesms.permissions.Permissions;
+import org.thoughtcrime.securesms.recipients.Recipient;
+import org.thoughtcrime.securesms.recipients.RecipientModifiedListener;
+import org.thoughtcrime.securesms.util.DateUtils;
+import org.thoughtcrime.securesms.util.DynamicTheme;
+import org.thoughtcrime.securesms.util.SaveAttachmentTask;
+import org.thoughtcrime.securesms.util.SaveAttachmentTask.Attachment;
+import org.thoughtcrime.securesms.util.StorageUtil;
+import org.thoughtcrime.securesms.util.Util;
+import org.thoughtcrime.securesms.util.ViewUtil;
+
+/** Activity for displaying media attachments in-app */
+public class MediaPreviewActivity extends PassphraseRequiredActionBarActivity
+    implements RecipientModifiedListener, LoaderManager.LoaderCallbacks<DcMediaGalleryElement> {
+
+  private static final String TAG = "MediaPreviewActivity";
+
+  public static final String ACTIVITY_TITLE_EXTRA = "activity_title";
+  public static final String EDIT_AVATAR_CHAT_ID = "avatar_for_chat_id";
+  public static final String ADDRESS_EXTRA = "address";
+  public static final String OUTGOING_EXTRA = "outgoing";
+  public static final String LEFT_IS_RECENT_EXTRA = "left_is_recent";
+  public static final String DC_MSG_ID = "dc_msg_id";
+  public static final String OPENED_FROM_PROFILE = "opened_from_profile";
+  private static final String STATE_TOP_BAR_VISIBLE = "top_bar_visible";
+
+  /** USE ONLY IF YOU HAVE NO MESSAGE ID! */
+  public static final String DATE_EXTRA = "date";
+
+  /** USE ONLY IF YOU HAVE NO MESSAGE ID! */
+  public static final String SIZE_EXTRA = "size";
+
+  @Nullable private DcMsg messageRecord;
+  private DcContext dcContext;
+  private MediaItem initialMedia;
+  private ViewPager2 mediaPager;
+  private Recipient conversationRecipient;
+  private boolean leftIsRecent;
+  private WindowInsetsControllerCompat windowInsetsController;
+  private boolean topBarVisible = true;
+
+  private int restartItem = -1;
+
+  private int editAvatarChatId = 0;
+
+  @Override
+  protected void onPreCreate() {
+    dynamicTheme =
+        new DynamicTheme() {
+          public void onCreate(Activity activity) {
+            activity.setTheme(R.style.TextSecure_DarkNoActionBar_MediaPreview);
+          }
+
+          public void onResume(Activity activity) {}
+        };
+    super.onPreCreate();
+  }
+
+  @SuppressWarnings("ConstantConditions")
+  @Override
+  protected void onCreate(Bundle bundle, boolean ready) {
+    setContentView(R.layout.media_preview_activity);
+
+    Toolbar toolbar = findViewById(R.id.toolbar);
+    setSupportActionBar(toolbar);
+    getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
+    ViewUtil.applyWindowInsets(toolbar, true, true, true, false);
+
+    if (!ViewUtil.isEdgeToEdgeSupported()) {
+      WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+      ViewUtil.setPaddingTop(toolbar, ViewUtil.getStatusBarHeight(toolbar));
+    }
+
+    windowInsetsController =
+        WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+    windowInsetsController.setSystemBarsBehavior(
+        WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+
+    if (bundle != null) {
+      topBarVisible = bundle.getBoolean(STATE_TOP_BAR_VISIBLE, true);
+    }
+
+    editAvatarChatId = getIntent().getIntExtra(EDIT_AVATAR_CHAT_ID, 0);
+    @Nullable String title = getIntent().getStringExtra(ACTIVITY_TITLE_EXTRA);
+    if (title != null) {
+      getSupportActionBar().setTitle(title);
+    }
+
+    initializeViews();
+    initializeResources();
+    setTopBarVisible(topBarVisible);
+  }
+
+  @Override
+  protected void onSaveInstanceState(@NonNull Bundle outState) {
+    super.onSaveInstanceState(outState);
+    outState.putBoolean(STATE_TOP_BAR_VISIBLE, topBarVisible);
+  }
+
+  @Override
+  public void onRequestPermissionsResult(
+      int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    Permissions.onRequestPermissionsResult(this, requestCode, permissions, grantResults);
+  }
+
+  private void toggleTopBar() {
+    setTopBarVisible(!topBarVisible);
+  }
+
+  @SuppressWarnings("ConstantConditions")
+  private void setTopBarVisible(boolean visible) {
+    final boolean changed = topBarVisible != visible;
+    topBarVisible = visible;
+    ActionBar supportBar = getSupportActionBar();
+    if (supportBar == null) return;
+
+    if (visible) {
+      supportBar.show();
+      windowInsetsController.show(WindowInsetsCompat.Type.systemBars());
+    } else {
+      supportBar.hide();
+      windowInsetsController.hide(WindowInsetsCompat.Type.systemBars());
+    }
+
+    if (changed) {
+      MediaView mediaView = getCurrentMediaView();
+      if (mediaView != null) mediaView.setControlsVisible(visible);
+    }
+  }
+
+  private void applyTopBarToPage(int position) {
+    MediaItemAdapter adapter = (MediaItemAdapter) mediaPager.getAdapter();
+    if (adapter == null) return;
+
+    MediaView mediaView = adapter.getMediaViewFor(position);
+    if (mediaView != null && mediaView.isVideo()) {
+      mediaView.setControlsVisible(topBarVisible);
+    }
+  }
+
+  private @Nullable MediaView getCurrentMediaView() {
+    MediaItemAdapter adapter = (MediaItemAdapter) mediaPager.getAdapter();
+    return adapter == null ? null : adapter.getMediaViewFor(mediaPager.getCurrentItem());
+  }
+
+  private @Nullable Runnable getImageTapListener() {
+    return editAvatarChatId == 0 ? this::toggleTopBar : null;
+  }
+
+  private @Nullable ControlsVisibilityCallback getControlsVisibilityCallback() {
+    if (editAvatarChatId != 0) return null;
+    return (source, visible) -> {
+      if (source == getCurrentMediaView()) setTopBarVisible(visible);
+    };
+  }
+
+  @Override
+  public void onModified(Recipient recipient) {
+    Util.runOnMain(this::initializeActionBar);
+  }
+
+  @SuppressWarnings("ConstantConditions")
+  private void initializeActionBar() {
+    MediaItem mediaItem = getCurrentMediaItem();
+
+    if (mediaItem != null) {
+      CharSequence relativeTimeSpan;
+
+      if (mediaItem.date > 0) {
+        relativeTimeSpan = DateUtils.getExtendedRelativeTimeSpanString(this, mediaItem.date);
+      } else {
+        relativeTimeSpan = getString(R.string.draft);
+      }
+
+      if (mediaItem.outgoing) getSupportActionBar().setTitle(getString(R.string.self));
+      else {
+        int fromId = dcContext.getMsg(mediaItem.msgId).getFromId();
+        getSupportActionBar().setTitle(dcContext.getContact(fromId).getDisplayName());
+      }
+
+      getSupportActionBar().setSubtitle(relativeTimeSpan);
+    }
+  }
+
+  @Override
+  public void onResume() {
+    super.onResume();
+    initializeMedia();
+  }
+
+  @Override
+  public void onPause() {
+    super.onPause();
+    restartItem = cleanupMedia();
+  }
+
+  @Override
+  protected void onNewIntent(Intent intent) {
+    super.onNewIntent(intent);
+    setIntent(intent);
+    initializeResources();
+  }
+
+  private void initializeViews() {
+    mediaPager = findViewById(R.id.media_pager);
+    mediaPager.setOffscreenPageLimit(1);
+    mediaPager.registerOnPageChangeCallback(new ViewPagerListener());
+  }
+
+  private void initializeResources() {
+    Address address = getIntent().getParcelableExtra(ADDRESS_EXTRA);
+
+    final Context context = getApplicationContext();
+    this.dcContext = DcHelper.getContext(context);
+    final int msgId = getIntent().getIntExtra(DC_MSG_ID, DcMsg.DC_MSG_NO_ID);
+
+    if (msgId == DcMsg.DC_MSG_NO_ID) {
+      messageRecord = null;
+      long date = getIntent().getLongExtra(DATE_EXTRA, 0);
+      long size = getIntent().getLongExtra(SIZE_EXTRA, 0);
+      initialMedia =
+          new MediaItem(
+              null,
+              getIntent().getData(),
+              null,
+              getIntent().getType(),
+              DcMsg.DC_MSG_NO_ID,
+              date,
+              size,
+              false);
+
+      if (address != null) {
+        conversationRecipient = Recipient.from(context, address);
+      } else {
+        conversationRecipient = null;
+      }
+    } else {
+      messageRecord = dcContext.getMsg(msgId);
+      initialMedia =
+          new MediaItem(
+              Recipient.fromChat(context, msgId),
+              Uri.fromFile(messageRecord.getFileAsFile()),
+              messageRecord.getFilename(),
+              messageRecord.getFilemime(),
+              messageRecord.getId(),
+              messageRecord.getDateReceived(),
+              messageRecord.getFilebytes(),
+              messageRecord.isOutgoing());
+      conversationRecipient = Recipient.fromChat(context, msgId);
+    }
+    leftIsRecent = getIntent().getBooleanExtra(LEFT_IS_RECENT_EXTRA, false);
+    restartItem = -1;
+  }
+
+  private void initializeMedia() {
+
+    // if you search for the place where the media are loaded, go to 'onCreateLoader'.
+
+    Log.w(TAG, "Loading Part URI: " + initialMedia);
+    if (messageRecord != null) {
+      getSupportLoaderManager().restartLoader(0, null, this);
+    } else {
+      mediaPager.setAdapter(
+          new SingleItemPagerAdapter(
+              this,
+              GlideApp.with(this),
+              getWindow(),
+              initialMedia.uri,
+              initialMedia.name,
+              initialMedia.type,
+              getImageTapListener(),
+              getControlsVisibilityCallback(),
+              initialMedia.size));
+      onAdapterChanged();
+    }
+  }
+
+  private void onAdapterChanged() {
+    setTopBarVisible(topBarVisible);
+    mediaPager.post(() -> applyTopBarToPage(mediaPager.getCurrentItem()));
+  }
+
+  private int cleanupMedia() {
+    int restartItem = mediaPager.getCurrentItem();
+    mediaPager.setAdapter(null);
+    return restartItem;
+  }
+
+  private void editAvatar() {
+    Intent intent = new Intent(this, GroupCreateActivity.class);
+    intent.putExtra(GroupCreateActivity.EDIT_GROUP_CHAT_ID, editAvatarChatId);
+    startActivity(intent);
+    finish(); // avoid the need to update the enlarged-avatar
+  }
+
+  private void showOverview() {
+    if (getIntent().getBooleanExtra(OPENED_FROM_PROFILE, false)) {
+      finish();
+    } else if (conversationRecipient.getAddress().isDcChat()) {
+      Intent intent = new Intent(this, AllMediaActivity.class);
+      intent.putExtra(
+          AllMediaActivity.CHAT_ID_EXTRA, conversationRecipient.getAddress().getDcChatId());
+      intent.putExtra(AllMediaActivity.FORCE_GALLERY, true);
+      startActivity(intent);
+      finish();
+    } else if (conversationRecipient.getAddress().isDcContact()) {
+      Intent intent = new Intent(this, AllMediaActivity.class);
+      intent.putExtra(
+          AllMediaActivity.CONTACT_ID_EXTRA, conversationRecipient.getAddress().getDcContactId());
+      intent.putExtra(AllMediaActivity.FORCE_GALLERY, true);
+      startActivity(intent);
+      finish();
+    }
+  }
+
+  private void share() {
+    MediaItem mediaItem = getCurrentMediaItem();
+    if (mediaItem != null) {
+      DcHelper.openForViewOrShare(this, mediaItem.msgId, Intent.ACTION_SEND);
+    }
+  }
+
+  @SuppressWarnings("CodeBlock2Expr")
+  @SuppressLint("InlinedApi")
+  private void saveToDisk() {
+    MediaItem mediaItem = getCurrentMediaItem();
+
+    if (mediaItem != null) {
+      SaveAttachmentTask.showWarningDialog(
+          this,
+          (dialogInterface, i) -> {
+            if (StorageUtil.canWriteToMediaStore(this)) {
+              performSavetoDisk(mediaItem);
+              return;
+            }
+
+            Permissions.with(this)
+                .request(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                .alwaysGrantOnSdk30()
+                .ifNecessary()
+                .withPermanentDenialDialog(
+                    getString(R.string.perm_explain_access_to_storage_denied))
+                .onAllGranted(
+                    () -> {
+                      performSavetoDisk(mediaItem);
+                    })
+                .execute();
+          });
+    }
+  }
+
+  private void performSavetoDisk(@NonNull MediaItem mediaItem) {
+    SaveAttachmentTask saveTask = new SaveAttachmentTask(MediaPreviewActivity.this);
+    long saveDate = (mediaItem.date > 0) ? mediaItem.date : System.currentTimeMillis();
+    saveTask.executeOnExecutor(
+        AsyncTask.THREAD_POOL_EXECUTOR,
+        new Attachment(mediaItem.uri, mediaItem.type, saveDate, mediaItem.name));
+  }
+
+  private void showInChat() {
+    MediaItem mediaItem = getCurrentMediaItem();
+    if (mediaItem == null || mediaItem.msgId == DcMsg.DC_MSG_NO_ID) {
+      Log.w(TAG, "mediaItem missing.");
+      return;
+    }
+
+    DcMsg dcMsg = dcContext.getMsg(mediaItem.msgId);
+    if (dcMsg.getId() == DcMsg.DC_MSG_NO_ID) {
+      Log.w(TAG, "cannot get message object.");
+      return;
+    }
+
+    Intent intent = new Intent(this, ConversationActivity.class);
+    intent.putExtra(ConversationActivity.CHAT_ID_EXTRA, dcMsg.getChatId());
+    intent.putExtra(
+        ConversationActivity.STARTING_POSITION_EXTRA, DcMsg.getMessagePosition(dcMsg, dcContext));
+    startActivity(intent);
+  }
+
+  @SuppressLint("StaticFieldLeak")
+  private void deleteMedia() {
+    MediaItem mediaItem = getCurrentMediaItem();
+    if (mediaItem == null || mediaItem.msgId == DcMsg.DC_MSG_NO_ID) {
+      return;
+    }
+
+    DcMsg dcMsg = dcContext.getMsg(mediaItem.msgId);
+    DcChat dcChat = dcContext.getChat(dcMsg.getChatId());
+
+    String text = getResources().getQuantityString(R.plurals.ask_delete_messages, 1, 1);
+    int positiveBtnLabel = dcChat.isSelfTalk() ? R.string.delete : R.string.delete_for_me;
+    final int[] messageIds = new int[] {mediaItem.msgId};
+
+    AlertDialog.Builder builder = new AlertDialog.Builder(this);
+    builder.setMessage(text);
+    builder.setCancelable(true);
+    builder.setNeutralButton(android.R.string.cancel, null);
+    builder.setPositiveButton(
+        positiveBtnLabel,
+        (dialogInterface, which) -> {
+          Util.runOnAnyBackgroundThread(() -> dcContext.deleteMsgs(messageIds));
+          finish();
+        });
+
+    if (dcChat.isEncrypted() && dcChat.canSend() && !dcChat.isSelfTalk() && dcMsg.isOutgoing()) {
+      builder.setNegativeButton(
+          R.string.delete_for_everyone,
+          (d, which) -> {
+            Util.runOnAnyBackgroundThread(() -> dcContext.sendDeleteRequest(messageIds));
+            finish();
+          });
+      AlertDialog dialog = builder.show();
+      Util.redButton(dialog, AlertDialog.BUTTON_NEGATIVE);
+      Util.redPositiveButton(dialog);
+    } else {
+      AlertDialog dialog = builder.show();
+      Util.redPositiveButton(dialog);
+    }
+  }
+
+  @Override
+  public boolean onPrepareOptionsMenu(Menu menu) {
+    super.onPrepareOptionsMenu(menu);
+
+    menu.clear();
+    MenuInflater inflater = this.getMenuInflater();
+    inflater.inflate(R.menu.media_preview, menu);
+    Util.redMenuItem(menu, R.id.delete);
+
+    if (!isMediaInDb()) {
+      menu.findItem(R.id.media_preview__overview).setVisible(false);
+      menu.findItem(R.id.media_preview__share).setVisible(false);
+      menu.findItem(R.id.delete).setVisible(false);
+      menu.findItem(R.id.show_in_chat).setVisible(false);
+    }
+
+    if (editAvatarChatId == 0) {
+      menu.findItem(R.id.media_preview__edit).setVisible(false);
+    }
+
+    return true;
+  }
+
+  @Override
+  public boolean onOptionsItemSelected(MenuItem item) {
+    super.onOptionsItemSelected(item);
+
+    int itemId = item.getItemId();
+    if (itemId == R.id.media_preview__edit) {
+      editAvatar();
+      return true;
+    } else if (itemId == R.id.media_preview__overview) {
+      showOverview();
+      return true;
+    } else if (itemId == R.id.media_preview__share) {
+      share();
+      return true;
+    } else if (itemId == R.id.save) {
+      saveToDisk();
+      return true;
+    } else if (itemId == R.id.delete) {
+      deleteMedia();
+      return true;
+    } else if (itemId == R.id.show_in_chat) {
+      showInChat();
+      return true;
+    } else if (itemId == android.R.id.home) {
+      finish();
+      return true;
+    }
+
+    return false;
+  }
+
+  private boolean isMediaInDb() {
+    return conversationRecipient != null;
+  }
+
+  private @Nullable MediaItem getCurrentMediaItem() {
+    MediaItemAdapter adapter = (MediaItemAdapter) mediaPager.getAdapter();
+
+    if (adapter != null) {
+      return adapter.getMediaItemFor(mediaPager.getCurrentItem());
+    } else {
+      return null;
+    }
+  }
+
+  public static boolean isTypeSupported(final Slide slide) {
+    return slide != null && (slide.hasVideo() || slide.hasImage());
+  }
+
+  @Override
+  public Loader<DcMediaGalleryElement> onCreateLoader(int id, Bundle args) {
+    return new PagingMediaLoader(this, messageRecord, false);
+  }
+
+  @Override
+  public void onLoadFinished(
+      Loader<DcMediaGalleryElement> loader, @Nullable DcMediaGalleryElement data) {
+    if (data != null) {
+      @SuppressWarnings("ConstantConditions")
+      DcMediaPagerAdapter adapter =
+          new DcMediaPagerAdapter(
+              this,
+              GlideApp.with(this),
+              getWindow(),
+              data,
+              getImageTapListener(),
+              getControlsVisibilityCallback(),
+              leftIsRecent);
+      adapter.setActive(true);
+      mediaPager.setAdapter(adapter);
+
+      if (restartItem < 0) mediaPager.setCurrentItem(data.getPosition(), false);
+      else mediaPager.setCurrentItem(restartItem, false);
+
+      onAdapterChanged();
+    }
+  }
+
+  @Override
+  public void onLoaderReset(Loader<DcMediaGalleryElement> loader) {}
+
+  private class ViewPagerListener extends ViewPager2.OnPageChangeCallback {
+
+    private Integer currentPage = null;
+
+    @Override
+    public void onPageSelected(int position) {
+      if (currentPage != null && currentPage != position) onPageUnselected(currentPage);
+      currentPage = position;
+
+      MediaItemAdapter adapter = (MediaItemAdapter) mediaPager.getAdapter();
+
+      if (adapter != null) {
+        MediaItem item = adapter.getMediaItemFor(position);
+        if (item.recipient != null) item.recipient.addListener(MediaPreviewActivity.this);
+
+        initializeActionBar();
+        applyTopBarToPage(position);
+      }
+    }
+
+    private void onPageUnselected(int position) {
+      MediaItemAdapter adapter = (MediaItemAdapter) mediaPager.getAdapter();
+
+      if (adapter != null) {
+        try {
+          MediaItem item = adapter.getMediaItemFor(position);
+          if (item.recipient != null) item.recipient.removeListener(MediaPreviewActivity.this);
+        } catch (IllegalArgumentException e) {
+          Log.w(TAG, "Ignoring invalid position index");
+        }
+        adapter.pause(position);
+      }
+    }
+  }
+
+  private static class SingleItemPagerAdapter
+      extends RecyclerView.Adapter<SingleItemPagerAdapter.MediaViewHolder>
+      implements MediaItemAdapter {
+
+    private final GlideRequests glideRequests;
+    private final Window window;
+    private final Uri uri;
+    private final String name;
+    private final String mediaType;
+    private final long size;
+    private final @Nullable Runnable onTap;
+    private final @Nullable ControlsVisibilityCallback controlsVisibilityCallback;
+
+    private @Nullable MediaView mediaView;
+
+    private final LayoutInflater inflater;
+
+    SingleItemPagerAdapter(
+        @NonNull Context context,
+        @NonNull GlideRequests glideRequests,
+        @NonNull Window window,
+        @NonNull Uri uri,
+        @Nullable String name,
+        @NonNull String mediaType,
+        @Nullable Runnable onTap,
+        @Nullable ControlsVisibilityCallback controlsVisibilityCallback,
+        long size) {
+      this.glideRequests = glideRequests;
+      this.window = window;
+      this.uri = uri;
+      this.name = name;
+      this.mediaType = mediaType;
+      this.onTap = onTap;
+      this.controlsVisibilityCallback = controlsVisibilityCallback;
+      this.size = size;
+      this.inflater = LayoutInflater.from(context);
+    }
+
+    @Override
+    public int getItemCount() {
+      return 1;
+    }
+
+    @NonNull
+    @Override
+    public MediaViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+      return new MediaViewHolder(inflater.inflate(R.layout.media_view_page, parent, false));
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull MediaViewHolder holder, int position) {
+      mediaView = holder.mediaView;
+      holder.mediaView.setControlsVisibilityListener(
+          controlsVisibilityCallback == null
+              ? null
+              : visible ->
+                  controlsVisibilityCallback.onControlsVisibilityChanged(
+                      holder.mediaView, visible));
+      try {
+        holder.mediaView.set(glideRequests, window, uri, name, mediaType, size, true);
+        holder.mediaView.setOnImageTapListener(onTap);
+      } catch (IOException e) {
+        Log.w(TAG, e);
+      }
+    }
+
+    @Override
+    public void onViewRecycled(@NonNull MediaViewHolder holder) {
+      super.onViewRecycled(holder);
+      if (mediaView == holder.mediaView) mediaView = null;
+      holder.mediaView.cleanup();
+    }
+
+    @Override
+    public @Nullable MediaView getMediaViewFor(int position) {
+      return mediaView;
+    }
+
+    @Override
+    public MediaItem getMediaItemFor(int position) {
+      return new MediaItem(null, uri, name, mediaType, DcMsg.DC_MSG_NO_ID, -1, -1, true);
+    }
+
+    @Override
+    public void pause(int position) {}
+
+    static class MediaViewHolder extends RecyclerView.ViewHolder {
+      final MediaView mediaView;
+
+      MediaViewHolder(@NonNull View itemView) {
+        super(itemView);
+        mediaView = itemView.findViewById(R.id.media_view);
+      }
+    }
+  }
+
+  private static class DcMediaPagerAdapter
+      extends RecyclerView.Adapter<DcMediaPagerAdapter.MediaViewHolder>
+      implements MediaItemAdapter {
+
+    private final WeakHashMap<Integer, MediaView> mediaViews = new WeakHashMap<>();
+
+    private final Context context;
+    private final GlideRequests glideRequests;
+    private final Window window;
+    private final DcMediaGalleryElement gallery;
+    private final boolean leftIsRecent;
+    private final @Nullable Runnable onTap;
+    private final @Nullable ControlsVisibilityCallback controlsVisibilityCallback;
+
+    private boolean active;
+    private int autoPlayPosition;
+
+    DcMediaPagerAdapter(
+        @NonNull Context context,
+        @NonNull GlideRequests glideRequests,
+        @NonNull Window window,
+        @NonNull DcMediaGalleryElement gallery,
+        @Nullable Runnable onTap,
+        @Nullable ControlsVisibilityCallback controlsVisibilityCallback,
+        boolean leftIsRecent) {
+      this.context = context.getApplicationContext();
+      this.glideRequests = glideRequests;
+      this.window = window;
+      this.gallery = gallery;
+      this.onTap = onTap;
+      this.controlsVisibilityCallback = controlsVisibilityCallback;
+      this.leftIsRecent = leftIsRecent;
+      this.autoPlayPosition = gallery.getPosition();
+    }
+
+    public void setActive(boolean active) {
+      this.active = active;
+      notifyDataSetChanged();
+    }
+
+    @Override
+    public int getItemCount() {
+      if (!active) return 0;
+      else return gallery.getCount();
+    }
+
+    @NonNull
+    @Override
+    public MediaViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+      View itemView = LayoutInflater.from(context).inflate(R.layout.media_view_page, parent, false);
+      return new MediaViewHolder(itemView);
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull MediaViewHolder holder, int position) {
+      boolean autoplay = position == autoPlayPosition;
+      int cursorPosition = getCursorPosition(position);
+
+      autoPlayPosition = -1;
+
+      gallery.moveToPosition(cursorPosition);
+
+      DcMsg msg = gallery.getMessage();
+
+      mediaViews.put(position, holder.mediaView);
+      holder.mediaView.setControlsVisibilityListener(
+          controlsVisibilityCallback == null
+              ? null
+              : visible ->
+                  controlsVisibilityCallback.onControlsVisibilityChanged(
+                      holder.mediaView, visible));
+
+      try {
+        //noinspection ConstantConditions
+        holder.mediaView.set(
+            glideRequests,
+            window,
+            Uri.fromFile(msg.getFileAsFile()),
+            msg.getFilename(),
+            msg.getFilemime(),
+            msg.getFilebytes(),
+            autoplay);
+      } catch (IOException e) {
+        Log.w(TAG, e);
+      }
+
+      holder.mediaView.setOnImageTapListener(onTap);
+    }
+
+    @Override
+    public void onViewRecycled(@NonNull MediaViewHolder holder) {
+      super.onViewRecycled(holder);
+      mediaViews.values().remove(holder.mediaView);
+      holder.mediaView.cleanup();
+    }
+
+    @Override
+    public @Nullable MediaView getMediaViewFor(int position) {
+      return mediaViews.get(position);
+    }
+
+    public MediaItem getMediaItemFor(int position) {
+      gallery.moveToPosition(getCursorPosition(position));
+      DcMsg msg = gallery.getMessage();
+
+      if (msg.getFile() == null) throw new AssertionError();
+
+      return new MediaItem(
+          Recipient.fromChat(context, msg.getId()),
+          Uri.fromFile(msg.getFileAsFile()),
+          msg.getFilename(),
+          msg.getFilemime(),
+          msg.getId(),
+          msg.getDateReceived(),
+          msg.getFilebytes(),
+          msg.isOutgoing());
+    }
+
+    @Override
+    public void pause(int position) {
+      MediaView mediaView = mediaViews.get(position);
+      if (mediaView != null) mediaView.pause();
+    }
+
+    private int getCursorPosition(int position) {
+      if (leftIsRecent) return position;
+      else return gallery.getCount() - 1 - position;
+    }
+
+    static class MediaViewHolder extends RecyclerView.ViewHolder {
+      final MediaView mediaView;
+
+      MediaViewHolder(@NonNull View itemView) {
+        super(itemView);
+        mediaView = itemView.findViewById(R.id.media_view);
+      }
+    }
+  }
+
+  private static class MediaItem {
+    private final @Nullable Recipient recipient;
+    private final @NonNull Uri uri;
+    private final @Nullable String name;
+    private final @NonNull String type;
+    private final int msgId;
+    private final long date;
+    private final long size;
+    private final boolean outgoing;
+
+    private MediaItem(
+        @Nullable Recipient recipient,
+        @NonNull Uri uri,
+        @Nullable String name,
+        @NonNull String type,
+        int msgId,
+        long date,
+        long size,
+        boolean outgoing) {
+      this.recipient = recipient;
+      this.uri = uri;
+      this.name = name;
+      this.type = type;
+      this.msgId = msgId;
+      this.date = date;
+      this.size = size;
+      this.outgoing = outgoing;
+    }
+  }
+
+  private interface ControlsVisibilityCallback {
+    void onControlsVisibilityChanged(@NonNull MediaView source, boolean visible);
+  }
+
+  private interface MediaItemAdapter {
+    MediaItem getMediaItemFor(int position);
+
+    @Nullable
+    MediaView getMediaViewFor(int position);
+
+    void pause(int position);
+  }
+}

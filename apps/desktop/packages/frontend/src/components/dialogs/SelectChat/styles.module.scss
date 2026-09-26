@@ -1,0 +1,59 @@
+// We need to force the dialog to full height to make `AutoSizer` work
+.selectChatDialog {
+  height: 100%;
+}
+
+.selectChatDialogBody {
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 0px;
+
+  // This prevents constantly flickering scrollbars caused by <AutoSizer>
+  // on certain DPR (zoom) levels.
+  // It's fine to apply `overflow: hidden;` because we do not expect
+  // the dialog to overflow: the stuff inside of it is scrollable anyway.
+  overflow: hidden;
+}
+
+.searchRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+  justify-content: space-between;
+  padding-inline-end: 20px;
+
+  &.withAccountSwitch {
+    :global(.select-chat-account-input) {
+      flex: 1;
+    }
+  }
+}
+
+.header {
+  // long title should not make dialog scroll sidewards
+  word-break: break-all;
+}
+
+.switchAccountButton {
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 8px 0;
+  background: transparent;
+  color: var(--textPrimary);
+  cursor: pointer;
+}
+
+.switchAccountText {
+  line-height: 1;
+  font-size: 16px;
+}
+
+.switchAccountContainer {
+  display: flex;
+  justify-content: flex-end;
+  flex-shrink: 0;
+}

@@ -1,0 +1,75 @@
+import { LocalStorage } from 'node-localstorage'
+import { existsSync, mkdirSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'path'
+import { isAbsolute } from 'node:path'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+
+const envPath = join(__dirname, '../.env')
+
+try {
+  process.loadEnvFile?.(envPath)
+} catch (error) {
+  // eslint-disable-next-line no-console
+  console.error(`Failed to load ${envPath}`, error)
+}
+
+function resolvePath(path: string): string {
+  return isAbsolute(path) ? path : join(__dirname, path)
+}
+
+// Directories & Files
+export const DIST_DIR = join(__dirname)
+export const DATA_DIR = process.env['DATA_DIR']
+  ? resolvePath(process.env['DATA_DIR'])
+  : join(__dirname, '../data')
+export const LOGS_DIR = join(DATA_DIR, 'logs')
+const privateCertPath = process.env['PRIVATE_CERTIFICATE_PATH']
+  ? resolvePath(process.env['PRIVATE_CERTIFICATE_PATH'])
+  : join(DATA_DIR, 'certificate')
+export const PRIVATE_CERTIFICATE_KEY = join(privateCertPath, 'cert.key.pem')
+export const PRIVATE_CERTIFICATE_CERT = join(privateCertPath, 'cert.pem')
+export const ACCOUNTS_DIR = join(DATA_DIR, 'accounts')
+
+export const LOCALES_DIR = join(__dirname, '../../../_locales')
+
+// ENV Vars
+export const DC_FRONTEND_NO_TLS: boolean =
+  process.env['DC_FRONTEND_NO_TLS'] === 'true' ||
+  process.env['DC_FRONTEND_NO_TLS'] === '1'
+export const ENV_WEB_PASSWORD = process.env['WEB_PASSWORD']
+export const ENV_WEB_PORT = process.env['WEB_PORT'] || 3000
+// set this to one if you use this behind a proxy
+export const ENV_WEB_TRUST_FIRST_PROXY = Boolean(
+  process.env['WEB_TRUST_FIRST_PROXY']
+)
+
+export const NODE_ENV = (process.env['NODE_ENV'] ?? 'production').toLowerCase()
+
+mkdirSync(DATA_DIR, { recursive: true })
+mkdirSync(LOGS_DIR, { recursive: true })
+
+if (
+  !DC_FRONTEND_NO_TLS &&
+  !existsSync(PRIVATE_CERTIFICATE_KEY) &&
+  !process.env['PRIVATE_CERTIFICATE_KEY']
+) {
+  // eslint-disable-next-line no-console
+  console.log(
+    `\n[ERROR]: Certificate at "${PRIVATE_CERTIFICATE_KEY}" not exist, make sure you follow the steps in the Readme file. Or consider DC_FRONTEND_NO_TLS=true.\n`
+  )
+  process.exit(1)
+}
+
+if (!ENV_WEB_PASSWORD && NODE_ENV !== 'test') {
+  // eslint-disable-next-line no-console
+  console.log(
+    `\n[ERROR]: Environment Variable WEB_PASSWORD is not set. You need to set it.\n`
+  )
+  process.exit(1)
+}
+
+export const localStorage = new LocalStorage(
+  join(DATA_DIR, 'browser-runtime-data')
+)

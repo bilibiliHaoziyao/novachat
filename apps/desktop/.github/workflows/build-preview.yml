@@ -1,0 +1,182 @@
+# documentation: https://github.com/deltachat/sysadmin/tree/master/download.delta.chat
+name: Preview Builds
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+    paths-ignore:
+      - 'docs/**' # only trigger build if a file outside of /docs was changed
+      - 'README_ASSETS/**'
+      - 'test/**'
+      - '*.md'
+      - '.prettierrc.yml'
+      - '.vscode/**'
+
+permissions:
+  # For `postLinksToDetails.js`.
+  statuses: write
+
+jobs:
+  build-preview:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+      fail-fast: false
+    name: Build Preview
+    env:
+      IS_PREVIEW: true
+    steps:
+      # Preperation
+      - uses: actions/checkout@v6
+        with:
+          show-progress: false
+          persist-credentials: false
+          # Make `git describe` work
+          fetch-depth: 0
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+      - name: Get Branch Name
+        id: prepare
+        shell: bash
+        run: |
+          echo "branch=$(echo "${GITHUB_HEAD_REF}" | sed 's/[^A-Za-z0-9._-]/_/g')" >> $GITHUB_OUTPUT
+      - name: change build name and Product Name to branch name
+        run: |
+          node ./bin/github-actions/devbuild.js
+      # Building JS
+      - name: pnpm install, build
+        run: |
+          npm i -g pnpm
+          pnpm install --frozen-lockfile
+          cd packages/target-electron
+          pnpm build
+          pnpm run pack:generate_config
+          pnpm run pack:patch-node-modules
+      # Packaging and processing
+      - name: LINUX electron builder
+        if: runner.os == 'Linux'
+        run: |
+          export DEBUG=electron-builder
+          cd packages/target-electron
+          pnpm electron-builder --publish never --linux AppImage
+      - name: LINUX renaming / upload Preperation
+        if: runner.os == 'Linux'
+        working-directory: packages/target-electron
+        env:
+          BRANCH: ${{ steps.prepare.outputs.branch }}
+        run: |
+          cd dist
+          mkdir preview
+          mv *.AppImage preview/deltachat-desktop.$BRANCH.AppImage
+          ls preview
+          cd ..
+      - name: MAC electron builder
+        if: runner.os == 'macOS'
+        run: |
+          cd packages/target-electron
+          echo "module.exports=()=>Promise.resolve()" > stub.cjs
+          export CSC_IDENTITY_AUTO_DISCOVERY=false
+          export DEBUG=electron-builder
+          pnpm i dmg-license
+          # all archs are enabled, because only installing some is not supported yet by pnpm: https://github.com/pnpm/pnpm/issues/7510
+          # pnpm i --cpu x64 --os darwin
+          # pnpm i --cpu arm64 --os darwin
+          ls node_modules/@deltachat
+          pnpm electron-builder --publish never --mac mas dmg -c.mac.identity=null --universal --config.afterSign="stub.cjs"
+      - name: MAC renaming / upload Preperation
+        if: runner.os == 'macOS'
+        working-directory: packages/target-electron
+        env:
+          BRANCH: ${{ steps.prepare.outputs.branch }}
+        run: |
+          ls -lah dist
+          mkdir -p dist/preview
+          zip -r dist/preview/deltachat-desktop-mas.$BRANCH.zip dist/mas-universal
+          cd dist
+          mv *.dmg preview/deltachat-desktop.$BRANCH.dmg || true
+          cd ..
+          ls dist/preview
+      - name: WINDOWS electron builder
+        if: runner.os == 'Windows'
+        env:
+          BRANCH: ${{ steps.prepare.outputs.branch }}
+        run: |
+          cd packages/target-electron
+          set DEBUG=electron-builder
+          pnpm electron-builder --win portable --config.artifactName="deltachat-desktop.$env:BRANCH.portable.exe"
+      - name: WINDOWS renaming / upload Preperation
+        if: runner.os == 'Windows'
+        working-directory: packages/target-electron/dist
+        env:
+          BRANCH: ${{ steps.prepare.outputs.branch }}
+        run: |
+          dir
+          mkdir preview
+          move Delta*Chat*.exe preview/deltachat-desktop.$env:BRANCH.portable.exe
+          dir preview
+          cd ..
+      - name: Upload result to artifacts
+        id: upload-github
+        uses: actions/upload-artifact@main
+        with:
+          name: ${{ matrix.os }} output
+          path: packages/target-electron/dist/preview/
+      - name: 'Post links to GitHub artifact to details'
+        if: steps.upload-github.outcome == 'success'
+        run: node ./bin/github-actions/postLinksToDetails.js
+        env:
+          FULL_ARTIFACT_URL: ${{ steps.upload-github.outputs.artifact-url }}
+          PLATFORM: ${{ runner.os }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Uploading from the build jobs themselves with rsync caused problems: the macOS
+  # runner ships openrsync, which rrsync rejects, and on windows the cygwin based
+  # rsync cannot be combined with the msys2 ssh of Git for Windows.
+  upload-preview:
+    runs-on: ubuntu-latest
+    name: Upload Preview
+    needs: build-preview
+    # runs even if a build failed, to upload the platforms that did succeed
+    if: ${{ !cancelled() && (contains(github.event.pull_request.body, '#public-preview') || contains(github.event.pull_request.title, 'prepare release')) }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          show-progress: false
+          persist-credentials: false
+      - name: Get Branch Name
+        id: prepare
+        run: |
+          echo "branch=$(echo "${GITHUB_HEAD_REF}" | sed 's/[^A-Za-z0-9._-]/_/g')" >> $GITHUB_OUTPUT
+      - name: Download the builds of all platforms
+        uses: actions/download-artifact@v4
+        with:
+          path: preview
+          pattern: '* output'
+          merge-multiple: true
+      - name: upload folder
+        id: upload
+        env:
+          SSH_KEY: ${{ secrets.KEY }}
+          SSH_USER: ${{ secrets.USERNAME }}
+        run: |
+          trap 'rm -f __TEMP_INPUT_KEY_FILE' EXIT
+          echo -e "$SSH_KEY" >__TEMP_INPUT_KEY_FILE
+          chmod 600 __TEMP_INPUT_KEY_FILE
+          # The key is restricted to rrsync, so the target directory is configured in
+          # authorized_keys on the server
+          rsync -rvz \
+            -e "ssh -o StrictHostKeyChecking=no -i __TEMP_INPUT_KEY_FILE -p 22" \
+            preview/ "$SSH_USER@download.delta.chat:"
+        continue-on-error: true
+      - name: 'Post links to details'
+        if: steps.upload.outcome == 'success'
+        run: |
+          for platform in Linux macOS Windows; do
+            PLATFORM=$platform node ./bin/github-actions/postLinksToDetails.js
+          done
+        env:
+          PR_BRANCH: ${{ steps.prepare.outputs.branch }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

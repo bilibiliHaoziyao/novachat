@@ -1,0 +1,37 @@
+import { DesktopSettingsType } from './shared-types.js'
+
+export function getDefaultState(): DesktopSettingsType {
+  /**
+   * Persisted state. Must be JSON.
+   */
+  return {
+    bounds: {},
+    HTMLEmailWindowBounds: undefined,
+    enterKeySends: false,
+    notifications: true,
+    showNotificationContent: true,
+    locale: null, // if this is null, the system chooses the system language that electron reports
+    credentials: undefined,
+    lastAccount: undefined,
+    enableOnDemandLocationStreaming: false,
+    chatViewBgImg: undefined,
+    lastChats: {},
+    zoomFactor: undefined,
+    activeTheme: 'system',
+    minimizeToTray: true,
+    syncAllAccounts: true,
+    lastSaveDialogLocation: undefined,
+    HTMLEmailAskForRemoteLoadingConfirmation: true,
+    HTMLEmailAlwaysLoadRemoteContent: false,
+    galleryImageKeepAspectRatio: false,
+    useSystemUIFont: false,
+    contentProtectionEnabled: false,
+    inChatSoundsVolume: 0.5,
+    autostart: true,
+    autostartElectron: false,
+    hideMenuBar: false,
+    appStoreBaseUrl: undefined,
+  }
+}
+
+export const defaultAppStoreBaseUrl = 'https://apps.testrun.org/'

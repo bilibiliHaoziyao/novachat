@@ -1,0 +1,563 @@
+import styles from './styles.module.scss'
+import React, { useCallback, useContext, useId, useMemo } from 'react'
+import { C } from '@deltachat/jsonrpc-client'
+
+import MessageListAndComposer from '../message/MessageListAndComposer'
+import NoChatSelected from '../NoChatSelected'
+import useChat from '../../hooks/chat/useChat'
+import { RecoverableCrashScreen } from '../screens/RecoverableCrashScreen'
+import { Avatar } from '../Avatar'
+import MailingListProfile from '../dialogs/MailingListProfile'
+import { useDesktopSettingsStore } from '../../stores/settings'
+import { BackendRemote } from '../../backend-com'
+import Button from '../Button'
+import Icon, { IconButton } from '../Icon'
+import useDialog from '../../hooks/dialog/useDialog'
+import useOpenViewGroupDialog from '../../hooks/dialog/useOpenViewGroupDialog'
+import useOpenViewProfileDialog from '../../hooks/dialog/useOpenViewProfileDialog'
+import useTranslationFunction from '../../hooks/useTranslationFunction'
+import { selectedAccountId } from '../../ScreenController'
+import { openMapWebxdc } from '../../system-integration/webxdc'
+import { ScreenContext } from '../../contexts/ScreenContext'
+import MediaView from '../dialogs/MediaView'
+import { openWebxdc } from '../message/messageFunctions'
+
+import type { T } from '@deltachat/jsonrpc-client'
+import { runtime } from '@deltachat-desktop/runtime-interface'
+import { useRpcFetch } from '../../hooks/useFetch'
+import { getLogger } from '@deltachat-desktop/shared/logger'
+import { useChatContextMenu } from '../chat/ChatContextMenu'
+import useContextMenu from '../../hooks/useContextMenu'
+import { ContextMenuContext } from '../../contexts/ContextMenuContext'
+import { mouseEventToPosition } from '../../utils/mouseEventToPosition'
+import { lastSeenLongAgoText } from '../../utils/contactFreshness'
+import useMessage from '../../hooks/chat/useMessage'
+import classNames from 'classnames'
+import {
+  MessageMultiselectContext,
+  useMessageFocusAndMultiselectContextValue,
+} from '../message/focusAndMultiselect'
+import { useMessageList } from '../../stores/messagelist'
+
+const log = getLogger('ChatView')
+
+export function ChatView(
+  props: Omit<
+    Parameters<typeof ChatViewInner>[0],
+    'accountId' | 'chatWithLinger'
+  > & {
+    accountId: T.Account['id'] | undefined
+    className?: string
+  }
+) {
+  const { chatWithLinger } = useChat()
+  return (
+    <section
+      role='region'
+      aria-labelledby='chat-section-heading'
+      className={classNames(props.className, styles.chatAndNavbar)}
+    >
+      {props.accountId != undefined && chatWithLinger ? (
+        <ChatViewInner
+          // Note that `key` has not always been here.
+          // Some downstream components still try to support variable `chatId`.
+          // To name a few:
+          // - `hasChatChanged` in `MessageList`.
+          // - `useHasChanged2(chatId)` in `Composer`.
+          //
+          // However, most of that code is about resetting some state,
+          // so it probably can be removed.
+          // We do not and should actually rely on any kind of cross-chat state.
+          key={`${props.accountId}_${chatWithLinger.id}`}
+          {...(props as typeof props & { accountId: typeof props.accountId })}
+          chatWithLinger={chatWithLinger}
+        />
+      ) : (
+        <>
+          {/* Dummy header to reduce layout shifting
+          when unselecting/selecting a chat. */}
+          <nav className={styles.chatNavbar} data-tauri-drag-region></nav>
+          <NoChatSelected />
+        </>
+      )}
+    </section>
+  )
+}
+export function ChatViewInner({
+  accountId,
+  lastUsedApps,
+  chatWithLinger,
+}: {
+  accountId: number
+  lastUsedApps: T.Message[]
+  chatWithLinger: NonNullable<ReturnType<typeof useChat>['chatWithLinger']>
+}) {
+  const tx = useTranslationFunction()
+  const { unselectChat } = useChat()
+  const { smallScreenMode } = useContext(ScreenContext)
+
+  const messageListData = useMessageList(accountId, chatWithLinger.id)
+  const messageIds = useMemo(
+    () =>
+      messageListData.state.messageListItems
+        .filter(v => v.kind !== 'dayMarker')
+        .map(v => v.msg_id),
+    [messageListData.state.messageListItems]
+  )
+  const focusAndMultiselectContextValue =
+    useMessageFocusAndMultiselectContextValue({ messageIds })
+  const numSelectedMessages = focusAndMultiselectContextValue.selectedItems.size
+  const showMessageMultiselectCounter = numSelectedMessages > 0
+
+  return (
+    <>
+      <nav className={styles.chatNavbar} data-tauri-drag-region>
+        {smallScreenMode && (
+          <span data-no-drag-region>
+            <Button
+              aria-label={tx('back')}
+              onClick={() => unselectChat()}
+              className='backButton'
+              styling='borderless'
+            >
+              <Icon icon='arrow-left' className='backButtonIcon'></Icon>
+            </Button>
+          </span>
+        )}
+        <div className={styles.chatNavbarHeadingWrapper} data-tauri-drag-region>
+          {chatWithLinger && (
+            <>
+              <div role='status' style={{ display: 'contents' }}>
+                {showMessageMultiselectCounter && (
+                  <div className={styles.messageMultiselectCounter}>
+                    {tx('n_selected', numSelectedMessages.toString(), {
+                      quantity: numSelectedMessages,
+                    })}
+                  </div>
+                )}
+              </div>
+              <ChatHeading
+                chat={chatWithLinger}
+                // Why `hidden` instead of simply not rendering?
+                // Because this component contains the accessible title
+                // for the "ChatView" section (`id='chat-section-heading'`).
+                hidden={showMessageMultiselectCounter}
+              />
+            </>
+          )}
+        </div>
+        {chatWithLinger && (
+          <ChatNavButtons chat={chatWithLinger} lastUsedApps={lastUsedApps} />
+        )}
+      </nav>
+      <RecoverableCrashScreen reset_on_change_key={chatWithLinger.id}>
+        <MessageMultiselectContext.Provider
+          value={focusAndMultiselectContextValue}
+        >
+          <MessageListAndComposer
+            accountId={accountId}
+            chat={chatWithLinger}
+            messageListData={messageListData}
+          />
+        </MessageMultiselectContext.Provider>
+      </RecoverableCrashScreen>
+    </>
+  )
+}
+
+/**
+ * @param chat
+ * @param firstContact The first contact of chat and null if not loaded */
+function chatSubtitle(chat: T.FullChat, firstContact: T.Contact | null) {
+  const tx = window.static_translate
+  if (chat.id && chat.id > C.DC_CHAT_ID_LAST_SPECIAL) {
+    if (chat.chatType === 'Group') {
+      if (chat.contactIds.length > 1 || chat.selfInGroup) {
+        return tx('n_members', [String(chat.contactIds.length)], {
+          quantity: chat.contactIds.length,
+        })
+      } else {
+        return '…'
+      }
+    } else if (chat.chatType === 'Single' && firstContact?.isBot) {
+      return tx('bot')
+    } else if (chat.chatType === 'Mailinglist') {
+      if (chat.mailingListAddress) {
+        return `${tx('mailing_list')} – ${chat.mailingListAddress}`
+      } else {
+        return tx('mailing_list')
+      }
+    } else if (chat.chatType === 'InBroadcast') {
+      return tx('channel')
+    } else if (chat.chatType === 'OutBroadcast') {
+      return tx('n_recipients', [String(chat.contactIds.length)], {
+        quantity: chat.contactIds.length,
+      })
+    } else if (chat.contactIds.length >= 1) {
+      if (chat.isSelfTalk) {
+        return tx('chat_self_talk_subtitle')
+      } else if (chat.isDeviceChat) {
+        return tx('device_talk_subtitle')
+      }
+      // Contacts we have not heard of for a long time are more likely to not
+      // receive our messages, so tell the user about it.
+      if (chat.freshness === 'Old' && firstContact != null && chat.canSend) {
+        return lastSeenLongAgoText(firstContact.lastSeen, tx)
+      }
+      if (chat.isEncrypted) {
+        return null
+      } else {
+        return firstContact != null ? firstContact.address : tx('loading')
+      }
+    }
+  }
+  return 'ErrTitle'
+}
+
+function ChatHeading({ chat, hidden }: { chat: T.FullChat; hidden: boolean }) {
+  const tx = useTranslationFunction()
+  const { openDialog } = useDialog()
+  const openViewGroupDialog = useOpenViewGroupDialog()
+  const openViewProfileDialog = useOpenViewProfileDialog()
+  const accountId = selectedAccountId()
+
+  const firstContactId: number | undefined = chat.contactIds[0]
+  const firstChatContact = useRpcFetch(
+    BackendRemote.rpc.getContact,
+    firstContactId ? [accountId, firstContactId] : null
+  )
+
+  const onTitleClick = () => {
+    if (!chat) {
+      return
+    }
+
+    if (chat.chatType === 'InBroadcast' || chat.chatType === 'Mailinglist') {
+      openDialog(MailingListProfile, {
+        chat: chat as T.FullChat & { chatType: 'InBroadcast' | 'Mailinglist' },
+        accountId,
+      })
+    } else if (chat.chatType === 'Group' || chat.chatType === 'OutBroadcast') {
+      openViewGroupDialog(
+        chat as T.FullChat & { chatType: 'Group' | 'OutBroadcast' }
+      )
+    } else {
+      if (chat.contactIds && chat.contactIds[0]) {
+        openViewProfileDialog(accountId, chat.contactIds[0])
+      }
+    }
+  }
+
+  let buttonLabel: string
+  switch (chat.chatType) {
+    case 'Single': {
+      buttonLabel = tx('menu_view_profile')
+      break
+    }
+    case 'Group': {
+      // If you're no longer a member, editing the group is not possible,
+      // but we don't have a better string.
+      buttonLabel = tx('menu_edit_group')
+      break
+    }
+    case 'OutBroadcast': {
+      buttonLabel = tx('edit_channel')
+      break
+    }
+    case 'InBroadcast': {
+      // We don't have a more appropriate one
+      buttonLabel = tx('menu_view_profile')
+      break
+    }
+    case 'Mailinglist': {
+      // We don't have a more appropriate one
+      buttonLabel = tx('menu_view_profile')
+      break
+    }
+    default: {
+      buttonLabel = tx('menu_view_profile')
+      log.warn(`Unknown chatType ${chat.chatType}`)
+    }
+  }
+
+  const subtitle = chatSubtitle(
+    chat,
+    firstChatContact?.result?.ok ? firstChatContact.result.value : null
+  )
+
+  return (
+    <div
+      className={classNames('navbar-heading', {
+        'visually-hidden': hidden,
+      })}
+      data-no-drag-region
+    >
+      <Avatar
+        displayName={chat.name}
+        color={chat.color}
+        avatarPath={chat.profileImage || undefined}
+        small
+        freshness={chat.freshness}
+        // Avatar is purely decorative here,
+        // and is redundant accessibility-wise,
+        // because we display the chat name below.
+        aria-hidden={true}
+      />
+      <div style={{ marginInlineStart: '7px', overflow: 'hidden' }}>
+        <div className='navbar-chat-name'>
+          <h2 id='chat-section-heading' className='truncated'>
+            {chat.name}
+            <span className='visually-hidden'>
+              <br />
+              {tx('chat')}
+            </span>
+          </h2>
+          <div className='chat_property_icons'>
+            {chat.ephemeralTimer !== 0 && (
+              <div
+                className={'disapearing-messages-icon'}
+                aria-label={tx('a11y_disappearing_messages_activated')}
+              />
+            )}
+          </div>
+        </div>
+        {subtitle && subtitle.length && (
+          <div className='navbar-chat-subtitle'>{subtitle}</div>
+        )}
+      </div>
+      <button
+        type='button'
+        onClick={onTitleClick}
+        aria-label={buttonLabel}
+        data-testid='chat-info-button'
+        className='navbar-heading-chat-info-button'
+        // Ensure that it can't be tab-focused.
+        disabled={hidden}
+      ></button>
+    </div>
+  )
+}
+
+function ChatNavButtons({
+  chat,
+  lastUsedApps,
+}: {
+  chat: T.FullChat
+  lastUsedApps: T.Message[]
+}) {
+  const tx = useTranslationFunction()
+  const { openMainViewContextMenu } = useChatContextMenu()
+  const onClickThreeDotMenu = useCallback(
+    (event: React.MouseEvent) => {
+      openMainViewContextMenu(event, chat)
+    },
+    [openMainViewContextMenu, chat]
+  )
+  const chatId = chat.id
+  const desktopSettingsStore = useDesktopSettingsStore()[0]
+  const { openDialog } = useDialog()
+
+  const openMediaViewDialog = useCallback(() => {
+    openDialog(MediaView, {
+      chatId,
+    })
+  }, [openDialog, chatId])
+
+  const hasLastUsedApps = lastUsedApps && lastUsedApps.length > 0
+
+  return (
+    <div className='views' data-no-drag-region>
+      <div className={styles.appsGroup}>
+        {hasLastUsedApps && (
+          <AppIcons accountId={selectedAccountId()} apps={lastUsedApps} />
+        )}
+        <IconButton
+          onClick={openMediaViewDialog}
+          aria-label={tx('apps_and_media')}
+          title={tx('apps_and_media')}
+          className={styles.navbarButton}
+          coloring='navbar'
+          icon='apps'
+          size={22}
+        />
+      </div>
+      {desktopSettingsStore?.enableOnDemandLocationStreaming && (
+        <IconButton
+          onClick={() => openMapWebxdc(selectedAccountId(), chatId)}
+          aria-label={tx('tab_map')}
+          className={styles.navbarButton}
+          title={tx('tab_map')}
+          coloring='navbar'
+          icon='map'
+          size={22}
+        />
+      )}
+      {/* Calls are only implemented on Electron; Tauri and Browser
+        runtimes do not implement `startOutgoingVideoCall`. */}
+      {runtime.getRuntimeInfo().target === 'electron' &&
+        chat.canSend &&
+        chat.isEncrypted &&
+        // Core only allows placing calls in chats of type "single"
+        // (but not e.g. in groups consisting of 2 members).
+        // https://github.com/chatmail/core/blob/738dc5ce197f589131479801db2fbd0fb0964599/src/calls.rs#L147
+        chat.chatType === 'Single' &&
+        chat.contactIds.some(id => id > C.DC_CONTACT_ID_LAST_SPECIAL) && (
+          <CallButton chat={chat} />
+        )}
+      <IconButton
+        id='three-dot-menu-button'
+        className={styles.navbarButton}
+        aria-label={tx('main_menu')}
+        onClick={onClickThreeDotMenu}
+        coloring='navbar'
+        icon='more_vert'
+        size={24}
+      />
+    </div>
+  )
+}
+
+function AppIcon({ accountId, app }: { accountId: number; app: T.Message }) {
+  const tx = useTranslationFunction()
+  const { openContextMenu } = useContext(ContextMenuContext)
+  const { jumpToMessage } = useMessage()
+  const id = useId()
+
+  const webxdcInfoFetch = useRpcFetch(BackendRemote.rpc.getWebxdcInfo, [
+    accountId,
+    app.id,
+  ])
+  if (webxdcInfoFetch.result?.ok === false) {
+    log.error(
+      'Failed to load webxdc info for app:',
+      app.id,
+      webxdcInfoFetch.result.err
+    )
+  }
+
+  const appName = webxdcInfoFetch.loading
+    ? tx('loading')
+    : webxdcInfoFetch.result.ok
+      ? // Same as in `WebxdcMessageContent`
+        (webxdcInfoFetch.result.value.document
+          ? webxdcInfoFetch.result.value.document + '\n'
+          : '') + webxdcInfoFetch.result.value.name
+      : 'Unknown App'
+
+  return (
+    <Button
+      id={id}
+      styling='borderless'
+      key={app.id}
+      className={styles.webxdcIconButton}
+      title={appName}
+      aria-label={appName}
+      aria-busy={webxdcInfoFetch.loading}
+      onClick={() => {
+        openWebxdc(
+          app,
+          webxdcInfoFetch.result?.ok ? webxdcInfoFetch.result.value : undefined
+        )
+      }}
+      onContextMenu={event => {
+        openContextMenu({
+          ...mouseEventToPosition(event),
+          items: [
+            {
+              label: tx('show_in_chat'),
+              action: () =>
+                jumpToMessage({
+                  accountId,
+                  msgId: app.id,
+                  msgChatId: app.chatId,
+                  focus: true,
+                  scrollIntoViewArg: { block: 'center' },
+                }),
+            },
+          ],
+          ariaAttrs: {
+            'aria-labelledby': id,
+          },
+        })
+      }}
+      aria-haspopup='menu'
+    >
+      <img
+        className={styles.webxdcIcon}
+        src={runtime.getWebxdcIconURL(accountId, app.id)}
+        alt={appName}
+        onContextMenu={(e: React.MouseEvent) => e.preventDefault()}
+      />
+    </Button>
+  )
+}
+
+function AppIcons({
+  accountId,
+  apps,
+}: {
+  accountId: number | undefined
+  apps: T.Message[]
+}) {
+  const tx = useTranslationFunction()
+
+  if (!accountId || !apps || apps.length === 0) {
+    return null
+  }
+  return (
+    <section
+      role='region'
+      aria-label={tx('webxdc_apps')}
+      className={styles.webxdcIcons}
+      data-testid='last-used-apps'
+      data-no-drag-region='true'
+    >
+      {apps.map(app => (
+        <AppIcon key={app.id} accountId={accountId} app={app} />
+      ))}
+    </section>
+  )
+}
+
+function CallButton({ chat }: { chat: T.FullChat }) {
+  const tx = useTranslationFunction()
+  const accountId = selectedAccountId()
+  const elId = useId()
+
+  const onContextMenu = useContextMenu(
+    [
+      {
+        label: tx('start_audio_call'),
+        icon: 'phone',
+        action: () => {
+          runtime.startOutgoingVideoCall(accountId, chat.id, {
+            startWithCameraEnabled: false,
+          })
+        },
+      },
+      {
+        label: tx('start_video_call'),
+        icon: 'camera',
+        action: () => {
+          runtime.startOutgoingVideoCall(accountId, chat.id, {
+            startWithCameraEnabled: true,
+          })
+        },
+      },
+    ],
+    { 'aria-labelledby': elId }
+  )
+
+  return (
+    <IconButton
+      id={elId}
+      aria-label={tx('start_call')}
+      title={tx('start_call')}
+      className={styles.navbarButton}
+      onClick={onContextMenu}
+      coloring='navbar'
+      icon='phone'
+      size={18}
+    />
+  )
+}

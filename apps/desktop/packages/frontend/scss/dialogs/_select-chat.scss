@@ -1,0 +1,19 @@
+$side-padding: 30px;
+
+.select-chat-account-input {
+  padding-inline-start: $side-padding;
+  flex: 1 1 100%;
+
+  .search-input {
+    width: 100%;
+  }
+}
+
+.select-chat-list-chat-list {
+  height: 100%;
+
+  .chat-list-item {
+    padding-inline-end: $side-padding;
+    padding-inline-start: $side-padding;
+  }
+}

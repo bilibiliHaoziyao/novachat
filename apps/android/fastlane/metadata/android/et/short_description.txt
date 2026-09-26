@@ -1,0 +1,1 @@
+Detsentraliseeritud privaatne sõnumiklient vestluses jagatavate tarvikutega.

@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "declaration": true,
+    "sourceMap": true,
+    "module": "NodeNext",
+    "target": "es2018",
+    "allowJs": false,
+    "moduleResolution": "NodeNext",
+    "noUncheckedIndexedAccess": true
+  }
+}

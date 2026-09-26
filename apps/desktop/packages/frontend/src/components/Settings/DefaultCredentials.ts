@@ -1,0 +1,28 @@
+import { T } from '@deltachat/jsonrpc-client'
+
+export type Credentials = T.EnteredLoginParam
+
+export enum Proxy {
+  DISABLED = '0',
+  ENABLED = '1',
+}
+
+export function defaultCredentials(credentials?: Credentials): Credentials {
+  const defaultCredentials: Credentials = {
+    addr: '',
+    imapUser: null,
+    password: '',
+    imapServer: null,
+    imapPort: null,
+    imapFolder: null,
+    imapSecurity: null,
+    certificateChecks: null,
+    smtpUser: null,
+    smtpPassword: null,
+    smtpServer: null,
+    smtpPort: null,
+    smtpSecurity: null,
+  }
+
+  return { ...defaultCredentials, ...credentials }
+}

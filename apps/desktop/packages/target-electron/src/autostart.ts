@@ -1,0 +1,164 @@
+import { app } from 'electron'
+import { platform } from 'os'
+import { writeFile, rm, mkdir, access } from 'fs/promises'
+import { join } from 'path'
+
+import { getLogger } from '@deltachat-desktop/shared/logger.js'
+import { appx } from './isAppx.js'
+import { AutostartState } from '@deltachat-desktop/shared/shared-types.js'
+
+const log = getLogger('main/autostart')
+
+function getLinuxPackageType(): 'other' | 'appimage' | 'flatpak' {
+  // https://docs.appimage.org/packaging-guide/environment-variables.html#environment-variables
+  if (process.env.APPIMAGE) return 'appimage'
+  if (process.env.FLATPAK_ID) return 'flatpak'
+  return 'other'
+}
+
+function getLinuxAutostartDir(): string {
+  // In Flatpak, $XDG_CONFIG_HOME is redirected to the app sandbox even with
+  // --filesystem=host. Detect Flatpak and use $HOME directly so the autostart
+  // file ends up where the desktop environment can find it.
+  // see https://docs.flatpak.org/en/latest/conventions.html#xdg-base-directories
+  const isInsideFlatpak = Boolean(process.env.FLATPAK_ID)
+  const configHome = isInsideFlatpak
+    ? join(app.getPath('home'), '.config')
+    : process.env.XDG_CONFIG_HOME || join(app.getPath('home'), '.config')
+  return join(configHome, 'autostart')
+}
+
+function getLinuxAutostartFilePath(): string {
+  const packageType = getLinuxPackageType()
+  const suffix = packageType !== 'other' ? `-${packageType}` : ''
+  return join(getLinuxAutostartDir(), `deltachat-desktop${suffix}.desktop`)
+}
+
+// Returns the command for the Exec= key of the autostart desktop entry,
+// without the trailing app arguments (`-- --minimized`).
+function getLinuxExecCommand(): string {
+  if (process.env.FLATPAK_ID) {
+    return `flatpak run ${process.env.FLATPAK_ID}`
+  }
+  if (process.env.APPIMAGE) {
+    // When running as an AppImage, APPIMAGE env var is set to the
+    // .AppImage file path
+    return escapeDesktopExecArg(process.env.APPIMAGE)
+  }
+  if (process.execPath.startsWith('/nix/store/')) {
+    // On Nix/NixOS, process.execPath is a version-pinned path to the shared
+    // `electron` binary (e.g. /nix/store/…-electron-…/…/electron), not to
+    // Delta Chat. Pinning it would break autostart on every update so rely
+    // on the `deltachat` command
+    // see https://github.com/deltachat/deltachat-desktop/issues/6431
+    // and https://github.com/NixOS/nixpkgs/blob/a1016521f29c094127657220a52ed0b09d689919/pkgs/by-name/de/deltachat-desktop/package.nix#L129
+    return 'deltachat'
+  }
+  // Regular installs (e.g. the .deb): process.execPath is the Delta Chat
+  // executable itself, and its absolute path is unambiguous even when several
+  // package formats are installed in parallel.
+  return escapeDesktopExecArg(process.execPath)
+}
+
+// see https://specifications.freedesktop.org/desktop-entry/latest/exec-variables.html
+function escapeDesktopExecArg(arg: string): string {
+  // Desktop entry files have two layers of parsing:
+  // 1. String-value unescaping (only \\, \s, \n, \t, \r are valid sequences)
+  // 2. Exec-key double-quote unescaping (\, ", $, ` must be \-escaped)
+
+  // Exec-level: escape special chars per double-quoting rules
+  const execEscaped = arg
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\$/g, '\\$')
+    .replace(/`/g, '\\`')
+  // String-level: double all backslashes so string-value unescaping
+  // yields the Exec-level escapes above
+  const stringEscaped = execEscaped.replace(/\\/g, '\\\\')
+  return `"${stringEscaped}"`
+}
+
+async function getLinuxAutostartRegisteredState(): Promise<boolean> {
+  const autostartFile = getLinuxAutostartFilePath()
+  try {
+    await access(autostartFile)
+    return true
+  } catch {
+    return false
+  }
+}
+
+function getLinuxDesktopFileContent(): string {
+  return `[Desktop Entry]
+Type=Application
+Name=Delta Chat
+Comment=Delta Chat decentralized private messenger
+Exec=${getLinuxExecCommand()} -- --minimized
+Hidden=false
+NoDisplay=false
+X-GNOME-Autostart-enabled=true
+`
+}
+
+const winArgs = ['--', '--minimized']
+
+export async function getAutostartState(): Promise<AutostartState> {
+  const currentPlatform = platform()
+
+  if (currentPlatform === 'darwin' || currentPlatform === 'win32') {
+    if (appx) {
+      // Windows Store (APPX) builds manage startup tasks differently
+      return { isSupported: false, isRegistered: null }
+    }
+    const loginItemSettings = app.getLoginItemSettings({ args: winArgs })
+    return {
+      isSupported: true,
+      isRegistered: loginItemSettings.openAtLogin,
+    }
+  } else if (currentPlatform === 'linux') {
+    if (process.env.SNAP) {
+      // Snap's strict confinement prevents writing to ~/.config/autostart/
+      return { isSupported: false, isRegistered: null }
+    }
+    return {
+      isSupported: true,
+      isRegistered: await getLinuxAutostartRegisteredState(),
+    }
+  }
+
+  return { isSupported: false, isRegistered: null }
+}
+
+export async function applyAutostart(enable: boolean): Promise<void> {
+  const currentPlatform = platform()
+  if (currentPlatform === 'darwin' || currentPlatform === 'win32') {
+    if (appx) {
+      log.warn('Autostart not supported for Windows Store (APPX) builds')
+      return
+    }
+    const loginItemSettings = app.getLoginItemSettings({ args: winArgs })
+    if (loginItemSettings.openAtLogin !== enable) {
+      app.setLoginItemSettings({ openAtLogin: enable, args: winArgs })
+      log.info(`Autostart ${enable ? 'enabled' : 'disabled'}`)
+    }
+  } else if (currentPlatform === 'linux') {
+    if (process.env.SNAP) {
+      log.warn('Autostart not supported inside Snap')
+      return
+    }
+    const autostartFile = getLinuxAutostartFilePath()
+    if (enable) {
+      await mkdir(getLinuxAutostartDir(), { recursive: true })
+      await writeFile(autostartFile, getLinuxDesktopFileContent(), 'utf-8')
+      log.info(`Autostart enabled: created ${autostartFile}`)
+    } else {
+      try {
+        await rm(autostartFile)
+        log.info(`Autostart disabled: removed ${autostartFile}`)
+      } catch {
+        // no autostart file, nothing to delete
+        log.info(`Could not find or remove Autostart file ${autostartFile}`)
+      }
+    }
+  }
+}

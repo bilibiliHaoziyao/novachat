@@ -1,0 +1,184 @@
+package org.thoughtcrime.securesms.components;
+
+import android.animation.Animator;
+import android.content.Context;
+import android.graphics.PorterDuff;
+import android.graphics.drawable.Drawable;
+import android.util.AttributeSet;
+import android.util.Log;
+import android.view.MenuItem;
+import android.view.View;
+import android.view.ViewAnimationUtils;
+import android.view.inputmethod.EditorInfo;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import androidx.annotation.MainThread;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.appcompat.widget.SearchView;
+import androidx.appcompat.widget.Toolbar;
+import org.thoughtcrime.securesms.R;
+import org.thoughtcrime.securesms.animation.AnimationCompleteListener;
+
+public class SearchToolbar extends LinearLayout {
+
+  private static final String TAG = "SearchToolbar";
+  private float x, y;
+  private MenuItem searchItem;
+  private EditText searchText;
+  private SearchListener listener;
+
+  public SearchToolbar(Context context) {
+    super(context);
+    initialize();
+  }
+
+  public SearchToolbar(Context context, @Nullable AttributeSet attrs) {
+    super(context, attrs);
+    initialize();
+  }
+
+  public SearchToolbar(Context context, @Nullable AttributeSet attrs, int defStyleAttr) {
+    super(context, attrs, defStyleAttr);
+    initialize();
+  }
+
+  private void initialize() {
+    inflate(getContext(), R.layout.search_toolbar, this);
+    setOrientation(VERTICAL);
+
+    Toolbar toolbar = findViewById(R.id.toolbar);
+    if (toolbar == null) {
+      Log.e(TAG, "SearchToolbar: No toolbar");
+      return;
+    }
+
+    Drawable drawable =
+        getContext().getResources().getDrawable(R.drawable.ic_arrow_back_white_24dp);
+    drawable.mutate();
+    drawable.setColorFilter(
+        getContext().getResources().getColor(R.color.grey_700), PorterDuff.Mode.SRC_IN);
+
+    toolbar.setNavigationIcon(drawable);
+    toolbar.inflateMenu(R.menu.conversation_list_search);
+
+    this.searchItem = toolbar.getMenu().findItem(R.id.action_filter_search);
+    SearchView searchView = (SearchView) searchItem.getActionView();
+    searchText = searchView.findViewById(androidx.appcompat.R.id.search_src_text);
+    searchView.setImeOptions(EditorInfo.IME_ACTION_DONE);
+
+    searchView.setSubmitButtonEnabled(false);
+
+    if (searchText != null) {
+      searchText.setHint(R.string.search);
+      searchText.setOnEditorActionListener(
+          (textView, actionId, keyEvent) -> {
+            if (EditorInfo.IME_ACTION_DONE == actionId) {
+              searchView.clearFocus();
+              return true;
+            }
+            return false;
+          });
+    } else {
+      searchView.setQueryHint(getResources().getString(R.string.search));
+    }
+
+    searchView.setOnQueryTextListener(
+        new SearchView.OnQueryTextListener() {
+          @Override
+          public boolean onQueryTextSubmit(String query) {
+            if (listener != null) listener.onSearchTextChange(query);
+            return true;
+          }
+
+          @Override
+          public boolean onQueryTextChange(String newText) {
+            return onQueryTextSubmit(newText);
+          }
+        });
+
+    searchItem.setOnActionExpandListener(
+        new MenuItem.OnActionExpandListener() {
+          @Override
+          public boolean onMenuItemActionExpand(MenuItem item) {
+            return true;
+          }
+
+          @Override
+          public boolean onMenuItemActionCollapse(MenuItem item) {
+            hide();
+            return true;
+          }
+        });
+
+    MenuItem searchUnread = toolbar.getMenu().findItem(R.id.search_unread);
+    searchUnread.setOnMenuItemClickListener(
+        item -> {
+          String t = searchText.getText().toString();
+          if (!t.contains("is:unread")) {
+            t += (t.isEmpty() ? "" : " ") + "is:unread ";
+          }
+          searchText.setText(t);
+          searchText.setSelection(t.length(), t.length());
+          return true;
+        });
+
+    toolbar.setNavigationOnClickListener(v -> hide());
+  }
+
+  @MainThread
+  public void display(float x, float y) {
+    if (getVisibility() != View.VISIBLE) {
+      this.x = x;
+      this.y = y;
+
+      searchItem.expandActionView();
+
+      Animator animator =
+          ViewAnimationUtils.createCircularReveal(this, (int) x, (int) y, 0, getWidth());
+      animator.setDuration(400);
+
+      setVisibility(View.VISIBLE);
+      animator.start();
+    }
+  }
+
+  public void collapse() {
+    searchItem.collapseActionView();
+  }
+
+  @MainThread
+  private void hide() {
+    if (getVisibility() == View.VISIBLE) {
+
+      if (listener != null) listener.onSearchClosed();
+
+      Animator animator =
+          ViewAnimationUtils.createCircularReveal(this, (int) x, (int) y, getWidth(), 0);
+      animator.setDuration(400);
+      animator.addListener(
+          new AnimationCompleteListener() {
+            @Override
+            public void onAnimationEnd(@NonNull Animator animation) {
+              setVisibility(View.INVISIBLE);
+            }
+          });
+      animator.start();
+    }
+  }
+
+  public boolean isVisible() {
+    return getVisibility() == View.VISIBLE;
+  }
+
+  @MainThread
+  public void setListener(SearchListener listener) {
+    this.listener = listener;
+  }
+
+  public interface SearchListener {
+    void onSearchTextChange(String text);
+
+    void onSearchClosed();
+  }
+}

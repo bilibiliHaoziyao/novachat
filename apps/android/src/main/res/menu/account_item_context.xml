@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:title="@string/mark_all_as_read"
+        android:id="@+id/menu_mark_all_as_read" />
+
+    <item
+        android:title="@string/menu_mute"
+        android:id="@+id/menu_mute_notifications" />
+
+    <item
+        android:title="@string/profile_tag"
+        android:id="@+id/menu_set_tag" />
+
+    <item
+        android:title="@string/move_to_top"
+        android:id="@+id/menu_move_to_top" />
+
+    <item
+        android:title="@string/delete"
+        android:id="@+id/delete" />
+
+</menu>

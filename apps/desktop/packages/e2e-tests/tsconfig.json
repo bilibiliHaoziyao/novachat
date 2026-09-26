@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "noEmit": true,
+    "sourceMap": true,
+    "module": "nodenext",
+    "allowJs": false,
+    "esModuleInterop": true,
+    "noUncheckedIndexedAccess": true
+  },
+  "include": ["./**/*.ts", "./**/*.js"]
+}

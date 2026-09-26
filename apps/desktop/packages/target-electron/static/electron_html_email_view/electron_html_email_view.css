@@ -1,0 +1,93 @@
+html,
+body {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  /* See `--themeDarkOrLight`. */
+  color-scheme: var(--htmlEmail-themeDarkOrLight);
+}
+body {
+  display: flex;
+  flex-direction: column;
+  background: var(--htmlEmail-background);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+div.header {
+  display: flex;
+  border-bottom: 1px solid var(--htmlEmail-border-color);
+  min-height: 20px;
+  padding: 5px;
+  color: var(--htmlEmail-color);
+}
+
+div.header > .title {
+  flex-grow: 1;
+}
+
+div.header > .title p {
+  margin: 0.3em;
+}
+
+#subject {
+  font-size: 1em;
+  unicode-bidi: plaintext;
+}
+
+div.header > .title > p.details {
+  font-size: 0.8em;
+  unicode-bidi: plaintext;
+}
+
+div.header > div.network-toggle {
+  position: relative;
+  display: flex;
+  align-items: center;
+  margin: 4px;
+  padding: 6px;
+  font-size: 0.8em;
+}
+
+div.header > div.network-toggle > button#toggle_network_more_button {
+  background-color: transparent;
+  border-color: transparent;
+  font-size: 1.5em;
+  color: var(--htmlEmail-color);
+  font-weight: bold;
+  cursor: pointer;
+}
+
+div#content {
+  flex-grow: 1;
+  background-color: white;
+}
+
+.more-menu-dropdown {
+  position: absolute;
+  right: 30px;
+  top: 0;
+  z-index: 1;
+  background-color: var(--htmlEmail-background);
+  border: 1px solid var(--htmlEmail-border-color);
+  border-radius: 3px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  white-space: nowrap;
+}
+
+.more-menu-item {
+  display: block;
+  width: 100%;
+  padding: 6px 12px;
+  background: transparent;
+  border: none;
+  color: var(--htmlEmail-color);
+  cursor: pointer;
+  text-align: left;
+  font-size: 1em;
+  box-sizing: border-box;
+}
+
+.more-menu-item:hover,
+.more-menu-item:focus {
+  background-color: var(--htmlEmail-border-color);
+}

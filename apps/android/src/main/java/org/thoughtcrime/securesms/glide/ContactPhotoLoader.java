@@ -1,0 +1,51 @@
+package org.thoughtcrime.securesms.glide;
+
+import android.content.Context;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import com.bumptech.glide.load.Options;
+import com.bumptech.glide.load.model.ModelLoader;
+import com.bumptech.glide.load.model.ModelLoaderFactory;
+import com.bumptech.glide.load.model.MultiModelLoaderFactory;
+import java.io.InputStream;
+import org.thoughtcrime.securesms.contacts.avatars.ContactPhoto;
+
+public class ContactPhotoLoader implements ModelLoader<ContactPhoto, InputStream> {
+
+  private final Context context;
+
+  private ContactPhotoLoader(Context context) {
+    this.context = context;
+  }
+
+  @Nullable
+  @Override
+  public LoadData<InputStream> buildLoadData(
+      @NonNull ContactPhoto contactPhoto, int width, int height, @NonNull Options options) {
+    return new LoadData<>(contactPhoto, new ContactPhotoFetcher(context, contactPhoto));
+  }
+
+  @Override
+  public boolean handles(@NonNull ContactPhoto contactPhoto) {
+    return true;
+  }
+
+  public static class Factory implements ModelLoaderFactory<ContactPhoto, InputStream> {
+
+    private final Context context;
+
+    public Factory(Context context) {
+      this.context = context.getApplicationContext();
+    }
+
+    @NonNull
+    @Override
+    public ModelLoader<ContactPhoto, InputStream> build(
+        @NonNull MultiModelLoaderFactory multiFactory) {
+      return new ContactPhotoLoader(context);
+    }
+
+    @Override
+    public void teardown() {}
+  }
+}
