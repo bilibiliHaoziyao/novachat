@@ -9,6 +9,15 @@
     <string name="about_developer">本軟體由慕寒_Official開發</string>
     <string name="about_license">新星聊是自由開源軟體，遵循 GNU 通用公共許可證 v3 發布。</string>
     <string name="about_view_source">檢視原始碼</string>
+
+    <!-- Nova Chat: 進入軟體時顯示的背景收取訊息指南 -->
+    <string name="nova_bg_guide_title">背景收取訊息指南</string>
+    <string name="nova_bg_guide_message">為及時收到新訊息，請完成以下設定：\n\n1. 開啟「設定 → %1$s → %2$s」，將「%3$s」與「%4$s」兩個選項都開啟。\n2. 在系統最近任務列表中為 Nova Chat 加鎖，避免被系統清理。\n3. 在系統設定中允許 Nova Chat 自啟動，並將電池策略設為「不受限制」。</string>
+    <string name="nova_bg_guide_open_settings">前往設定</string>
+    <string name="nova_bg_guide_got_it">知道了</string>
+
+    <!-- Nova Chat: 初次登入時的帳號備份提示（裝置訊息） -->
+    <string name="nova_backup_hint">💾 備份您的帳號\n\n建議建立帳號備份，以免更換裝置或重新安裝應用程式後聊天記錄遺失。可在「設定 → %1$s → %2$s」中建立備份，也可同步至 WebDAV。</string>
     <string name="ok">確定</string>
     <string name="cancel">取消</string>
     <string name="clear_search">清除搜尋</string>

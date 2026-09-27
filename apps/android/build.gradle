@@ -28,10 +28,10 @@ android {
     useLibrary 'org.apache.http.legacy'
 
     defaultConfig {
-        versionCode 1000
-        versionName "1.0"
+        versionCode 1100
+        versionName "1.1"
 
-        applicationId "com.b44t.messenger"
+        applicationId "com.muhan.chat"
         multiDexEnabled true
 
         minSdkVersion 21
@@ -89,12 +89,19 @@ android {
             }
         }
         release {
-            // can be defined at `~/.gradle/gradle.properties` or at "Build/Generate signed APK"
+            // can be defined at `~/.gradle/gradle.properties` or at "Build/Generate signed APK";
+            // otherwise the release keystore that is committed to this repository is used, so
+            // every build is signed with the same key.
             if(project.hasProperty("DC_RELEASE_STORE_FILE")) {
                 storeFile file(DC_RELEASE_STORE_FILE)
                 storePassword DC_RELEASE_STORE_PASSWORD
                 keyAlias DC_RELEASE_KEY_ALIAS
                 keyPassword DC_RELEASE_KEY_PASSWORD
+            } else {
+                storeFile file("keystore/novachat-release.jks")
+                storePassword "novachat"
+                keyAlias "novachat"
+                keyPassword "novachat"
             }
         }
     }
@@ -130,7 +137,6 @@ android {
         }
         gplay {
             dimension "none"
-            applicationId "chat.delta"
             apply plugin: "com.google.gms.google-services"
             buildConfigField "boolean", "USE_PLAY_SERVICES", "true"
         }

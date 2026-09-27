@@ -56,22 +56,12 @@ jobs:
           echo "== packaged native libraries =="
           ls -R libs
 
-      - name: Generate CI signing key
-        run: |
-          keytool -genkeypair -v -keystore "$RUNNER_TEMP/novachat-ci.jks" \
-            -storepass novachat-ci -alias nova -keypass novachat-ci \
-            -keyalg RSA -keysize 2048 -validity 10000 \
-            -dname "CN=Nova Chat, OU=Nova, O=Nova Chat, L=City, ST=State, C=CN"
-
-      - name: Build release APK (foss flavor, signed with the CI key)
+      - name: Build release APK (foss flavor, signed with the repository keystore)
         run: |
           cd apps/android
-          ./gradlew --no-daemon \
-            -PDC_RELEASE_STORE_FILE="$RUNNER_TEMP/novachat-ci.jks" \
-            -PDC_RELEASE_STORE_PASSWORD=novachat-ci \
-            -PDC_RELEASE_KEY_ALIAS=nova \
-            -PDC_RELEASE_KEY_PASSWORD=novachat-ci \
-            assembleFossRelease
+          # The release keystore is committed at apps/android/keystore/novachat-release.jks,
+          # so every build is signed with the same key and updates install over each other.
+          ./gradlew --no-daemon assembleFossRelease
 
       - name: Collect and verify APK
         run: |

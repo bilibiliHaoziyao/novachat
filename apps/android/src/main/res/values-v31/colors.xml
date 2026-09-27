@@ -1,0 +1,13 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!--
+  Nova Chat: on Android 12+ (API 31) the app palette follows the system's
+  wallpaper-derived ("Monet") colours, so the whole UI matches the chat
+  background instead of using the fixed Delta palette.
+-->
+<resources>
+    <color name="delta_primary">@android:color/system_accent1_600</color>
+    <color name="delta_primary_lite">@android:color/system_accent1_500</color>
+
+    <color name="delta_accent">@android:color/system_accent1_500</color>
+    <color name="delta_accent_darker">@android:color/system_accent1_700</color>
+</resources>

@@ -10,6 +10,15 @@
     <string name="about_license">Nova Chat is free and open source software, released under the GNU General Public License v3.</string>
     <string name="about_view_source">View source code</string>
 
+    <!-- Nova Chat: guide shown on app entry about receiving messages in the background -->
+    <string name="nova_bg_guide_title">Keep receiving messages in the background</string>
+    <string name="nova_bg_guide_message">To receive new messages on time, please complete these steps:\n\n1. Open \"Settings → %1$s → %2$s\" and turn on both \"%3$s\" and \"%4$s\".\n2. Lock Nova Chat in the recent-apps list so the system does not kill it.\n3. Allow Nova Chat to auto-start and set its battery usage to \"Unrestricted\" in the system settings.</string>
+    <string name="nova_bg_guide_open_settings">Open settings</string>
+    <string name="nova_bg_guide_got_it">Got it</string>
+
+    <!-- Nova Chat: device-message hint about backing up the account -->
+    <string name="nova_backup_hint">💾 Back up your account\n\nCreate an account backup so your chats are not lost when you change devices or reinstall the app. Open \"Settings → %1$s → %2$s\" to create one, or sync it over WebDAV.</string>
+
     <!-- Nova Chat: brand slogan shown on the welcome screen -->
     <string name="nova_slogan">Nova Chat · 新星聊\n以邮箱为底座的即时通讯</string>
     <string name="nova_use_own_email">使用自己的邮箱</string>

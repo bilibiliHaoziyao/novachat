@@ -10,6 +10,15 @@
     <string name="about_license">新星聊は自由でオープンソースなソフトウェアで、GNU 一般公衆利用許諾契約書 v3 の下で公開されています。</string>
     <string name="about_view_source">ソースコードを表示</string>
 
+    <!-- Nova Chat: アプリ起動時に表示するバックグラウンド受信ガイド -->
+    <string name="nova_bg_guide_title">バックグラウンドでメッセージを受信するには</string>
+    <string name="nova_bg_guide_message">新しいメッセージをすぐに受け取るには、次の設定を行ってください：\n\n1. 「設定 → %1$s → %2$s」を開き、「%3$s」と「%4$s」の両方をオンにします。\n2. 最近使用したアプリの一覧で Nova Chat をロックし、システムに終了されないようにします。\n3. システム設定で Nova Chat の自動起動を許可し、バッテリー使用量を「制限なし」に設定します。</string>
+    <string name="nova_bg_guide_open_settings">設定を開く</string>
+    <string name="nova_bg_guide_got_it">了解</string>
+
+    <!-- Nova Chat: 初回ログイン時のアカウント バックアップ案内（デバイスメッセージ） -->
+    <string name="nova_backup_hint">💾 アカウントのバックアップ\n\n機種変更やアプリの再インストールでチャットが失われないよう、アカウントのバックアップを作成することをおすすめします。「設定 → %1$s → %2$s」から作成するか、WebDAV に同期できます。</string>
+
     <!-- Nova Chat: 招待リンクのクイック共有 -->
     <string name="share_to_qq">QQ</string>
     <string name="share_to_wechat">WeChat</string>

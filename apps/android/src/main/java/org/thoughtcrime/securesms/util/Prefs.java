@@ -28,6 +28,9 @@ public class Prefs {
   public static final String MONET_PREF = "pref_monet";
   public static final boolean MONET_PREF_DEFAULT = true;
 
+  /** Nova Chat: whether the "keep receiving messages in the background" guide was shown. */
+  public static final String NOVA_BG_GUIDE_PREF = "pref_nova_bg_guide_shown";
+
   private static final String DATABASE_ENCRYPTED_SECRET =
       "pref_database_encrypted_secret_"; // followed by account-id
   private static final String DATABASE_UNENCRYPTED_SECRET =

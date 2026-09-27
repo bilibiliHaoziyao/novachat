@@ -255,6 +255,36 @@ public class ConversationListActivity extends PassphraseRequiredActionBarActivit
       QrCodeHandler qrCodeHandler = new QrCodeHandler(this);
       qrCodeHandler.secureJoinByQr(rawQrString, SecurejoinSource.Scan, SecurejoinUiPath.Unknown);
     }
+
+    maybeShowBackgroundDeliveryGuide();
+  }
+
+  /**
+   * Nova Chat: show a one-time guide on how to keep receiving messages in the background - enabling
+   * both "instant delivery" options, locking the app in the recent-apps list and allowing it to
+   * auto-start.
+   */
+  private void maybeShowBackgroundDeliveryGuide() {
+    if (Prefs.getBooleanPreference(this, Prefs.NOVA_BG_GUIDE_PREF, false)) {
+      return;
+    }
+    Prefs.setBooleanPreference(this, Prefs.NOVA_BG_GUIDE_PREF, true);
+
+    new AlertDialog.Builder(this)
+        .setTitle(R.string.nova_bg_guide_title)
+        .setMessage(
+            getString(
+                R.string.nova_bg_guide_message,
+                getString(R.string.pref_notifications),
+                getString(R.string.pref_instant_delivery),
+                getString(R.string.pref_background_notifications),
+                getString(R.string.pref_reliable_service)))
+        .setPositiveButton(
+            R.string.nova_bg_guide_open_settings,
+            (d, which) ->
+                startActivity(new Intent(this, ApplicationPreferencesActivity.class)))
+        .setNegativeButton(R.string.nova_bg_guide_got_it, null)
+        .show();
   }
 
   /**
@@ -711,6 +741,18 @@ public class ConversationListActivity extends PassphraseRequiredActionBarActivit
           }
         }
         Prefs.setStringPreference(this, Prefs.LAST_DEVICE_MSG_LABEL, deviceMsgLabel);
+      }
+
+      // Nova Chat: on first login, nudge the user to create an account backup.
+      final String backupHintLabel = "nova_backup_hint";
+      if (!dcContext.wasDeviceMsgEverAdded(backupHintLabel)) {
+        DcMsg backupHintMsg = new DcMsg(dcContext, DcMsg.DC_MSG_TEXT);
+        backupHintMsg.setText(
+            getString(
+                R.string.nova_backup_hint,
+                getString(R.string.pref_chats),
+                getString(R.string.pref_backup)));
+        dcContext.addDeviceMsg(backupHintLabel, backupHintMsg);
       }
 
     } catch (Exception e) {
