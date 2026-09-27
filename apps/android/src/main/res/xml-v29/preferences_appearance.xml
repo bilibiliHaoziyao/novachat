@@ -11,8 +11,22 @@
         android:entryValues="@array/pref_theme_values"
         android:defaultValue="system" />
 
+    <ListPreference
+        android:key="pref_language"
+        android:title="@string/pref_language"
+        android:entries="@array/pref_language_entries"
+        android:entryValues="@array/pref_language_values"
+        android:defaultValue="system" />
+
     <Preference
         android:key="pref_chat_background"
         android:title="@string/pref_background" />
+
+    <!-- Nova Chat: wallpaper-based ("Monet") colour extraction, on by default -->
+    <SwitchPreference
+        android:key="pref_monet"
+        android:title="@string/pref_monet"
+        android:summary="@string/pref_monet_summary"
+        android:defaultValue="true" />
 
 </PreferenceScreen>

@@ -22,4 +22,11 @@
         android:key="pref_chat_background"
         android:title="@string/pref_background" />
 
+    <!-- Nova Chat: wallpaper-based ("Monet") colour extraction, on by default -->
+    <SwitchPreference
+        android:key="pref_monet"
+        android:title="@string/pref_monet"
+        android:summary="@string/pref_monet_summary"
+        android:defaultValue="true" />
+
 </PreferenceScreen>

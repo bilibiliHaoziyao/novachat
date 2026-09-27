@@ -614,5 +614,8 @@
         <intent>
             <action android:name="android.intent.action.TTS_SERVICE" />
         </intent>
+        <!-- Nova Chat: quick share to QQ / WeChat from the invite link dialog -->
+        <package android:name="com.tencent.mm" />
+        <package android:name="com.tencent.mobileqq" />
     </queries>
 </manifest>

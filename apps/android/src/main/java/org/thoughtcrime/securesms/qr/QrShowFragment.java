@@ -178,13 +178,49 @@ public class QrShowFragment extends Fragment implements DcEventCenter.DcEventDel
     View view = View.inflate(getActivity(), R.layout.dialog_share_invite_link, null);
     String inviteURL = dcContext.getSecurejoinQr(chatId);
     ((TextView) view.findViewById(R.id.invite_link)).setText(inviteURL);
+
+    // Nova Chat: quick share targets.
+    view.findViewById(R.id.share_qq_button)
+        .setOnClickListener(v -> shareInviteURLTo("com.tencent.mobileqq"));
+    view.findViewById(R.id.share_wechat_button)
+        .setOnClickListener(v -> shareInviteURLTo("com.tencent.mm"));
+    view.findViewById(R.id.share_copy_button).setOnClickListener(v -> copyQrData());
+
     new AlertDialog.Builder(getActivity())
         .setView(view)
         .setNegativeButton(R.string.cancel, null)
-        .setNeutralButton(R.string.menu_copy_to_clipboard, (d, b) -> copyQrData())
-        .setPositiveButton(R.string.menu_share, (d, b) -> shareInviteURL())
         .create()
         .show();
+  }
+
+  /**
+   * Nova Chat: share the invite link straight to a given app (QQ / WeChat).
+   *
+   * <p>If that app is not installed, or its share target cannot handle plain text (WeChat does
+   * not), the link is copied to the clipboard instead and the app is opened so the user can paste
+   * it manually.
+   */
+  private void shareInviteURLTo(String packageName) {
+    String inviteURL = dcContext.getSecurejoinQr(chatId);
+    Intent intent = new Intent(Intent.ACTION_SEND);
+    intent.setType("text/plain");
+    intent.putExtra(Intent.EXTRA_TEXT, inviteURL);
+    intent.setPackage(packageName);
+    try {
+      startActivity(intent);
+    } catch (Exception e) {
+      Log.w(TAG, "cannot share to " + packageName + ", copying to clipboard instead", e);
+      Util.writeTextToClipboard(getActivity(), inviteURL);
+      Toast.makeText(getActivity(), getString(R.string.copied_to_clipboard), Toast.LENGTH_SHORT)
+          .show();
+      Intent launch = getActivity().getPackageManager().getLaunchIntentForPackage(packageName);
+      if (launch != null) {
+        try {
+          startActivity(launch);
+        } catch (Exception ignored) {
+        }
+      }
+    }
   }
 
   @Override

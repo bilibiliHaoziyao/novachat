@@ -121,6 +121,7 @@ import org.thoughtcrime.securesms.providers.PersistentBlobProvider;
 import org.thoughtcrime.securesms.recipients.Recipient;
 import org.thoughtcrime.securesms.scribbles.ScribbleActivity;
 import org.thoughtcrime.securesms.service.AudioPlaybackService;
+import org.thoughtcrime.securesms.util.ChatBackground;
 import org.thoughtcrime.securesms.util.DynamicTheme;
 import org.thoughtcrime.securesms.util.MediaUtil;
 import org.thoughtcrime.securesms.util.Prefs;
@@ -210,11 +211,9 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
     supportRequestWindowFeature(WindowCompat.FEATURE_ACTION_BAR_OVERLAY);
     setContentView(R.layout.conversation_activity);
 
-    TypedArray typedArray = obtainStyledAttributes(new int[] {R.attr.conversation_background});
-    int color = typedArray.getColor(0, Color.WHITE);
-    typedArray.recycle();
-
-    getWindow().getDecorView().setBackgroundColor(color);
+    // Nova Chat: the background behind the message list is a plain colour (white/black), or the
+    // wallpaper-derived colour when Monet extraction is enabled.
+    getWindow().getDecorView().setBackgroundColor(ChatBackground.getColor(this));
 
     fragment = initFragment(R.id.fragment_content, new ConversationFragment());
 
@@ -1085,24 +1084,7 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
   }
 
   private void initializeBackground() {
-    int accId;
-    try {
-      accId = rpc.getSelectedAccountId();
-    } catch (RpcException e) {
-      Log.e(TAG, "rpc.getSelectedAccountId() failed", e);
-      return;
-    }
-
-    String backgroundImagePath = Prefs.getBackgroundImagePath(this, accId);
-    Drawable background;
-    if (!backgroundImagePath.isEmpty()) {
-      background = Drawable.createFromPath(backgroundImagePath);
-    } else if (DynamicTheme.isDarkTheme(this)) {
-      background = getResources().getDrawable(R.drawable.background_hd_dark);
-    } else {
-      background = getResources().getDrawable(R.drawable.background_hd);
-    }
-    backgroundView.setImageDrawable(background);
+    backgroundView.setImageDrawable(ChatBackground.getDrawable(this));
   }
 
   protected void initializeActionBar() {

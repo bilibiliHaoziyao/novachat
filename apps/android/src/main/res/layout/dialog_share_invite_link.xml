@@ -40,6 +40,43 @@
 
         </LinearLayout>
 
+        <!-- Nova Chat: quick share targets (QQ / WeChat / copy link) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:paddingTop="8dp">
+
+            <Button
+                android:id="@+id/share_qq_button"
+                style="@style/ButtonSecondary"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/share_to_qq" />
+
+            <Button
+                android:id="@+id/share_wechat_button"
+                style="@style/ButtonSecondary"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="8dp"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:text="@string/share_to_wechat" />
+
+            <Button
+                android:id="@+id/share_copy_button"
+                style="@style/ButtonSecondary"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginLeft="8dp"
+                android:layout_marginStart="8dp"
+                android:layout_weight="1"
+                android:text="@string/share_to_copy_link" />
+
+        </LinearLayout>
+
     </LinearLayout>
 
 </ScrollView>

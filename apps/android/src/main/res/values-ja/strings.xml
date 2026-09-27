@@ -2,6 +2,18 @@
 <resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
     <!-- common strings without special context -->
     <string name="app_name">Nova Chat</string>
+
+    <!-- Nova Chat: このアプリについて画面 -->
+    <string name="about_title">このアプリについて</string>
+    <string name="about_description">新星聊（Nova Chat）は電子メールを基盤としたインスタントメッセンジャーです。初回セットアップウィザードを改善し、エンドツーエンド暗号化を選択でき、WebDAV でのアカウント同期にも対応しています。</string>
+    <string name="about_developer">このソフトウェアは慕寒_Officialによって開発されました。</string>
+    <string name="about_license">新星聊は自由でオープンソースなソフトウェアで、GNU 一般公衆利用許諾契約書 v3 の下で公開されています。</string>
+    <string name="about_view_source">ソースコードを表示</string>
+
+    <!-- Nova Chat: 招待リンクのクイック共有 -->
+    <string name="share_to_qq">QQ</string>
+    <string name="share_to_wechat">WeChat</string>
+    <string name="share_to_copy_link">リンクをコピー</string>
     <string name="ok">了承</string>
     <string name="cancel">取消</string>
     <string name="clear_search">検索履歴を消す</string>
@@ -428,6 +440,9 @@
     <string name="pref_backup_written_to_x">バックアップは%1$sに正常に完了しました。</string>
     <!-- No need to translate "Wallpaper" literally. Chose what is common in your language for a "Wallpaper" or a "Background". Avoid adding the term "image" here, as the "Wallpaper" may also be just a single color. -->
     <string name="pref_background">背景</string>
+    <!-- Nova Chat: Monet カラーパレット -->
+    <string name="pref_monet">Monet カラーパレット</string>
+    <string name="pref_monet_summary">壁紙から色を取り込み、チャット背景に反映します（Android 12 以降）</string>
     <string name="pref_background_btn_default">デフォルトの画像を使う</string>
     <string name="pref_background_btn_gallery">ギャラリーから選ぶ</string>
     <!-- deprecated -->

@@ -6,6 +6,7 @@
     <!-- Nova Chat: about screen -->
     <string name="about_title">About</string>
     <string name="about_description">Nova Chat (新星聊) is an instant messenger built on top of email. It ships a friendlier first-run wizard, lets you choose whether to use end-to-end encryption, and supports syncing your account over WebDAV.</string>
+    <string name="about_developer">Nova Chat is developed by 慕寒_Official.</string>
     <string name="about_license">Nova Chat is free and open source software, released under the GNU General Public License v3.</string>
     <string name="about_view_source">View source code</string>
 
@@ -398,6 +399,10 @@
     <string name="menu_copy_to_clipboard">Copy to Clipboard</string>
     <string name="share_invite_link">Share Invite Link</string>
     <string name="share_invite_link_explain">Anyone with this link can view your profile and start a chat with you. Only share it with people you trust.</string>
+    <!-- Nova Chat: quick share targets in the invite link dialog -->
+    <string name="share_to_qq">QQ</string>
+    <string name="share_to_wechat">WeChat</string>
+    <string name="share_to_copy_link">Copy link</string>
     <string name="invite_friends">Invite Friends</string>
     <!-- %1$s is replaced by the user's invitation link ("https://i.delta.chat/...") -->
     <string name="invite_friends_text">Contact me on Nova Chat:\n%1$s</string>
@@ -948,6 +953,9 @@
     <string name="pref_backup_written_to_x">Backup written successfully to \"%1$s\".</string>
     <!-- No need to translate "Wallpaper" literally. Chose what is common in your language for a "Wallpaper" or a "Background". Avoid adding the term "image" here, as the "Wallpaper" may also be just a single color. -->
     <string name="pref_background">Wallpaper</string>
+    <!-- Nova Chat: Monet colour extraction for the chat background -->
+    <string name="pref_monet">Monet colour extraction</string>
+    <string name="pref_monet_summary">Tint the chat background with colours taken from your wallpaper (Android 12 and newer)</string>
     <string name="pref_background_btn_default">Use Default Image</string>
     <string name="pref_background_btn_gallery">Select From Gallery</string>
     <!-- deprecated -->

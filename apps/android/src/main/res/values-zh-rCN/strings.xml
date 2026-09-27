@@ -6,6 +6,7 @@
     <!-- Nova Chat: 关于页 -->
     <string name="about_title">关于</string>
     <string name="about_description">新星聊（Nova Chat）是一款以邮箱为底座的即时通讯软件。它改进了首次使用向导，端到端加密可自由选择，并支持使用 WebDAV 同步账号。</string>
+    <string name="about_developer">该软件由慕寒_Official开发</string>
     <string name="about_license">新星聊是自由开源软件，遵循 GNU 通用公共许可证 v3 发布。</string>
     <string name="about_view_source">查看源代码</string>
     <string name="ok">确定</string>
@@ -303,6 +304,10 @@
     <string name="menu_copy_to_clipboard">复制到剪贴板</string>
     <string name="share_invite_link">分享邀请链接</string>
     <string name="share_invite_link_explain">任何有此链接的人都可查看您的账号并开始与您聊天。请仅与您信任的人分享。</string>
+    <!-- Nova Chat: 邀请链接对话框中的快捷分享目标 -->
+    <string name="share_to_qq">QQ</string>
+    <string name="share_to_wechat">微信</string>
+    <string name="share_to_copy_link">复制链接</string>
     <string name="invite_friends">邀请好友</string>
     <!-- %1$s is replaced by the user's invitation link ("https://i.delta.chat/...") -->
     <string name="invite_friends_text">在 新星聊 上联系我：\n%1$s</string>
@@ -835,6 +840,9 @@
     <string name="pref_backup_written_to_x">备份已成功写入到“%1$s”。</string>
     <!-- No need to translate "Wallpaper" literally. Chose what is common in your language for a "Wallpaper" or a "Background". Avoid adding the term "image" here, as the "Wallpaper" may also be just a single color. -->
     <string name="pref_background">背景</string>
+    <!-- Nova Chat: 莫奈取色 -->
+    <string name="pref_monet">莫奈取色</string>
+    <string name="pref_monet_summary">从系统壁纸中取色，让聊天背景随壁纸变化（Android 12 及以上）</string>
     <string name="pref_background_btn_default">使用默认图像</string>
     <string name="pref_background_btn_gallery">从图库中选择</string>
     <!-- deprecated -->

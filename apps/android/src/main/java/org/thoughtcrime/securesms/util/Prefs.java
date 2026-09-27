@@ -24,6 +24,10 @@ public class Prefs {
   public static final String THEME_PREF = "pref_theme";
   public static final String BACKGROUND_PREF = "pref_chat_background";
 
+  /** Nova Chat: Monet (wallpaper) colour extraction for the chat background. */
+  public static final String MONET_PREF = "pref_monet";
+  public static final boolean MONET_PREF_DEFAULT = true;
+
   private static final String DATABASE_ENCRYPTED_SECRET =
       "pref_database_encrypted_secret_"; // followed by account-id
   private static final String DATABASE_UNENCRYPTED_SECRET =
@@ -295,6 +299,11 @@ public class Prefs {
 
   public static void setBackgroundImagePath(Context context, int accountId, String path) {
     setStringPreference(context, BACKGROUND_PREF + accountId, path);
+  }
+
+  /** Nova Chat: "Monet" colour extraction, on by default so the chat background follows it. */
+  public static boolean isMonetEnabled(Context context) {
+    return getBooleanPreference(context, MONET_PREF, MONET_PREF_DEFAULT);
   }
 
   public static boolean getAlwaysLoadRemoteContent(Context context) {
