@@ -1,32 +1,39 @@
 # Nova Chat · 新星聊
 
-> 基于 [Delta Chat](https://github.com/deltachat) 的即时通讯软件，支持 Android 与 Windows。
+> 基于 [Delta Chat](https://github.com/deltachat) 的邮箱即时通讯软件，当前版本 **1.2**，仅发布 Android。
 > Delta Chat 的核心理念——"以电子邮件协议为传输、无中心服务器"——被完整保留；Nova Chat 在此基础上重构了首次使用体验，并让加密与账号同步变得可选、可控。
 
 Nova Chat（新星聊）围绕 Delta Chat 做了三项核心改造：
 
-1. **优化首次使用登录向导** —— 邮箱登录升级为主入口，服务商智能预设，实时连接测试，失败可返回修改；
-2. **端到端加密默认关闭** —— 不再强制 E2E，双端设置中随时开启，未加密会话有明确标识；
+1. **优化首次使用登录向导** —— 邮箱登录升级为主入口，服务商智能预设（QQ / 163 / Gmail / Outlook 等），实时连接测试，失败可返回修改；
+2. **端到端加密默认关闭** —— 不再强制 E2E，设置中随时开启，可与普通邮件客户端互通；
 3. **账号支持 WebDAV 同步** —— 账号备份经 WebDAV（Nextcloud / 坚果云 / 自建服务等）加密上传，换机可一键恢复。
 
 ## 下载
 
-前往 [Releases](https://github.com/bilibiliHaoziyao/novachat/releases) 下载：
+前往 [Releases](https://github.com/bilibiliHaoziyao/novachat/releases) 下载最新版：
 
 | 平台 | 产物 | 说明 |
 |---|---|---|
-| Android | `NovaChat-arm64-v8a.apk` | arm64-v8a，CI 自签名（Android 8.0+，`minSdk 21`） |
-| Windows | `Nova.Chat-0.1.0-Setup.x64.exe` | NSIS 安装包（另有 `Nova.Chat-0.1.0-Portable.x64.exe` 免安装版） |
+| Android | `NovaChat-universal.apk` | 32 位 + 64 位二合一（armeabi-v7a / arm64-v8a），Android 5.0+（`minSdk 21`），仓库密钥固定签名，跨版本可直接覆盖安装 |
 
 > 产物由 GitHub Actions 在打 `v*` 标签时自动构建（见 [.github/workflows/build-release.yml](.github/workflows/build-release.yml)）。
+> 桌面端源码保留在 `apps/desktop/`，但自 v0.2.0 起已停止构建与发布。
 
-## 三项改造的实现状态
+## 主要特性
 
-| 改造 | Android | Windows 桌面端 |
-|---|---|---|
-| 登录向导优化 | [ClassicLoginActivity.java](file:///workspace/apps/android/src/main/java/org/thoughtcrime/securesms/ClassicLoginActivity.java)：邮箱/密码/显示名 + 高级折叠，欢迎页直达 | [NovaWizard](file:///workspace/apps/desktop/packages/frontend/src/components/screens/NovaWizard/index.tsx)：四步向导（邮箱 → 安全 → 连接测试 → 可选同步） |
-| 端到端加密可选 | 新账号写入 `force_encryption=0`，高级设置保留开关 | 向导开关（默认关）+ 设置 → 高级 → 端到端加密 |
-| WebDAV 账号同步 | [WebDavSyncManager.java](file:///workspace/apps/android/src/main/java/org/thoughtcrime/securesms/connect/WebDavSyncManager.java) + [WebDavSettingsActivity.java](file:///workspace/apps/android/src/main/java/org/thoughtcrime/securesms/WebDavSettingsActivity.java) | 主进程 [nova/](file:///workspace/apps/desktop/packages/target-electron/src/nova) + 设置页 [WebdavSync.tsx](file:///workspace/apps/desktop/packages/frontend/src/components/Settings/WebdavSync.tsx)（含"启动时自动同步"） |
+| 特性 | 说明 |
+|---|---|
+| 邮箱登录向导 | [ClassicLoginActivity.java](apps/android/src/main/java/org/thoughtcrime/securesms/ClassicLoginActivity.java)：邮箱/密码/显示名 + 高级折叠，欢迎页直达；服务商预设自动填写 IMAP/SMTP |
+| 端到端加密可选 | 新账号写入 `force_encryption=0`，高级设置保留开关，关闭后可与普通邮件客户端互通 |
+| WebDAV 账号同步 | [WebDavSyncManager.java](apps/android/src/main/java/org/thoughtcrime/securesms/connect/WebDavSyncManager.java) + [WebDavSettingsActivity.java](apps/android/src/main/java/org/thoughtcrime/securesms/WebDavSettingsActivity.java) |
+| 莫奈取色（Monet） | 默认开启：聊天背景、工具栏与配色随壁纸取色，深浅色模式分别适配（Android 12+），可在 设置 → 外观 中关闭 |
+| 纯色聊天背景 | 默认背景为纯色，深浅色跟随系统 |
+| 快捷分享邀请 | 二维码页分享邀请链接时提供 快捷分享至 QQ / WeChat / 复制链接 |
+| 软件内切换语言 | 设置 → 语言，支持 简体中文 / 繁體中文 / English / 日本語（跟随系统为默认） |
+| 后台收取消息指南 | 进入软件时提示开启即时传送、后台加锁与自启动，保证离线收信 |
+| 账号备份提示 | 初次登录在设备消息中提示备份账号 |
+| 关于页 | 软件介绍、版本号、开发者与 **Powered by Delta Chat** 致谢、源码链接 |
 
 设计文档：[登录向导](docs/features/onboarding-wizard.md) · [可选加密](docs/features/optional-e2ee.md) · [WebDAV 同步](docs/features/webdav-sync.md) · [架构总览](docs/architecture.md) · [路线图](docs/roadmap.md)
 
@@ -34,8 +41,47 @@ Nova Chat（新星聊）围绕 Delta Chat 做了三项核心改造：
 
 - 导出核心整库备份（tar）→ 本地用**备份口令**加密（PBKDF2-HMAC-SHA256 120000 次 + AES-256-GCM，`NC1` 容器）→ `PUT` 到 `<你的 WebDAV>/nova-chat/latest-backup.ac`；
 - 恢复时反向操作：`GET` → 解密 → 核心导入备份；
-- **双端容器格式完全一致**，Android 上传的备份可在 Windows 端恢复，反之亦然；
 - 服务器只见密文；备份口令丢失则无法恢复（请妥善保存）。
+
+## 更新日志
+
+### 1.2（2026-09-30）
+
+- **深色模式适配莫奈取色**：新增 `values-night-v31` 深色调色板，深色主题下的工具栏、状态栏与整体配色跟随壁纸取色（使用调色板中较亮的色阶，保证深色背景下的可读性）；浅色模式取色保持不变；
+- **关于页新增 "Powered by Delta Chat"**：在开发者信息下方展示对上游项目的致谢；
+- **移除首次登录设备消息中的欢迎图片**：新账号的设备消息不再发送欢迎图片，仅保留文字欢迎消息；
+- 版本号更新为 1.2（`versionCode 1200`）。
+
+### 1.1（2026-09-27）
+
+- 应用配色（工具栏 / 标签栏等）跟随莫奈取色；
+- 更换应用图标并调小图标缩放比例，软件内所有图标替换为 Nova Chat 图标；
+- 进入软件时显示后台收取消息指南（开启即时传送、后台加锁、允许自启动）；
+- 初次登录在设备消息中新增账号备份提示；
+- 包名改为 `com.muhan.chat`（可与 Delta Chat 共存安装）；
+- 发布签名密钥入库（`apps/android/keystore/novachat-release.jks`），CI 固定签名。
+
+### 1.0（2026-09-27）
+
+- 全新应用图标；
+- 默认聊天背景改为纯色，深色模式黑色 / 浅色模式白色，支持跟随系统；
+- 分享邀请链接时提供快捷分享至 QQ / WeChat / 复制链接；
+- 新增莫奈取色（默认开启），聊天背景随壁纸取色；
+- 关于页新增开发者描述。
+
+### 0.2.0（2026-09-26）
+
+- 修复"使用自己邮箱"界面无法使用软件控件返回、状态栏不沉浸的问题；
+- 新增软件内选择语言；
+- 语言精简为 简体中文 / 繁體中文 / English / 日本語；
+- 全局品牌替换：软件内 Delta Chat 字样改为 Nova Chat（简体中文界面显示"新星聊"）；
+- 移除"发送统计数据给 Delta Chat 开发者"，移除设置页的捐赠与帮助，新增关于页；
+- 停止 Windows 版本构建，Android 改为同时输出 32 位 + 64 位。
+
+### 0.1.0（2026-09-26）
+
+- 首个开源版本，三项核心改造全部落地：登录向导优化、端到端加密默认关闭、WebDAV 账号同步；
+- 提供 Android（arm64）与 Windows（NSIS 安装包 / 便携版）双端产物。
 
 ## 项目结构
 
@@ -44,14 +90,14 @@ novachat/
 ├── apps/
 │   ├── android/                       # Android 端（源自 deltachat-android，GPL-3.0）
 │   │   ├── src/main/java/org/thoughtcrime/securesms/
-│   │   │   ├── ClassicLoginActivity.java      # 新增：邮箱登录向导
-│   │   │   ├── WebDavSettingsActivity.java    # 新增：WebDAV 同步设置
-│   │   │   └── connect/WebDavSyncManager.java # 新增：WebDAV 客户端 + 备份加解密
-│   │   └── jni/deltachat-core-rust/           # Rust 核心（MPL-2.0，force_encryption 默认值已改）
-│   └── desktop/                       # Windows/macOS/Linux 桌面端（源自 deltachat-desktop，GPL-3.0）
-│       ├── packages/frontend/src/components/screens/NovaWizard/   # 新增：四步登录向导
-│       ├── packages/frontend/src/components/Settings/WebdavSync.tsx
-│       └── packages/target-electron/src/nova/                     # 新增：主进程 WebDAV 同步
+│   │   │   ├── ClassicLoginActivity.java      # 邮箱登录向导
+│   │   │   ├── WebDavSettingsActivity.java    # WebDAV 同步设置
+│   │   │   ├── AboutActivity.java             # 关于页
+│   │   │   └── connect/WebDavSyncManager.java # WebDAV 客户端 + 备份加解密
+│   │   ├── src/main/res/values-night-v31/      # 深色莫奈取色调色板
+│   │   ├── keystore/novachat-release.jks      # 发布签名密钥（CI 使用）
+│   │   └── jni/deltachat-core-rust/           # Rust 核心（MPL-2.0）
+│   └── desktop/                       # 桌面端源码（源自 deltachat-desktop，GPL-3.0，暂不构建发布）
 ├── docs/                              # 架构、三项改造设计文档、路线图、构建指南
 ├── scripts/fork-setup.sh              # 从上游重新组装开发树（可选）
 └── .github/workflows/build-release.yml
@@ -64,27 +110,17 @@ novachat/
 ```bash
 cd apps/android
 bash scripts/install-toolchains.sh
-bash scripts/ndk-make.sh arm64-v8a          # 编译 Rust 核心
-./gradlew -PABI_FILTER=arm64-v8a assembleFossRelease
-```
-
-**Windows 桌面端**（Node 22 + pnpm，详见 [docs/build-windows.md](docs/build-windows.md)）：
-
-```bash
-cd apps/desktop
-pnpm install
-pnpm --filter=@deltachat-desktop/target-electron build
-cd packages/target-electron
-pnpm run pack:generate_config && pnpm run pack:patch-node-modules
-pnpm electron-builder --win nsis portable --publish never
+bash scripts/ndk-make.sh arm64-v8a          # 64 位核心
+bash scripts/ndk-make.sh armeabi-v7a        # 32 位核心
+./gradlew assembleFossRelease               # 使用仓库内 keystore 签名
 ```
 
 ## 已知限制
 
-- Android `applicationId` 仍为 `com.b44t.messenger`，与 Delta Chat 无法在同一设备共存安装（计划改为 Nova 专属包名）；
-- WebDAV 同步为 v1：整库备份上传，无增量与冲突合并；Android 端尚未持久化 WebDAV 配置（每次需重新填写）；
-- 安装包未做代码签名（Android 使用 CI 自签密钥，Windows 未签名，首次安装可能有系统提示）；
-- 除中/英外的语言包尚未包含 `nova_*` 文案（会回退显示英文）。
+- WebDAV 同步为整库备份上传，无增量与冲突合并；Android 端 WebDAV 配置暂不持久化（每次需重新填写）；
+- 仅内置四种语言（简中 / 繁中 / 英 / 日），其余语言未提供；
+- APK 为自行签名（非公共 CA 证书），安装时需允许未知来源应用；
+- 桌面端（Windows/macOS/Linux）源码保留但不再构建发布。
 
 ## 许可与致谢
 
