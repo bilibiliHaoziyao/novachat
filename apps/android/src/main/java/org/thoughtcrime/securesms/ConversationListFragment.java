@@ -20,6 +20,8 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -29,6 +31,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
+import androidx.preference.PreferenceManager;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import com.b44t.messenger.DcChatlist;
@@ -43,6 +46,7 @@ import org.thoughtcrime.securesms.components.reminder.DozeReminder;
 import org.thoughtcrime.securesms.connect.DcEventCenter;
 import org.thoughtcrime.securesms.connect.DcHelper;
 import org.thoughtcrime.securesms.mms.GlideApp;
+import org.thoughtcrime.securesms.muhan.MuhanAiConfig;
 import org.thoughtcrime.securesms.notifications.FcmReceiveService;
 import org.thoughtcrime.securesms.permissions.Permissions;
 import org.thoughtcrime.securesms.updater.AppUpdate;
@@ -66,6 +70,14 @@ public class ConversationListFragment extends BaseConversationListFragment
   private boolean chatlistJustLoaded;
   private boolean reloadTimerInstantly;
   private boolean resetScrollPosition;
+
+  /** Nova Chat: refresh the list when the MuHan Intelligence entry is enabled/disabled. */
+  private final SharedPreferences.OnSharedPreferenceChangeListener muhanAiPrefListener =
+      (sharedPreferences, key) -> {
+        if (Prefs.MUHAN_AI_ENABLED_PREF.equals(key)) {
+          loadChatlist();
+        }
+      };
 
   @Override
   public void onCreate(Bundle icicle) {
@@ -159,11 +171,17 @@ public class ConversationListFragment extends BaseConversationListFragment
         },
         reloadTimerInstantly ? 0 : 60 * 1000,
         60 * 1000);
+
+    PreferenceManager.getDefaultSharedPreferences(requireContext())
+        .registerOnSharedPreferenceChangeListener(muhanAiPrefListener);
   }
 
   @Override
   public void onPause() {
     super.onPause();
+
+    PreferenceManager.getDefaultSharedPreferences(requireContext())
+        .unregisterOnSharedPreferenceChangeListener(muhanAiPrefListener);
 
     reloadTimer.cancel();
     reloadTimerInstantly = true;
@@ -292,9 +310,11 @@ public class ConversationListFragment extends BaseConversationListFragment
     DcChatlist chatlist = DcHelper.getContext(context).getChatlist(listflags, null, 0);
     Log.i(TAG, "⏰ getChatlist(): " + (System.currentTimeMillis() - startMs) + "ms");
 
+    final boolean showMuhanAi = shouldShowMuhanAi();
+
     Util.runOnMain(
         () -> {
-          if (chatlist.getCnt() <= 0) {
+          if (chatlist.getCnt() <= 0 && !showMuhanAi) {
             list.setVisibility(View.INVISIBLE);
             emptyState.setVisibility(View.VISIBLE);
             emptySearch.setVisibility(View.INVISIBLE);
@@ -306,13 +326,22 @@ public class ConversationListFragment extends BaseConversationListFragment
             fab.stopPulse();
           }
 
-          ((ConversationListAdapter) list.getAdapter()).changeData(chatlist);
+          ((ConversationListAdapter) list.getAdapter()).changeData(chatlist, showMuhanAi);
 
           if (resetScrollPosition) {
             list.scrollToPosition(0);
             resetScrollPosition = false;
           }
         });
+  }
+
+  /** Nova Chat: the pinned "MuHan Intelligence" entry is only shown in the inbox, if enabled. */
+  private boolean shouldShowMuhanAi() {
+    Context context = getContext();
+    return context != null
+        && !archive
+        && !ShareUtil.isRelayingMessageContent(getActivity())
+        && MuhanAiConfig.isEnabled(context);
   }
 
   @Override
@@ -338,6 +367,11 @@ public class ConversationListFragment extends BaseConversationListFragment
   @Override
   public void onSwitchToArchive() {
     ((ConversationSelectedListener) requireActivity()).onSwitchToArchive();
+  }
+
+  @Override
+  public void onMuhanAiClick() {
+    startActivity(new Intent(requireActivity(), MuhanIntelligenceActivity.class));
   }
 
   @Override

@@ -1,6 +1,6 @@
 # Nova Chat · 新星聊
 
-> 基于 [Delta Chat](https://github.com/deltachat) 的邮箱即时通讯软件，当前版本 **1.2**，仅发布 Android。
+> 基于 [Delta Chat](https://github.com/deltachat) 的邮箱即时通讯软件，当前版本 **1.2.1**，仅发布 Android。
 > Delta Chat 的核心理念——"以电子邮件协议为传输、无中心服务器"——被完整保留；Nova Chat 在此基础上重构了首次使用体验，并让加密与账号同步变得可选、可控。
 
 Nova Chat（新星聊）围绕 Delta Chat 做了三项核心改造：
@@ -34,6 +34,7 @@ Nova Chat（新星聊）围绕 Delta Chat 做了三项核心改造：
 | 后台收取消息指南 | 进入软件时提示开启即时传送、后台加锁与自启动，保证离线收信 |
 | 账号备份提示 | 初次登录在设备消息中提示备份账号 |
 | 关于页 | 软件介绍、版本号、开发者与 **Powered by Delta Chat** 致谢、源码链接 |
+| MuHan Intelligence | 内置 AI 助手（慕寒智能），默认置顶在会话列表，可在 设置 → MuHan Intelligence 中关闭；需自定义 API 地址与模型，兼容 OpenAI 格式（`/chat/completions`），支持流式回复与多轮上下文，对话历史仅保存在本机 |
 
 设计文档：[登录向导](docs/features/onboarding-wizard.md) · [可选加密](docs/features/optional-e2ee.md) · [WebDAV 同步](docs/features/webdav-sync.md) · [架构总览](docs/architecture.md) · [路线图](docs/roadmap.md)
 
@@ -44,6 +45,14 @@ Nova Chat（新星聊）围绕 Delta Chat 做了三项核心改造：
 - 服务器只见密文；备份口令丢失则无法恢复（请妥善保存）。
 
 ## 更新日志
+
+### 1.2.1（2026-09-30）
+
+- **新增 MuHan Intelligence（慕寒智能）AI 助手**：默认置顶在会话列表，所有用户可用，可在 设置 → MuHan Intelligence 中关闭；
+- 兼容 OpenAI API 格式：在设置中自定义 **API 地址**、**API 密钥**与**模型**，支持流式（SSE）回复与多轮对话上下文，附「测试连接」；
+- 支持**自定义提示词**：留空时使用内置人设，填写后**完全替换**内置提示词；
+- 对话历史按账号保存在本机（`filesDir/muhan-ai/`），仅发送至用户自行配置的 API，可随时在设置或对话页清空；
+- 版本号更新为 1.2.1（`versionCode 1201`）。
 
 ### 1.2（2026-09-30）
 
@@ -93,6 +102,8 @@ novachat/
 │   │   │   ├── ClassicLoginActivity.java      # 邮箱登录向导
 │   │   │   ├── WebDavSettingsActivity.java    # WebDAV 同步设置
 │   │   │   ├── AboutActivity.java             # 关于页
+│   │   │   ├── MuhanIntelligenceActivity.java # MuHan Intelligence AI 对话界面
+│   │   │   ├── muhan/                         # AI 配置 / OpenAI 兼容客户端 / 本地历史
 │   │   │   └── connect/WebDavSyncManager.java # WebDAV 客户端 + 备份加解密
 │   │   ├── src/main/res/values-night-v31/      # 深色莫奈取色调色板
 │   │   ├── keystore/novachat-release.jks      # 发布签名密钥（CI 使用）

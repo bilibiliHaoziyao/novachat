@@ -28,8 +28,8 @@ android {
     useLibrary 'org.apache.http.legacy'
 
     defaultConfig {
-        versionCode 1200
-        versionName "1.2"
+        versionCode 1201
+        versionName "1.2.1"
         applicationId "com.muhan.chat"
         multiDexEnabled true
 

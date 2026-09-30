@@ -637,4 +637,34 @@
     <string name="a11y_delivery_status_read">送信状態：既読</string>
     <string name="a11y_delivery_status_invalid">不明な送信状態</string>
     <string name="a11y_disappearing_messages_activated">消えるメッセージを有効にしました。</string>
+    <!-- Nova Chat: MuHan Intelligence AI アシスタント -->
+    <string name="muhan_ai_title">MuHan Intelligence</string>
+    <string name="muhan_ai_subtitle">AIアシスタント · タップして開始</string>
+    <string name="muhan_ai_settings_title">MuHan Intelligence</string>
+    <string name="muhan_ai_enabled">チャット一覧に表示</string>
+    <string name="muhan_ai_enabled_summary">MuHan Intelligence をチャット一覧の先頭に固定します</string>
+    <string name="muhan_ai_base_url">API アドレス</string>
+    <string name="muhan_ai_base_url_summary">OpenAI 互換のエンドポイント、例：https://api.openai.com/v1</string>
+    <string name="muhan_ai_api_key">API キー</string>
+    <string name="muhan_ai_api_key_summary">Bearer キー；ローカルサーバーでは空でも可</string>
+    <string name="muhan_ai_model">モデル</string>
+    <string name="muhan_ai_model_summary">モデル名、例：gpt-4o-mini</string>
+    <string name="muhan_ai_system_prompt">カスタムプロンプト</string>
+    <string name="muhan_ai_system_prompt_summary">空欄なら内蔵プロンプトを使用；入力すると内蔵プロンプトを完全に置き換えます</string>
+    <string name="muhan_ai_actions_title">操作</string>
+    <string name="muhan_ai_test">接続テスト</string>
+    <string name="muhan_ai_test_running">テスト中…</string>
+    <string name="muhan_ai_test_ok">接続に成功しました</string>
+    <string name="muhan_ai_test_failed">接続に失敗しました：%1$s</string>
+    <string name="muhan_ai_clear">会話を消去</string>
+    <string name="muhan_ai_clear_confirm">この端末上の MuHan Intelligence の会話をすべて削除しますか？</string>
+    <string name="muhan_ai_cleared">会話を消去しました</string>
+    <string name="muhan_ai_input_hint">MuHan Intelligence にメッセージ</string>
+    <string name="muhan_ai_send">送信</string>
+    <string name="muhan_ai_sending">送信中…</string>
+    <string name="muhan_ai_greeting">こんにちは、MuHan Intelligence です。何でも聞いてください！</string>
+    <string name="muhan_ai_not_configured">先に設定で API アドレスとモデルを入力してください。</string>
+    <string name="muhan_ai_open_settings">設定を開く</string>
+    <string name="muhan_ai_empty_reply">（返信なし）</string>
+    <string name="muhan_ai_error">リクエストに失敗しました：%1$s</string>
     </resources>

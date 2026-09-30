@@ -31,6 +31,16 @@ public class Prefs {
   /** Nova Chat: whether the "keep receiving messages in the background" guide was shown. */
   public static final String NOVA_BG_GUIDE_PREF = "pref_nova_bg_guide_shown";
 
+  /** Nova Chat: "MuHan Intelligence" AI assistant. */
+  public static final String MUHAN_AI_ENABLED_PREF = "pref_muhan_ai_enabled";
+  public static final boolean MUHAN_AI_ENABLED_DEFAULT = true;
+
+  public static final String MUHAN_AI_BASE_URL_PREF = "pref_muhan_ai_base_url";
+  public static final String MUHAN_AI_BASE_URL_DEFAULT = "https://api.openai.com/v1";
+  public static final String MUHAN_AI_API_KEY_PREF = "pref_muhan_ai_api_key";
+  public static final String MUHAN_AI_MODEL_PREF = "pref_muhan_ai_model";
+  public static final String MUHAN_AI_SYSTEM_PROMPT_PREF = "pref_muhan_ai_system_prompt";
+
   private static final String DATABASE_ENCRYPTED_SECRET =
       "pref_database_encrypted_secret_"; // followed by account-id
   private static final String DATABASE_UNENCRYPTED_SECRET =

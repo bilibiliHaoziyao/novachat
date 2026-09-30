@@ -43,6 +43,10 @@ class ConversationListAdapter
   private static final int MESSAGE_TYPE_SWITCH_ARCHIVE = 1;
   private static final int MESSAGE_TYPE_THREAD = 2;
   private static final int MESSAGE_TYPE_INBOX_ZERO = 3;
+  private static final int MESSAGE_TYPE_MUHAN_AI = 4;
+
+  /** Stable, negative id of the virtual "MuHan Intelligence" entry. */
+  private static final long MUHAN_AI_ITEM_ID = -1000L;
 
   private final WeakReference<Context> context;
   private @NonNull DcContext dcContext;
@@ -50,6 +54,7 @@ class ConversationListAdapter
   private final @NonNull GlideRequests glideRequests;
   private final @NonNull LayoutInflater inflater;
   private final @Nullable ItemClickListener clickListener;
+  private boolean showMuhanAi;
 
   protected static class ViewHolder extends RecyclerView.ViewHolder {
     public <V extends View & BindableConversationListItem> ViewHolder(final @NonNull V itemView) {
@@ -61,14 +66,21 @@ class ConversationListAdapter
     }
   }
 
+  private int listOffset() {
+    return showMuhanAi ? 1 : 0;
+  }
+
   @Override
   public int getItemCount() {
-    return dcChatlist.getCnt();
+    return dcChatlist.getCnt() + listOffset();
   }
 
   @Override
   public long getItemId(int i) {
-    return dcChatlist.getChatId(i);
+    if (showMuhanAi && i == 0) {
+      return MUHAN_AI_ITEM_ID;
+    }
+    return dcChatlist.getChatId(i - listOffset());
   }
 
   ConversationListAdapter(
@@ -88,7 +100,16 @@ class ConversationListAdapter
   @NonNull
   @Override
   public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-    if (viewType == MESSAGE_TYPE_SWITCH_ARCHIVE) {
+    if (viewType == MESSAGE_TYPE_MUHAN_AI) {
+      final ConversationListItem item =
+          (ConversationListItem)
+              inflater.inflate(R.layout.conversation_list_item_view, parent, false);
+      item.setOnClickListener(
+          v -> {
+            if (clickListener != null) clickListener.onMuhanAiClick();
+          });
+      return new ViewHolder(item);
+    } else if (viewType == MESSAGE_TYPE_SWITCH_ARCHIVE) {
       final ConversationListItem item =
           (ConversationListItem)
               inflater.inflate(R.layout.conversation_list_item_view, parent, false);
@@ -132,13 +153,22 @@ class ConversationListAdapter
       return;
     }
 
-    DcChat chat = dcContext.getChat(dcChatlist.getChatId(i));
-    DcLot summary = dcChatlist.getSummary(i, chat);
+    if (showMuhanAi && i == 0) {
+      ((ConversationListItem) viewHolder.itemView)
+          .bindMuhanAi(
+              context.getString(R.string.muhan_ai_title),
+              context.getString(R.string.muhan_ai_subtitle));
+      return;
+    }
+
+    int index = i - listOffset();
+    DcChat chat = dcContext.getChat(dcChatlist.getChatId(index));
+    DcLot summary = dcChatlist.getSummary(index, chat);
     viewHolder
         .getItem()
         .bind(
             DcHelper.getThreadRecord(context, summary, chat),
-            dcChatlist.getMsgId(i),
+            dcChatlist.getMsgId(index),
             summary,
             glideRequests,
             batchSet,
@@ -147,7 +177,11 @@ class ConversationListAdapter
 
   @Override
   public int getItemViewType(int i) {
-    int chatId = dcChatlist.getChatId(i);
+    if (showMuhanAi && i == 0) {
+      return MESSAGE_TYPE_MUHAN_AI;
+    }
+
+    int chatId = dcChatlist.getChatId(i - listOffset());
 
     if (chatId == DcChat.DC_CHAT_ID_ARCHIVED_LINK) {
       return MESSAGE_TYPE_SWITCH_ARCHIVE;
@@ -175,13 +209,20 @@ class ConversationListAdapter
     void onItemLongClick(ConversationListItem item);
 
     void onSwitchToArchive();
+
+    void onMuhanAiClick();
   }
 
   void changeData(@Nullable DcChatlist chatlist) {
+    changeData(chatlist, false);
+  }
+
+  void changeData(@Nullable DcChatlist chatlist, boolean showMuhanAi) {
     Context context = this.context.get();
     if (context == null) {
       return;
     }
+    this.showMuhanAi = showMuhanAi;
     if (chatlist == null) {
       dcChatlist = new DcChatlist(0, 0);
     } else {

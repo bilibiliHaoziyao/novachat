@@ -33,6 +33,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
+import androidx.core.content.AppCompatResources;
 import com.amulyakhare.textdrawable.TextDrawable;
 import com.b44t.messenger.DcChat;
 import com.b44t.messenger.DcContact;
@@ -250,6 +251,43 @@ public class ConversationListItem extends RelativeLayout
 
   @Override
   public void unbind() {}
+
+  /**
+   * Nova Chat: bind the pinned "MuHan Intelligence" entry shown on top of the conversation list. It
+   * is a virtual conversation, not backed by a mail chat, so its title/subtitle are passed in.
+   */
+  public void bindMuhanAi(@NonNull String title, @NonNull String subtitle) {
+    this.selectedThreads = Collections.emptySet();
+    this.chatId = 0;
+    this.msgId = 0;
+
+    fromView.setText(title);
+    setMutedState(false);
+
+    subjectView.setVisibility(VISIBLE);
+    subjectView.setText(subtitle);
+    subjectView.setTypeface(LIGHT_TYPEFACE);
+    subjectView.setTextColor(
+        ThemeUtil.getThemedColor(getContext(), R.attr.conversation_list_item_subject_color));
+
+    dateView.setText("");
+    setContentState(true, false);
+
+    archivedBadgeView.setVisibility(GONE);
+    requestBadgeView.setVisibility(GONE);
+    unreadIndicator.setVisibility(GONE);
+    deliveryStatusIndicator.setNone();
+
+    setBatchState(false);
+    avatar.setImageDrawable(
+        AppCompatResources.getDrawable(getContext(), R.drawable.ic_muhan_ai_avatar));
+    avatar.setSeenRecently(false);
+
+    try (TypedArray ta =
+        getContext().obtainStyledAttributes(new int[] {R.attr.pinned_list_item_background})) {
+      ViewUtil.setBackground(this, ta.getDrawable(0));
+    }
+  }
 
   private void setBatchState(boolean batch) {
     setSelected(batch && selectedThreads.contains(chatId));

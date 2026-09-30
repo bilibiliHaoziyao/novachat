@@ -42,6 +42,7 @@ import org.thoughtcrime.securesms.preferences.AdvancedPreferenceFragment;
 import org.thoughtcrime.securesms.preferences.AppearancePreferenceFragment;
 import org.thoughtcrime.securesms.preferences.ChatsPreferenceFragment;
 import org.thoughtcrime.securesms.preferences.CorrectedPreferenceFragment;
+import org.thoughtcrime.securesms.preferences.MuhanAiPreferenceFragment;
 import org.thoughtcrime.securesms.preferences.NotificationsPreferenceFragment;
 import org.thoughtcrime.securesms.preferences.widgets.ProfilePreference;
 import org.thoughtcrime.securesms.qr.BackupTransferActivity;
@@ -63,6 +64,7 @@ public class ApplicationPreferencesActivity extends PassphraseRequiredActionBarA
       "preference_category_notifications";
   private static final String PREFERENCE_CATEGORY_APPEARANCE = "preference_category_appearance";
   private static final String PREFERENCE_CATEGORY_CHATS = "preference_category_chats";
+  private static final String PREFERENCE_CATEGORY_MUHAN_AI = "preference_category_muhan_ai";
   private static final String PREFERENCE_CATEGORY_MULTIDEVICE = "preference_category_multidevice";
   private static final String PREFERENCE_CATEGORY_ADVANCED = "preference_category_advanced";
   private static final String PREFERENCE_CATEGORY_CONNECTIVITY = "preference_category_connectivity";
@@ -173,6 +175,8 @@ public class ApplicationPreferencesActivity extends PassphraseRequiredActionBarA
           .setOnPreferenceClickListener(new CategoryClickListener(PREFERENCE_CATEGORY_APPEARANCE));
       this.findPreference(PREFERENCE_CATEGORY_CHATS)
           .setOnPreferenceClickListener(new CategoryClickListener(PREFERENCE_CATEGORY_CHATS));
+      this.findPreference(PREFERENCE_CATEGORY_MUHAN_AI)
+          .setOnPreferenceClickListener(new CategoryClickListener(PREFERENCE_CATEGORY_MUHAN_AI));
       this.findPreference(PREFERENCE_CATEGORY_MULTIDEVICE)
           .setOnPreferenceClickListener(new CategoryClickListener(PREFERENCE_CATEGORY_MULTIDEVICE));
       this.findPreference(PREFERENCE_CATEGORY_ADVANCED)
@@ -225,6 +229,8 @@ public class ApplicationPreferencesActivity extends PassphraseRequiredActionBarA
           .setSummary(AppearancePreferenceFragment.getSummary(getActivity()));
       this.findPreference(PREFERENCE_CATEGORY_CHATS)
           .setSummary(ChatsPreferenceFragment.getSummary(getActivity()));
+      this.findPreference(PREFERENCE_CATEGORY_MUHAN_AI)
+          .setSummary(MuhanAiPreferenceFragment.getSummary(getActivity()));
       this.findPreference(PREFERENCE_CATEGORY_CONNECTIVITY)
           .setSummary(
               DcHelper.getConnectivitySummary(
@@ -273,6 +279,9 @@ public class ApplicationPreferencesActivity extends PassphraseRequiredActionBarA
             break;
           case PREFERENCE_CATEGORY_CHATS:
             fragment = new ChatsPreferenceFragment();
+            break;
+          case PREFERENCE_CATEGORY_MUHAN_AI:
+            fragment = new MuhanAiPreferenceFragment();
             break;
           case PREFERENCE_CATEGORY_MULTIDEVICE:
             if (!ScreenLockUtil.applyScreenLock(

@@ -11,6 +11,37 @@
     <string name="about_license">Nova Chat is free and open source software, released under the GNU General Public License v3.</string>
     <string name="about_view_source">View source code</string>
 
+    <!-- Nova Chat: MuHan Intelligence AI assistant -->
+    <string name="muhan_ai_title">MuHan Intelligence</string>
+    <string name="muhan_ai_subtitle">AI assistant · tap to chat</string>
+    <string name="muhan_ai_settings_title">MuHan Intelligence</string>
+    <string name="muhan_ai_enabled">Show in chat list</string>
+    <string name="muhan_ai_enabled_summary">Pin MuHan Intelligence on top of the chat list</string>
+    <string name="muhan_ai_base_url">API address</string>
+    <string name="muhan_ai_base_url_summary">OpenAI-compatible endpoint, e.g. https://api.openai.com/v1</string>
+    <string name="muhan_ai_api_key">API key</string>
+    <string name="muhan_ai_api_key_summary">Bearer key; may be left empty for local servers</string>
+    <string name="muhan_ai_model">Model</string>
+    <string name="muhan_ai_model_summary">Model name, e.g. gpt-4o-mini</string>
+    <string name="muhan_ai_system_prompt">Custom prompt</string>
+    <string name="muhan_ai_system_prompt_summary">Leave empty to use the built-in prompt; a custom prompt replaces it entirely</string>
+    <string name="muhan_ai_actions_title">Actions</string>
+    <string name="muhan_ai_test">Test connection</string>
+    <string name="muhan_ai_test_running">Testing…</string>
+    <string name="muhan_ai_test_ok">Connection succeeded</string>
+    <string name="muhan_ai_test_failed">Connection failed: %1$s</string>
+    <string name="muhan_ai_clear">Clear conversation</string>
+    <string name="muhan_ai_clear_confirm">Delete all MuHan Intelligence messages on this device?</string>
+    <string name="muhan_ai_cleared">Conversation cleared</string>
+    <string name="muhan_ai_input_hint">Message MuHan Intelligence</string>
+    <string name="muhan_ai_send">Send</string>
+    <string name="muhan_ai_sending">Sending…</string>
+    <string name="muhan_ai_greeting">Hi, I am MuHan Intelligence. Ask me anything!</string>
+    <string name="muhan_ai_not_configured">Set the API address and model first.</string>
+    <string name="muhan_ai_open_settings">Open settings</string>
+    <string name="muhan_ai_empty_reply">(no reply)</string>
+    <string name="muhan_ai_error">Request failed: %1$s</string>
+
     <!-- Nova Chat: guide shown on app entry about receiving messages in the background -->
     <string name="nova_bg_guide_title">Keep receiving messages in the background</string>
     <string name="nova_bg_guide_message">To receive new messages on time, please complete these steps:\n\n1. Open \"Settings → %1$s → %2$s\" and turn on both \"%3$s\" and \"%4$s\".\n2. Lock Nova Chat in the recent-apps list so the system does not kill it.\n3. Allow Nova Chat to auto-start and set its battery usage to \"Unrestricted\" in the system settings.</string>

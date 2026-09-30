@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/menu_muhan_ai_clear"
+        android:title="@string/muhan_ai_clear"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/menu_muhan_ai_settings"
+        android:title="@string/muhan_ai_settings_title"
+        app:showAsAction="never" />
+
+</menu>

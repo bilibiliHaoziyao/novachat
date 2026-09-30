@@ -285,6 +285,12 @@
             android:windowSoftInputMode="stateUnchanged"
             android:configChanges="touchscreen|keyboard|keyboardHidden|orientation|screenLayout|screenSize" />
 
+        <!-- Nova Chat: MuHan Intelligence AI assistant chat -->
+        <activity
+            android:name=".MuhanIntelligenceActivity"
+            android:windowSoftInputMode="adjustResize"
+            android:configChanges="touchscreen|keyboard|keyboardHidden|orientation|screenLayout|screenSize" />
+
         <activity
             android:name=".relay.EditRelayActivity"
             android:launchMode="singleTask"

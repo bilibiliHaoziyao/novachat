@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory android:title="@string/muhan_ai_settings_title">
+
+        <org.thoughtcrime.securesms.components.SwitchPreferenceCompat
+            android:defaultValue="true"
+            android:key="pref_muhan_ai_enabled"
+            android:summary="@string/muhan_ai_enabled_summary"
+            android:title="@string/muhan_ai_enabled" />
+
+        <EditTextPreference
+            android:defaultValue="https://api.openai.com/v1"
+            android:key="pref_muhan_ai_base_url"
+            android:summary="@string/muhan_ai_base_url_summary"
+            android:title="@string/muhan_ai_base_url" />
+
+        <EditTextPreference
+            android:key="pref_muhan_ai_api_key"
+            android:summary="@string/muhan_ai_api_key_summary"
+            android:title="@string/muhan_ai_api_key" />
+
+        <EditTextPreference
+            android:key="pref_muhan_ai_model"
+            android:summary="@string/muhan_ai_model_summary"
+            android:title="@string/muhan_ai_model" />
+
+        <EditTextPreference
+            android:key="pref_muhan_ai_system_prompt"
+            android:summary="@string/muhan_ai_system_prompt_summary"
+            android:title="@string/muhan_ai_system_prompt" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="@string/muhan_ai_actions_title">
+
+        <Preference
+            android:key="pref_muhan_ai_test"
+            android:title="@string/muhan_ai_test" />
+
+        <Preference
+            android:key="pref_muhan_ai_clear"
+            android:title="@string/muhan_ai_clear" />
+
+    </PreferenceCategory>
+
+</PreferenceScreen>
