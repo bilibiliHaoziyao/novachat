@@ -1,0 +1,18 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<!--
+  Nova Chat: dark-mode counterpart of values-v31/colors.xml.
+  The light-mode wallpaper ("Monet") shades are too dark against dark
+  surfaces, so dark mode uses the lighter steps of the same palette
+  (and delta_primary_dark tints the dark toolbar/status bar).
+-->
+<resources>
+    <color name="delta_primary">@android:color/system_accent1_500</color>
+    <color name="delta_primary_lite">@android:color/system_accent1_400</color>
+
+    <color name="delta_accent">@android:color/system_accent1_200</color>
+    <color name="delta_accent_darker">@android:color/system_accent1_300</color>
+
+    <!-- dark toolbar/status bar: wallpaper-tinted, but still dark enough
+         for the white title and menu icons -->
+    <color name="delta_primary_dark">@android:color/system_accent1_800</color>
+</resources>

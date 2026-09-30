@@ -9,13 +9,11 @@ use strum::EnumProperty as EnumPropertyTrait;
 use strum_macros::EnumProperty;
 
 use crate::accounts::Accounts;
-use crate::blob::BlobObject;
 use crate::chat::{self, Chat, ChatId};
 use crate::config::Config;
 use crate::contact::{Contact, ContactId};
 use crate::context::Context;
 use crate::message::{Message, Viewtype};
-use crate::param::Param;
 
 /// Storage for string translations.
 #[derive(Debug, Clone)]
@@ -1267,13 +1265,8 @@ impl Context {
 
         // add welcome-messages. by the label, this is done only once,
         // if the user has deleted the message or the chat, it is not added again.
-        let image = include_bytes!("../assets/welcome-image.jpg");
-        let blob = BlobObject::create_and_deduplicate_from_bytes(self, image, "welcome.jpg")?;
-        let mut msg = Message::new(Viewtype::Image);
-        msg.param.set(Param::File, blob.as_name());
-        msg.param.set(Param::Filename, "welcome-image.jpg");
-        chat::add_device_msg(self, Some("core-welcome-image"), Some(&mut msg)).await?;
-
+        // Nova Chat: the welcome *image* device message was removed, only the
+        // text welcome message is sent to new accounts.
         let mut msg = Message::new_text(welcome_message(self));
         chat::add_device_msg(self, Some("core-welcome"), Some(&mut msg)).await?;
         Ok(())

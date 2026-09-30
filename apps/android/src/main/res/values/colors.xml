@@ -3,6 +3,11 @@
     <color name="delta_primary">#ff415e6b</color>
     <color name="delta_primary_lite">#4c6e7d</color>
 
+    <!-- Nova Chat: primary used by the dark-theme toolbar/status bar.
+         On Android 12+ (values-night-v31) this follows the wallpaper palette,
+         on older devices it stays the near-black grey. -->
+    <color name="delta_primary_dark">#ff111111</color>
+
     <!-- delta_accent fits in light and in darkmode; delta_accent_darker can be used for less-covered
         areas as non-bold text -->
     <color name="delta_accent">#42A5F5</color>

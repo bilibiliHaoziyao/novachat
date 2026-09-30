@@ -7,6 +7,7 @@
     <string name="about_title">About</string>
     <string name="about_description">Nova Chat (新星聊) is an instant messenger built on top of email. It ships a friendlier first-run wizard, lets you choose whether to use end-to-end encryption, and supports syncing your account over WebDAV.</string>
     <string name="about_developer">Nova Chat is developed by 慕寒_Official.</string>
+    <string name="about_powered_by">Powered by Delta Chat</string>
     <string name="about_license">Nova Chat is free and open source software, released under the GNU General Public License v3.</string>
     <string name="about_view_source">View source code</string>
 

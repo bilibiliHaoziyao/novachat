@@ -30,8 +30,23 @@ async fn test_get_width_height() {
     let t = TestContext::new_alice().await;
 
     // test that get_width() and get_height() are returning some dimensions for images;
-    // (as the device-chat contains a welcome-images, we check that)
-    t.update_device_chats().await.ok();
+    // (Nova Chat removed the welcome image from the device chat,
+    //  so we add an own image message to the device chat)
+    let mut img_msg = Message::new(Viewtype::Image);
+    let (width, height) = (640, 480);
+    img_msg
+        .set_file_from_bytes(
+            &t,
+            "test.png",
+            &test_utils::create_test_image(width, height).unwrap(),
+            None,
+        )
+        .unwrap();
+    img_msg.try_calc_and_set_dimensions(&t).await.ok();
+    chat::add_device_msg(&t, Some("test-width-height"), Some(&mut img_msg))
+        .await
+        .ok();
+
     let device_chat_id = ChatId::get_for_contact(&t, ContactId::DEVICE)
         .await
         .unwrap();

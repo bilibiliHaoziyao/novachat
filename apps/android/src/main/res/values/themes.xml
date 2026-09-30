@@ -27,8 +27,8 @@
 
         <item name="theme_type">dark</item>
         <item name="actionBarPopupTheme">@style/ThemeOverlay.AppCompat.Dark</item>
-        <item name="colorPrimary">@color/gray95</item>
-        <item name="colorPrimaryDark">@color/gray95</item>
+        <item name="colorPrimary">@color/delta_primary_dark</item>
+        <item name="colorPrimaryDark">@color/delta_primary_dark</item>
 
         <item name="profile_toolbar_background">@color/black</item>
         <item name="profile_toolbar_foreground">@color/white</item>
@@ -153,10 +153,10 @@
         <item name="android:navigationBarColor">@color/black</item>
         <item name="actionBarStyle">@style/TextSecure.DarkActionBar</item>
         <item name="actionBarTabBarStyle">@style/TextSecure.DarkActionBar.TabBar</item>
-        <item name="colorPrimary">@color/gray95</item>
-        <item name="colorPrimaryDark">@color/gray95</item>
+        <item name="colorPrimary">@color/delta_primary_dark</item>
+        <item name="colorPrimaryDark">@color/delta_primary_dark</item>
         <item name="actionBarPopupTheme">@style/ThemeOverlay.AppCompat.Dark</item>
-        <item name="actionModeBackground">@color/gray95</item>
+        <item name="actionModeBackground">@color/delta_primary_dark</item>
         <item name="android:textColor">@color/text_color_dark_theme</item>
         <item name="android:textColorSecondary">@color/text_color_secondary_dark_theme</item>
 
