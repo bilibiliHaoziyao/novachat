@@ -33,7 +33,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
-import androidx.core.content.AppCompatResources;
+import androidx.appcompat.content.res.AppCompatResources;
 import com.amulyakhare.textdrawable.TextDrawable;
 import com.b44t.messenger.DcChat;
 import com.b44t.messenger.DcContact;
