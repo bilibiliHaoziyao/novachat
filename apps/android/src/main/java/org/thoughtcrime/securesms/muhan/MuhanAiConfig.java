@@ -18,7 +18,7 @@ public final class MuhanAiConfig {
    * custom prompt; a custom prompt replaces (overrides) this default entirely.
    */
   public static final String DEFAULT_SYSTEM_PROMPT =
-      "你现在是MuHan Intelligence，一个AI智能助手，中文名为慕寒智能";
+      "你现在是MuHan Intelligence，中文名为慕寒智能，由MuHan Studio开发";
 
   /** Images/audio are sent inline as {@code image_url} / {@code input_audio} content parts. */
   public static final String MEDIA_MODE_MULTIMODAL = "multimodal";
@@ -41,11 +41,16 @@ public final class MuhanAiConfig {
   }
 
   public static String getApiKey(@NonNull Context context) {
-    return Prefs.getStringPreference(context, Prefs.MUHAN_AI_API_KEY_PREF, "").trim();
+    return Prefs.getStringPreference(
+            context, Prefs.MUHAN_AI_API_KEY_PREF, Prefs.MUHAN_AI_API_KEY_DEFAULT)
+        .trim();
   }
 
   public static String getModel(@NonNull Context context) {
-    return Prefs.getStringPreference(context, Prefs.MUHAN_AI_MODEL_PREF, "").trim();
+    String model =
+        Prefs.getStringPreference(
+            context, Prefs.MUHAN_AI_MODEL_PREF, Prefs.MUHAN_AI_MODEL_DEFAULT);
+    return TextUtils.isEmpty(model) ? Prefs.MUHAN_AI_MODEL_DEFAULT : model.trim();
   }
 
   /** The user's custom prompt, may be empty. */

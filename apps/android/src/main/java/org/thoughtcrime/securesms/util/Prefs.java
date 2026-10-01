@@ -36,9 +36,12 @@ public class Prefs {
   public static final boolean MUHAN_AI_ENABLED_DEFAULT = true;
 
   public static final String MUHAN_AI_BASE_URL_PREF = "pref_muhan_ai_base_url";
-  public static final String MUHAN_AI_BASE_URL_DEFAULT = "https://api.openai.com/v1";
+  public static final String MUHAN_AI_BASE_URL_DEFAULT = BuildConfig.MUHAN_AI_DEFAULT_BASE_URL;
   public static final String MUHAN_AI_API_KEY_PREF = "pref_muhan_ai_api_key";
+  // injected at build time, never committed to the repository (see build.gradle)
+  public static final String MUHAN_AI_API_KEY_DEFAULT = BuildConfig.MUHAN_AI_DEFAULT_API_KEY;
   public static final String MUHAN_AI_MODEL_PREF = "pref_muhan_ai_model";
+  public static final String MUHAN_AI_MODEL_DEFAULT = BuildConfig.MUHAN_AI_DEFAULT_MODEL;
   public static final String MUHAN_AI_SYSTEM_PROMPT_PREF = "pref_muhan_ai_system_prompt";
 
   /** How images/audio are handed to the model: {@code multimodal} or {@code transcribe}. */

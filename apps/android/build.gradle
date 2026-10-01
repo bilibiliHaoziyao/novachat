@@ -28,8 +28,8 @@ android {
     useLibrary 'org.apache.http.legacy'
 
     defaultConfig {
-        versionCode 12102
-        versionName "1.2.1.2"
+        versionCode 12103
+        versionName "1.2.1.3"
         applicationId "com.muhan.chat"
         multiDexEnabled true
 
@@ -52,6 +52,17 @@ android {
         buildConfigField("String", "TEST_ADDR", buildConfigProperty("TEST_ADDR"))
         buildConfigField("String", "TEST_MAIL_PW", buildConfigProperty("TEST_MAIL_PW"))
         buildConfigField("String", "NDK_ARCH", getNdkArch())
+
+        // Nova Chat: default endpoint of the built-in "MuHan Intelligence" assistant.
+        // Only the API key is a secret: it is injected at build time from a Gradle property or an
+        // environment variable (e.g. a CI secret) and therefore never ends up in the repository.
+        buildConfigField(
+                "String", "MUHAN_AI_DEFAULT_BASE_URL",
+                buildConfigProperty("MUHAN_AI_BASE_URL", "https://api.xiaomimimo.com/v1"))
+        buildConfigField(
+                "String", "MUHAN_AI_DEFAULT_MODEL",
+                buildConfigProperty("MUHAN_AI_MODEL", "mimo-v2.6-flash"))
+        buildConfigField("String", "MUHAN_AI_DEFAULT_API_KEY", buildConfigProperty("MUHAN_AI_API_KEY"))
     }
 
     compileOptions {
@@ -292,6 +303,12 @@ dependencies {
 
 String buildConfigProperty(String name) {
     return "\"${propertyOrEmpty(name)}\""
+}
+
+/** Same as {@link #buildConfigProperty}, but falls back to {@code defaultValue} when unset. */
+String buildConfigProperty(String name, String defaultValue) {
+    String value = propertyOrEmpty(name)
+    return "\"${value.isEmpty() ? defaultValue : value}\""
 }
 
 String propertyOrEmpty(String name) {

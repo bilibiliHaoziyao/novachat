@@ -57,6 +57,11 @@ jobs:
           ls -R libs
 
       - name: Build release APK (foss flavor, signed with the repository keystore)
+        env:
+          # Nova Chat: default API key of the built-in "MuHan Intelligence" assistant. It is read
+          # by build.gradle and baked into BuildConfig at build time, so the secret never has to
+          # live in the source tree. The repository stores it as an encrypted Actions secret.
+          MUHAN_AI_API_KEY: ${{ secrets.MUHAN_AI_API_KEY }}
         run: |
           cd apps/android
           # The release keystore is committed at apps/android/keystore/novachat-release.jks,
