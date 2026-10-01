@@ -9,6 +9,7 @@ import android.widget.Toast;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.preference.EditTextPreference;
+import androidx.preference.ListPreference;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -60,6 +61,25 @@ public class MuhanAiPreferenceFragment extends CorrectedPreferenceFragment {
           return true;
         });
 
+    EditTextPreference transcribeModel = findPreference(Prefs.MUHAN_AI_TRANSCRIBE_MODEL_PREF);
+    if (transcribeModel != null) {
+      transcribeModel.setOnPreferenceChangeListener(
+          (preference, newValue) -> {
+            refreshSummaries();
+            return true;
+          });
+    }
+
+    ListPreference mediaMode = findPreference(Prefs.MUHAN_AI_MEDIA_MODE_PREF);
+    if (mediaMode != null) {
+      mediaMode.setOnPreferenceChangeListener(
+          (preference, newValue) -> {
+            // the new value is persisted after this callback, refresh once that has happened
+            mainHandler.post(this::refreshSummaries);
+            return true;
+          });
+    }
+
     findPreference(KEY_TEST).setOnPreferenceClickListener(p -> { testConnection(); return true; });
     findPreference(KEY_CLEAR).setOnPreferenceClickListener(p -> { confirmClear(); return true; });
 
@@ -96,6 +116,17 @@ public class MuhanAiPreferenceFragment extends CorrectedPreferenceFragment {
         Prefs.MUHAN_AI_SYSTEM_PROMPT_PREF,
         R.string.muhan_ai_system_prompt_summary,
         MuhanAiConfig.getCustomPrompt(context));
+    setValueSummary(
+        Prefs.MUHAN_AI_TRANSCRIBE_MODEL_PREF,
+        R.string.muhan_ai_transcribe_model_summary,
+        MuhanAiConfig.getTranscribeModel(context));
+
+    ListPreference mediaMode = findPreference(Prefs.MUHAN_AI_MEDIA_MODE_PREF);
+    if (mediaMode != null) {
+      CharSequence entry = mediaMode.getEntry();
+      mediaMode.setSummary(
+          getString(R.string.muhan_ai_media_mode_summary) + "\n" + (entry == null ? "" : entry));
+    }
   }
 
   private void setValueSummary(String key, int summaryRes, String value) {

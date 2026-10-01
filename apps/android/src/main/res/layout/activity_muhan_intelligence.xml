@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/root_layout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -35,6 +36,106 @@
             android:paddingBottom="6dp"
             android:scrollbars="vertical" />
 
+        <!-- Nova Chat: preview of the attachment that will be sent with the next message -->
+        <LinearLayout
+            android:id="@+id/muhan_ai_attachment_preview"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:visibility="gone"
+            android:paddingTop="6dp"
+            android:paddingLeft="12dp"
+            android:paddingStart="12dp"
+            android:paddingRight="12dp"
+            android:paddingEnd="12dp"
+            android:background="?attr/input_panel_bg_color">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:id="@+id/muhan_ai_attachment_thumb"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:scaleType="centerCrop"
+                android:visibility="gone"
+                tools:ignore="ContentDescription" />
+
+            <TextView
+                android:id="@+id/muhan_ai_attachment_name"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginLeft="8dp"
+                android:layout_marginStart="8dp"
+                android:layout_marginRight="8dp"
+                android:layout_marginEnd="8dp"
+                android:ellipsize="middle"
+                android:maxLines="1"
+                android:textSize="13sp" />
+
+            <ImageButton
+                android:id="@+id/muhan_ai_attachment_remove"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="@drawable/touch_highlight_background"
+                android:contentDescription="@string/muhan_ai_attach_remove"
+                android:scaleType="fitCenter"
+                android:src="@drawable/ic_close_white_24dp"
+                android:tint="?icon_tint" />
+
+        </LinearLayout>
+
+        <!-- Nova Chat: shown while a voice message is being recorded -->
+        <LinearLayout
+            android:id="@+id/muhan_ai_recording_bar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:visibility="gone"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp"
+            android:paddingLeft="12dp"
+            android:paddingStart="12dp"
+            android:paddingRight="12dp"
+            android:paddingEnd="12dp"
+            android:background="?attr/input_panel_bg_color">
+
+            <androidx.appcompat.widget.AppCompatImageView
+                android:layout_width="20dp"
+                android:layout_height="20dp"
+                android:src="@drawable/ic_mic_on"
+                android:tint="@color/core_red"
+                tools:ignore="ContentDescription" />
+
+            <TextView
+                android:id="@+id/muhan_ai_recording_time"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginLeft="8dp"
+                android:layout_marginStart="8dp"
+                android:text="@string/muhan_ai_record_title"
+                android:textSize="14sp" />
+
+            <Button
+                android:id="@+id/muhan_ai_recording_cancel"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:text="@string/muhan_ai_record_cancel" />
+
+            <Button
+                android:id="@+id/muhan_ai_recording_stop"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:text="@string/muhan_ai_record_stop"
+                android:textColor="?attr/colorAccent" />
+
+        </LinearLayout>
+
         <!-- input bar styled after conversation_input_panel -->
         <LinearLayout
             android:id="@+id/muhan_ai_input_bar"
@@ -52,6 +153,24 @@
             android:clipChildren="false"
             android:clipToPadding="false"
             android:background="?attr/input_panel_bg_color">
+
+            <FrameLayout
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginLeft="6dp"
+                android:layout_marginStart="6dp"
+                android:background="?attr/send_button_bg">
+
+                <ImageButton
+                    android:id="@+id/muhan_ai_attach"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/circle_touch_highlight_background"
+                    android:contentDescription="@string/muhan_ai_attach"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_attach_white_24dp" />
+
+            </FrameLayout>
 
             <EditText
                 android:id="@+id/muhan_ai_input"

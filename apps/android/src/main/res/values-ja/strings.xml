@@ -667,4 +667,25 @@
     <string name="muhan_ai_open_settings">設定を開く</string>
     <string name="muhan_ai_empty_reply">（返信なし）</string>
     <string name="muhan_ai_error">リクエストに失敗しました：%1$s</string>
+    <string name="muhan_ai_media_mode_title">メディアの送信方法</string>
+    <string name="muhan_ai_media_mode_summary">画像と音声をモデルへ渡す方法</string>
+    <string name="muhan_ai_media_mode_multimodal">インライン送信（画像／音声入力）</string>
+    <string name="muhan_ai_media_mode_transcribe">音声をテキストに文字起こし</string>
+    <string name="muhan_ai_transcribe_model">文字起こしモデル</string>
+    <string name="muhan_ai_transcribe_model_summary">音声の文字起こしに使うモデル（例: whisper-1）</string>
+    <string name="muhan_ai_attach">添付を追加</string>
+    <string name="muhan_ai_attach_image">画像</string>
+    <string name="muhan_ai_attach_record">音声を録音</string>
+    <string name="muhan_ai_attach_audio">音声ファイル</string>
+    <string name="muhan_ai_record_title">録音中…</string>
+    <string name="muhan_ai_record_stop">停止して送信</string>
+    <string name="muhan_ai_record_cancel">キャンセル</string>
+    <string name="muhan_ai_recording_failed">録音に失敗しました</string>
+    <string name="muhan_ai_attach_failed">添付を追加できませんでした</string>
+    <string name="muhan_ai_transcribing">文字起こし中…</string>
+    <string name="muhan_ai_audio_format_hint">この音声形式はインライン送信に対応しない可能性があります。文字起こしへの切り替えを検討してください</string>
+    <string name="muhan_ai_canceled_recording">録音をキャンセルしました</string>
+    <string name="muhan_ai_audio_play">音声を再生</string>
+    <string name="muhan_ai_audio_pause">再生を一時停止</string>
+    <string name="muhan_ai_attach_remove">添付を削除</string>
     </resources>

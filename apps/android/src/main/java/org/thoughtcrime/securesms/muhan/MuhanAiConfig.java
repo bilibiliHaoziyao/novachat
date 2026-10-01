@@ -20,6 +20,12 @@ public final class MuhanAiConfig {
   public static final String DEFAULT_SYSTEM_PROMPT =
       "你现在是MuHan Intelligence，一个AI智能助手，中文名为慕寒智能";
 
+  /** Images/audio are sent inline as {@code image_url} / {@code input_audio} content parts. */
+  public static final String MEDIA_MODE_MULTIMODAL = "multimodal";
+
+  /** Audio is first transcribed to text ({@code /audio/transcriptions}) and sent as plain text. */
+  public static final String MEDIA_MODE_TRANSCRIBE = "transcribe";
+
   private MuhanAiConfig() {}
 
   public static boolean isEnabled(@NonNull Context context) {
@@ -51,6 +57,29 @@ public final class MuhanAiConfig {
   public static String getEffectiveSystemPrompt(@NonNull Context context) {
     String custom = getCustomPrompt(context);
     return TextUtils.isEmpty(custom) ? DEFAULT_SYSTEM_PROMPT : custom;
+  }
+
+  /** How images/audio are handed to the model, see {@link #MEDIA_MODE_MULTIMODAL}. */
+  public static String getMediaMode(@NonNull Context context) {
+    String mode =
+        Prefs.getStringPreference(
+            context, Prefs.MUHAN_AI_MEDIA_MODE_PREF, Prefs.MUHAN_AI_MEDIA_MODE_DEFAULT);
+    return MEDIA_MODE_TRANSCRIBE.equals(mode) ? MEDIA_MODE_TRANSCRIBE : MEDIA_MODE_MULTIMODAL;
+  }
+
+  /** Whether audio is transcribed to text before being sent. */
+  public static boolean isTranscribeMode(@NonNull Context context) {
+    return MEDIA_MODE_TRANSCRIBE.equals(getMediaMode(context));
+  }
+
+  /** Speech-to-text model, only used in {@link #MEDIA_MODE_TRANSCRIBE} mode. */
+  public static String getTranscribeModel(@NonNull Context context) {
+    String model =
+        Prefs.getStringPreference(
+            context,
+            Prefs.MUHAN_AI_TRANSCRIBE_MODEL_PREF,
+            Prefs.MUHAN_AI_TRANSCRIBE_MODEL_DEFAULT);
+    return TextUtils.isEmpty(model) ? Prefs.MUHAN_AI_TRANSCRIBE_MODEL_DEFAULT : model.trim();
   }
 
   /**

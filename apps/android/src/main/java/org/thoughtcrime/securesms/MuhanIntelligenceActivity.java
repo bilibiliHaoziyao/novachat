@@ -1,39 +1,74 @@
 package org.thoughtcrime.securesms;
 
+import android.Manifest;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.PopupMenu;
+import android.widget.TextView;
+import android.widget.Toast;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import org.thoughtcrime.securesms.components.ScaleStableImageView;
 import org.thoughtcrime.securesms.connect.DcHelper;
+import org.thoughtcrime.securesms.mms.GlideApp;
 import org.thoughtcrime.securesms.muhan.MuhanAiChatAdapter;
 import org.thoughtcrime.securesms.muhan.MuhanAiClient;
 import org.thoughtcrime.securesms.muhan.MuhanAiConfig;
 import org.thoughtcrime.securesms.muhan.MuhanAiMessage;
 import org.thoughtcrime.securesms.muhan.MuhanAiStore;
+import org.thoughtcrime.securesms.muhan.MuhanMediaUtil;
+import org.thoughtcrime.securesms.muhan.MuhanVoiceRecorder;
+import org.thoughtcrime.securesms.permissions.Permissions;
 import org.thoughtcrime.securesms.util.ChatBackground;
+import org.thoughtcrime.securesms.util.ViewUtil;
 
 /**
  * Nova Chat: the "MuHan Intelligence" (慕寒智能) chat screen.
  *
  * <p>A self-contained assistant chat that talks to any OpenAI-compatible endpoint configured in the
  * settings. Messages are stored locally per account and never leave the device except to the
- * user-configured API.
+ * user-configured API. Besides plain text, images and voice messages / audio files can be sent,
+ * either inline (multimodal) or - for audio - as a transcription, depending on the settings.
  */
 public class MuhanIntelligenceActivity extends BaseActionBarActivity {
+
+  private static final int MENU_ATTACH_IMAGE = 1;
+  private static final int MENU_ATTACH_AUDIO = 2;
+  private static final int MENU_ATTACH_RECORD = 3;
 
   private RecyclerView listView;
   private EditText inputView;
   private ImageButton sendButton;
+  private ImageButton attachButton;
+
+  private View attachmentPreview;
+  private ImageView attachmentThumb;
+  private TextView attachmentName;
+
+  private View inputBar;
+  private View recordingBar;
+  private TextView recordingTime;
+
   private MuhanAiChatAdapter adapter;
 
   private final List<MuhanAiMessage> messages = new ArrayList<>();
@@ -41,10 +76,61 @@ public class MuhanIntelligenceActivity extends BaseActionBarActivity {
   private MuhanAiClient.Request request;
   private boolean sending;
 
+  // Attachment that will be sent with the next message.
+  private String pendingType = MuhanAiMessage.ATTACHMENT_NONE;
+  private String pendingPath = "";
+  private String pendingMime = "";
+  private String pendingName = "";
+  private long pendingDuration = 0;
+
+  private MuhanVoiceRecorder recorder;
+  private final Handler mainHandler = new Handler(Looper.getMainLooper());
+  private final Runnable recordingTick =
+      new Runnable() {
+        @Override
+        public void run() {
+          if (recorder != null && recorder.isRecording()) {
+            recordingTime.setText(
+                getString(R.string.muhan_ai_record_title)
+                    + " "
+                    + MuhanMediaUtil.formatDuration(System.currentTimeMillis() - recordingStartedAt));
+            mainHandler.postDelayed(this, 500);
+          }
+        }
+      };
+  private long recordingStartedAt;
+
+  private final ExecutorService mediaExecutor = Executors.newSingleThreadExecutor();
+
+  private ActivityResultLauncher<Intent> imagePicker;
+  private ActivityResultLauncher<Intent> audioPicker;
+
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
+
+    imagePicker =
+        registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+              if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                onPickedAttachment(result.getData().getData(), MuhanAiMessage.ATTACHMENT_IMAGE);
+              }
+            });
+    audioPicker =
+        registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+              if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                onPickedAttachment(result.getData().getData(), MuhanAiMessage.ATTACHMENT_AUDIO);
+              }
+            });
+
     setContentView(R.layout.activity_muhan_intelligence);
+
+    // Nova Chat: the activity is edge-to-edge, so keep the input bar clear of the gesture
+    // navigation bar ("pill") and of any display cutout.
+    ViewUtil.applyWindowInsets(findViewById(R.id.root_layout), true, false, true, true);
 
     accountId = DcHelper.getContext(this).getAccountId();
 
@@ -56,6 +142,13 @@ public class MuhanIntelligenceActivity extends BaseActionBarActivity {
     listView = findViewById(R.id.muhan_ai_list);
     inputView = findViewById(R.id.muhan_ai_input);
     sendButton = findViewById(R.id.muhan_ai_send);
+    attachButton = findViewById(R.id.muhan_ai_attach);
+    attachmentPreview = findViewById(R.id.muhan_ai_attachment_preview);
+    attachmentThumb = findViewById(R.id.muhan_ai_attachment_thumb);
+    attachmentName = findViewById(R.id.muhan_ai_attachment_name);
+    inputBar = findViewById(R.id.muhan_ai_input_bar);
+    recordingBar = findViewById(R.id.muhan_ai_recording_bar);
+    recordingTime = findViewById(R.id.muhan_ai_recording_time);
 
     // same chat background as a regular conversation (solid colour / Monet / user picked image)
     ((ScaleStableImageView) findViewById(R.id.muhan_ai_background))
@@ -73,6 +166,10 @@ public class MuhanIntelligenceActivity extends BaseActionBarActivity {
     scrollToBottom();
 
     sendButton.setOnClickListener(v -> sendMessage());
+    attachButton.setOnClickListener(this::showAttachMenu);
+    findViewById(R.id.muhan_ai_attachment_remove).setOnClickListener(v -> clearPendingAttachment());
+    findViewById(R.id.muhan_ai_recording_cancel).setOnClickListener(v -> cancelRecording());
+    findViewById(R.id.muhan_ai_recording_stop).setOnClickListener(v -> stopRecordingAndSend());
   }
 
   private void ensureGreeting() {
@@ -84,9 +181,239 @@ public class MuhanIntelligenceActivity extends BaseActionBarActivity {
     }
   }
 
+  // region attachments
+
+  private void showAttachMenu(View anchor) {
+    if (sending) {
+      return;
+    }
+    PopupMenu popup = new PopupMenu(this, anchor);
+    popup.getMenu().add(Menu.NONE, MENU_ATTACH_IMAGE, 1, R.string.muhan_ai_attach_image);
+    popup.getMenu().add(Menu.NONE, MENU_ATTACH_AUDIO, 2, R.string.muhan_ai_attach_audio);
+    popup.getMenu().add(Menu.NONE, MENU_ATTACH_RECORD, 3, R.string.muhan_ai_attach_record);
+    popup.setOnMenuItemClickListener(
+        item -> {
+          switch (item.getItemId()) {
+            case MENU_ATTACH_IMAGE:
+              pickMedia("image/*", imagePicker);
+              return true;
+            case MENU_ATTACH_AUDIO:
+              pickMedia("audio/*", audioPicker);
+              return true;
+            case MENU_ATTACH_RECORD:
+              startRecordingWithPermission();
+              return true;
+            default:
+              return false;
+          }
+        });
+    popup.show();
+  }
+
+  private void pickMedia(@NonNull String mimeType, @NonNull ActivityResultLauncher<Intent> launcher) {
+    Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+    intent.setType(mimeType);
+    intent.addCategory(Intent.CATEGORY_OPENABLE);
+    try {
+      launcher.launch(intent);
+    } catch (Exception e) {
+      Toast.makeText(this, R.string.muhan_ai_attach_failed, Toast.LENGTH_SHORT).show();
+    }
+  }
+
+  private void onPickedAttachment(@Nullable Uri uri, @NonNull String type) {
+    if (uri == null) {
+      return;
+    }
+    mediaExecutor.execute(
+        () -> {
+          File file = MuhanMediaUtil.importToMedia(this, uri);
+          String mime = MuhanMediaUtil.resolveMimeType(this, uri);
+          String name = MuhanMediaUtil.displayName(getContentResolver(), uri);
+          if (TextUtils.isEmpty(mime) && file != null) {
+            mime = MuhanMediaUtil.mimeForFile(file.getName());
+          }
+          final String resolvedMime = mime;
+          final String resolvedName = name;
+          runOnUiThread(
+              () -> {
+                if (file == null) {
+                  Toast.makeText(this, R.string.muhan_ai_attach_failed, Toast.LENGTH_SHORT).show();
+                  return;
+                }
+                setPendingAttachment(
+                    type, file.getAbsolutePath(), resolvedMime, resolvedName, 0);
+              });
+        });
+  }
+
+  private void setPendingAttachment(
+      @NonNull String type,
+      @NonNull String path,
+      @Nullable String mime,
+      @Nullable String name,
+      long duration) {
+    deleteFileQuietly(pendingPath);
+    pendingType = type;
+    pendingPath = path;
+    pendingMime = mime == null ? "" : mime;
+    pendingName = TextUtils.isEmpty(name) ? new File(path).getName() : name;
+    pendingDuration = duration;
+    updateAttachmentPreview();
+  }
+
+  private void clearPendingAttachment() {
+    deleteFileQuietly(pendingPath);
+    resetPendingAttachment();
+  }
+
+  /** Forgets the pending attachment without deleting its file (used once it was sent). */
+  private void resetPendingAttachment() {
+    pendingType = MuhanAiMessage.ATTACHMENT_NONE;
+    pendingPath = "";
+    pendingMime = "";
+    pendingName = "";
+    pendingDuration = 0;
+    updateAttachmentPreview();
+  }
+
+  private void updateAttachmentPreview() {
+    if (MuhanAiMessage.ATTACHMENT_NONE.equals(pendingType)) {
+      attachmentPreview.setVisibility(View.GONE);
+      attachmentThumb.setImageDrawable(null);
+      return;
+    }
+    attachmentPreview.setVisibility(View.VISIBLE);
+    if (MuhanAiMessage.ATTACHMENT_IMAGE.equals(pendingType)) {
+      attachmentThumb.setVisibility(View.VISIBLE);
+      GlideApp.with(this).load(new File(pendingPath)).into(attachmentThumb);
+      attachmentName.setText(pendingName);
+    } else {
+      attachmentThumb.setVisibility(View.GONE);
+      attachmentThumb.setImageDrawable(null);
+      String label =
+          pendingDuration > 0
+              ? MuhanMediaUtil.formatDuration(pendingDuration) + " · " + pendingName
+              : pendingName;
+      attachmentName.setText(label);
+    }
+  }
+
+  private static void deleteFileQuietly(@Nullable String path) {
+    if (TextUtils.isEmpty(path)) {
+      return;
+    }
+    File file = new File(path);
+    if (file.exists()) {
+      //noinspection ResultOfMethodCallIgnored
+      file.delete();
+    }
+  }
+
+  // endregion
+
+  // region voice recording
+
+  private void startRecordingWithPermission() {
+    Permissions.with(this)
+        .request(Manifest.permission.RECORD_AUDIO)
+        .ifNecessary()
+        .withPermanentDenialDialog(getString(R.string.muhan_ai_recording_failed))
+        .onAllGranted(this::startRecording)
+        .onAnyDenied(
+            () ->
+                Toast.makeText(this, R.string.muhan_ai_recording_failed, Toast.LENGTH_SHORT).show())
+        .execute();
+  }
+
+  private void startRecording() {
+    if (recorder != null) {
+      return;
+    }
+    // the input bar is hidden while recording, so get the keyboard out of the way
+    inputView.clearFocus();
+    android.view.inputmethod.InputMethodManager imm =
+        (android.view.inputmethod.InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+    if (imm != null) {
+      imm.hideSoftInputFromWindow(inputView.getWindowToken(), 0);
+    }
+    recorder =
+        new MuhanVoiceRecorder(
+            new MuhanVoiceRecorder.Listener() {
+              @Override
+              public void onFinished(@NonNull File file, long durationMs) {
+                runOnUiThread(
+                    () -> {
+                      recorder = null;
+                      showRecordingBar(false);
+                      setPendingAttachment(
+                          MuhanAiMessage.ATTACHMENT_AUDIO,
+                          file.getAbsolutePath(),
+                          "audio/wav",
+                          file.getName(),
+                          durationMs);
+                      sendMessage();
+                    });
+              }
+
+              @Override
+              public void onError(@NonNull Exception error) {
+                runOnUiThread(
+                    () -> {
+                      recorder = null;
+                      showRecordingBar(false);
+                      Toast.makeText(
+                              MuhanIntelligenceActivity.this,
+                              R.string.muhan_ai_recording_failed,
+                              Toast.LENGTH_SHORT)
+                          .show();
+                    });
+              }
+            });
+    try {
+      recorder.start(this);
+    } catch (Exception e) {
+      recorder = null;
+      Toast.makeText(this, R.string.muhan_ai_recording_failed, Toast.LENGTH_SHORT).show();
+      return;
+    }
+    recordingStartedAt = System.currentTimeMillis();
+    showRecordingBar(true);
+    mainHandler.post(recordingTick);
+  }
+
+  private void stopRecordingAndSend() {
+    if (recorder != null) {
+      recorder.stop();
+    }
+  }
+
+  private void cancelRecording() {
+    if (recorder != null) {
+      recorder.cancel();
+      recorder = null;
+    }
+    showRecordingBar(false);
+    Toast.makeText(this, R.string.muhan_ai_canceled_recording, Toast.LENGTH_SHORT).show();
+  }
+
+  private void showRecordingBar(boolean show) {
+    mainHandler.removeCallbacks(recordingTick);
+    recordingBar.setVisibility(show ? View.VISIBLE : View.GONE);
+    inputBar.setVisibility(show ? View.GONE : View.VISIBLE);
+    attachmentPreview.setVisibility(
+        !show && !MuhanAiMessage.ATTACHMENT_NONE.equals(pendingType) ? View.VISIBLE : View.GONE);
+    if (show) {
+      recordingTime.setText(R.string.muhan_ai_record_title);
+    }
+  }
+
+  // endregion
+
   private void sendMessage() {
     String text = inputView.getText().toString().trim();
-    if (TextUtils.isEmpty(text) || sending) {
+    boolean hasAttachment = !MuhanAiMessage.ATTACHMENT_NONE.equals(pendingType);
+    if ((TextUtils.isEmpty(text) && !hasAttachment) || sending) {
       return;
     }
     if (!MuhanAiConfig.isConfigured(this)) {
@@ -94,11 +421,31 @@ public class MuhanIntelligenceActivity extends BaseActionBarActivity {
       return;
     }
 
+    boolean transcribeAudio = MuhanAiConfig.isTranscribeMode(this);
+    boolean audioAttachment = hasAttachment && MuhanAiMessage.ATTACHMENT_AUDIO.equals(pendingType);
+    if (audioAttachment
+        && !transcribeAudio
+        && MuhanMediaUtil.inlineAudioFormat(pendingMime, pendingName) == null) {
+      showAudioFormatHint();
+      return;
+    }
+
     MuhanAiMessage userMessage = new MuhanAiMessage(MuhanAiMessage.ROLE_USER, text);
+    if (hasAttachment) {
+      userMessage.attachmentType = pendingType;
+      userMessage.attachmentPath = pendingPath;
+      userMessage.attachmentMime = pendingMime;
+      userMessage.attachmentName = pendingName;
+      userMessage.attachmentDuration = pendingDuration;
+    }
     final MuhanAiMessage assistantMessage = new MuhanAiMessage(MuhanAiMessage.ROLE_ASSISTANT, "");
     messages.add(userMessage);
     messages.add(assistantMessage);
     inputView.setText("");
+    resetPendingAttachment();
+    if (audioAttachment && transcribeAudio) {
+      assistantMessage.content = getString(R.string.muhan_ai_transcribing);
+    }
     adapter.notifyDataSetChanged();
     scrollToBottom();
     MuhanAiStore.save(this, accountId, messages);
@@ -121,6 +468,7 @@ public class MuhanIntelligenceActivity extends BaseActionBarActivity {
             MuhanAiConfig.getModel(this),
             requestMessages,
             true,
+            transcribeAudio ? MuhanAiConfig.getTranscribeModel(this) : "",
             new MuhanAiClient.Callback() {
               @Override
               public void onDelta(String delta) {
@@ -137,7 +485,9 @@ public class MuhanIntelligenceActivity extends BaseActionBarActivity {
               public void onSuccess(String fullText) {
                 runOnUiThread(
                     () -> {
-                      if (TextUtils.isEmpty(assistantMessage.content)) {
+                      if (TextUtils.isEmpty(assistantMessage.content)
+                          || assistantMessage.content.equals(
+                              getString(R.string.muhan_ai_transcribing))) {
                         assistantMessage.content =
                             TextUtils.isEmpty(fullText)
                                 ? getString(R.string.muhan_ai_empty_reply)
@@ -173,6 +523,14 @@ public class MuhanIntelligenceActivity extends BaseActionBarActivity {
     sendButton.setAlpha(busy ? 0.5f : 1f);
     sendButton.setContentDescription(
         getString(busy ? R.string.muhan_ai_sending : R.string.muhan_ai_send));
+  }
+
+  private void showAudioFormatHint() {
+    new AlertDialog.Builder(this)
+        .setMessage(R.string.muhan_ai_audio_format_hint)
+        .setPositiveButton(R.string.muhan_ai_open_settings, (d, w) -> openSettings())
+        .setNegativeButton(android.R.string.cancel, null)
+        .show();
   }
 
   private void showNotConfiguredDialog() {
@@ -238,11 +596,27 @@ public class MuhanIntelligenceActivity extends BaseActionBarActivity {
   }
 
   @Override
+  public void onRequestPermissionsResult(
+      int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    Permissions.onRequestPermissionsResult(this, requestCode, permissions, grantResults);
+  }
+
+  @Override
   protected void onDestroy() {
     super.onDestroy();
     if (request != null) {
       request.cancel();
       request = null;
+    }
+    if (recorder != null) {
+      recorder.cancel();
+      recorder = null;
+    }
+    mainHandler.removeCallbacks(recordingTick);
+    mediaExecutor.shutdownNow();
+    if (adapter != null) {
+      adapter.stopPlayback();
     }
   }
 }

@@ -41,6 +41,14 @@ public class Prefs {
   public static final String MUHAN_AI_MODEL_PREF = "pref_muhan_ai_model";
   public static final String MUHAN_AI_SYSTEM_PROMPT_PREF = "pref_muhan_ai_system_prompt";
 
+  /** How images/audio are handed to the model: {@code multimodal} or {@code transcribe}. */
+  public static final String MUHAN_AI_MEDIA_MODE_PREF = "pref_muhan_ai_media_mode";
+  public static final String MUHAN_AI_MEDIA_MODE_DEFAULT = "multimodal";
+
+  /** Speech-to-text model used by the {@code transcribe} media mode. */
+  public static final String MUHAN_AI_TRANSCRIBE_MODEL_PREF = "pref_muhan_ai_transcribe_model";
+  public static final String MUHAN_AI_TRANSCRIBE_MODEL_DEFAULT = "whisper-1";
+
   private static final String DATABASE_ENCRYPTED_SECRET =
       "pref_database_encrypted_secret_"; // followed by account-id
   private static final String DATABASE_UNENCRYPTED_SECRET =
