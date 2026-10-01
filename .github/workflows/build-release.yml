@@ -99,3 +99,4 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: apps/android/NovaChat-universal.apk
+          overwrite_files: true

@@ -9,12 +9,15 @@ import android.widget.LinearLayout;
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 import org.thoughtcrime.securesms.BaseActionBarActivity;
 import org.thoughtcrime.securesms.ConversationListActivity;
 import org.thoughtcrime.securesms.R;
 import org.thoughtcrime.securesms.util.DynamicNoActionBarTheme;
+import org.thoughtcrime.securesms.util.DynamicTheme;
 import org.thoughtcrime.securesms.util.Prefs;
 import org.thoughtcrime.securesms.util.ViewUtil;
 
@@ -59,6 +62,7 @@ public class OobeActivity extends BaseActionBarActivity implements OobeHost {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_oobe);
     ViewUtil.applyWindowInsets(findViewById(R.id.oobe_root));
+    applyImmersiveSystemBars();
 
     backButton = findViewById(R.id.oobe_back_button);
     primaryButton = findViewById(R.id.oobe_primary_button);
@@ -104,6 +108,19 @@ public class OobeActivity extends BaseActionBarActivity implements OobeHost {
   protected void onSaveInstanceState(Bundle outState) {
     super.onSaveInstanceState(outState);
     outState.putInt(STATE_STEP, step);
+  }
+
+  /**
+   * Nova Chat: immersive status bar. The wizard draws its own background behind the system bars, so
+   * the bars stay transparent and only the icon colour has to follow the active theme — dark icons
+   * on the light background, light icons on the dark one.
+   */
+  private void applyImmersiveSystemBars() {
+    WindowInsetsControllerCompat controller =
+        WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+    boolean lightTheme = !DynamicTheme.isDarkTheme(this);
+    controller.setAppearanceLightStatusBars(lightTheme);
+    controller.setAppearanceLightNavigationBars(lightTheme);
   }
 
   @Override

@@ -10,7 +10,7 @@ import androidx.annotation.Nullable;
 import org.thoughtcrime.securesms.R;
 import org.thoughtcrime.securesms.WebDavSettingsActivity;
 
-/** Step 4: optional WebDAV backup. Can be skipped. */
+/** Step 4: optional WebDAV backup. */
 public class OobeWebDavFragment extends OobeFragment {
 
   @Nullable
@@ -28,10 +28,5 @@ public class OobeWebDavFragment extends OobeFragment {
     view.findViewById(R.id.oobe_webdav_configure_button)
         .setOnClickListener(
             v -> startActivity(new Intent(requireContext(), WebDavSettingsActivity.class)));
-  }
-
-  @Override
-  protected boolean isSkippable() {
-    return true;
   }
 }

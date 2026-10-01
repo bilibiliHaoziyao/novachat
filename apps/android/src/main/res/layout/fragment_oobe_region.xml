@@ -21,14 +21,6 @@
             android:textSize="26sp"
             android:textStyle="bold" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="@string/oobe_region_subtitle"
-            android:textColor="?android:attr/textColorSecondary"
-            android:textSize="15sp" />
-
         <EditText
             android:id="@+id/oobe_region_input"
             android:layout_width="match_parent"

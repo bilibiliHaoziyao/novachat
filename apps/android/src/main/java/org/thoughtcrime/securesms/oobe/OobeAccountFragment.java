@@ -1,5 +1,6 @@
 package org.thoughtcrime.securesms.oobe;
 
+import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -14,22 +15,13 @@ import org.thoughtcrime.securesms.WelcomeActivity;
 import org.thoughtcrime.securesms.connect.DcHelper;
 
 /**
- * Step 3: create or restore an account. Offers the three ways in — instant sign-up, classic email
- * login and migrating from another device — and advances automatically once an account exists.
+ * Step 3: create or restore an account. Every entry point opens the original Nova Chat flow — the
+ * very same pages that are used outside the wizard — and advances the wizard once that flow reports
+ * a configured account, so the user is taken back into the remaining steps.
  */
 public class OobeAccountFragment extends OobeFragment {
 
-  private static final String STATE_LAUNCHED = "oobe_account_launched";
-
-  private boolean launched;
-
-  @Override
-  public void onCreate(@Nullable Bundle savedInstanceState) {
-    super.onCreate(savedInstanceState);
-    if (savedInstanceState != null) {
-      launched = savedInstanceState.getBoolean(STATE_LAUNCHED, false);
-    }
-  }
+  private static final int REQUEST_ACCOUNT = 2601;
 
   @Nullable
   @Override
@@ -45,19 +37,19 @@ public class OobeAccountFragment extends OobeFragment {
     super.onViewCreated(view, savedInstanceState);
 
     view.findViewById(R.id.oobe_account_instant_button)
-        .setOnClickListener(v -> launch(InstantOnboardingActivity.class));
+        .setOnClickListener(
+            v -> launch(new Intent(requireContext(), InstantOnboardingActivity.class)));
 
     view.findViewById(R.id.oobe_account_email_button)
-        .setOnClickListener(v -> launch(ClassicLoginActivity.class));
+        .setOnClickListener(
+            v -> launch(new Intent(requireContext(), ClassicLoginActivity.class)));
 
     view.findViewById(R.id.oobe_account_migrate_button)
         .setOnClickListener(
             v -> {
-              launched = true;
               Intent intent = new Intent(requireContext(), WelcomeActivity.class);
               intent.putExtra(WelcomeActivity.EXTRA_OPEN_SIGN_IN_OPTIONS, true);
-              intent.putExtra(OobeActivity.EXTRA_FROM_OOBE, true);
-              startActivity(intent);
+              launch(intent);
             });
   }
 
@@ -74,23 +66,16 @@ public class OobeAccountFragment extends OobeFragment {
   }
 
   @Override
-  public void onResume() {
-    super.onResume();
-    if (launched && DcHelper.isConfigured(requireContext())) {
+  public void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+    super.onActivityResult(requestCode, resultCode, data);
+    if (requestCode == REQUEST_ACCOUNT && resultCode == Activity.RESULT_OK) {
+      // the original flow reported a configured account — resume the wizard
       host().goNext();
     }
   }
 
-  @Override
-  public void onSaveInstanceState(@NonNull Bundle outState) {
-    super.onSaveInstanceState(outState);
-    outState.putBoolean(STATE_LAUNCHED, launched);
-  }
-
-  private void launch(Class<?> activity) {
-    launched = true;
-    Intent intent = new Intent(requireContext(), activity);
+  private void launch(Intent intent) {
     intent.putExtra(OobeActivity.EXTRA_FROM_OOBE, true);
-    startActivity(intent);
+    startActivityForResult(intent, REQUEST_ACCOUNT);
   }
 }

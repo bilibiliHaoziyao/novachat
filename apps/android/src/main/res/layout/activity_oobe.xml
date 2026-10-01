@@ -6,9 +6,6 @@
     android:layout_height="match_parent"
     tools:context=".oobe.OobeActivity">
 
-    <!-- extends the window background behind the status bar (edge-to-edge) -->
-    <include layout="@layout/status_bar_background" />
-
     <LinearLayout
         android:id="@+id/oobe_root"
         android:layout_width="match_parent"

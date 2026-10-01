@@ -712,7 +712,6 @@
     <string name="oobe_language_subtitle">後で「設定」からいつでも変更できます。</string>
 
     <string name="oobe_region_title">国または地域</string>
-    <string name="oobe_region_subtitle">画面表示のためだけに使用されます。アップロードや保存は行われません。</string>
     <string name="oobe_region_hint">国または地域</string>
 
     <string name="oobe_account_title">アカウントを作成</string>

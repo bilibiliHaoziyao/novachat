@@ -1497,7 +1497,6 @@
     <string name="oobe_language_subtitle">You can change this later in Settings.</string>
 
     <string name="oobe_region_title">Country or region</string>
-    <string name="oobe_region_subtitle">Used only to tailor the on-screen experience. It is neither uploaded nor stored.</string>
     <string name="oobe_region_hint">Country or region</string>
 
     <string name="oobe_account_title">Create your account</string>

@@ -1276,7 +1276,6 @@
     <string name="oobe_language_subtitle">之後可以在「設定」中隨時更改。</string>
 
     <string name="oobe_region_title">國家或地區</string>
-    <string name="oobe_region_subtitle">僅用於介面顯示，不會上傳或保存。</string>
     <string name="oobe_region_hint">國家或地區</string>
 
     <string name="oobe_account_title">建立帳戶</string>
