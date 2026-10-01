@@ -5,20 +5,22 @@ import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import java.util.ArrayList;
 import java.util.List;
+import org.thoughtcrime.securesms.components.ScaleStableImageView;
 import org.thoughtcrime.securesms.connect.DcHelper;
 import org.thoughtcrime.securesms.muhan.MuhanAiChatAdapter;
 import org.thoughtcrime.securesms.muhan.MuhanAiClient;
 import org.thoughtcrime.securesms.muhan.MuhanAiConfig;
 import org.thoughtcrime.securesms.muhan.MuhanAiMessage;
 import org.thoughtcrime.securesms.muhan.MuhanAiStore;
+import org.thoughtcrime.securesms.util.ChatBackground;
 
 /**
  * Nova Chat: the "MuHan Intelligence" (慕寒智能) chat screen.
@@ -31,7 +33,7 @@ public class MuhanIntelligenceActivity extends BaseActionBarActivity {
 
   private RecyclerView listView;
   private EditText inputView;
-  private Button sendButton;
+  private ImageButton sendButton;
   private MuhanAiChatAdapter adapter;
 
   private final List<MuhanAiMessage> messages = new ArrayList<>();
@@ -54,6 +56,10 @@ public class MuhanIntelligenceActivity extends BaseActionBarActivity {
     listView = findViewById(R.id.muhan_ai_list);
     inputView = findViewById(R.id.muhan_ai_input);
     sendButton = findViewById(R.id.muhan_ai_send);
+
+    // same chat background as a regular conversation (solid colour / Monet / user picked image)
+    ((ScaleStableImageView) findViewById(R.id.muhan_ai_background))
+        .setImageDrawable(ChatBackground.getDrawable(this));
 
     adapter = new MuhanAiChatAdapter(this, messages);
     LinearLayoutManager layoutManager = new LinearLayoutManager(this);
@@ -164,7 +170,9 @@ public class MuhanIntelligenceActivity extends BaseActionBarActivity {
 
   private void updateSendState(boolean busy) {
     sendButton.setEnabled(!busy);
-    sendButton.setText(busy ? R.string.muhan_ai_sending : R.string.muhan_ai_send);
+    sendButton.setAlpha(busy ? 0.5f : 1f);
+    sendButton.setContentDescription(
+        getString(busy ? R.string.muhan_ai_sending : R.string.muhan_ai_send));
   }
 
   private void showNotConfiguredDialog() {

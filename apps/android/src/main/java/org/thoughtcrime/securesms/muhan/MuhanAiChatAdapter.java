@@ -1,51 +1,67 @@
 package org.thoughtcrime.securesms.muhan;
 
 import android.content.Context;
-import android.graphics.drawable.GradientDrawable;
-import android.util.TypedValue;
-import android.view.Gravity;
+import android.graphics.PorterDuff;
+import android.text.TextUtils;
+import android.text.format.DateFormat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
-import androidx.annotation.ColorInt;
 import androidx.annotation.NonNull;
-import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.RecyclerView;
+import java.util.Date;
 import java.util.List;
 import org.thoughtcrime.securesms.R;
+import org.thoughtcrime.securesms.util.ThemeUtil;
 
 /**
  * Nova Chat: renders the "MuHan Intelligence" chat bubbles (user on the right, assistant on the
- * left). Bubble colours and text colours are resolved from the current app theme, so light/dark and
- * Monet (wallpaper) theming are honoured.
+ * left), reusing the very same bubble drawables and theme colours as a regular conversation so the
+ * page looks consistent with the rest of the app in light, dark and Monet (wallpaper) themes.
  */
 public class MuhanAiChatAdapter extends RecyclerView.Adapter<MuhanAiChatAdapter.ViewHolder> {
 
+  private static final int TYPE_RECEIVED = 0;
+  private static final int TYPE_SENT = 1;
+
   private final Context context;
   private final List<MuhanAiMessage> messages;
+  private final java.text.DateFormat timeFormat;
 
   public MuhanAiChatAdapter(@NonNull Context context, @NonNull List<MuhanAiMessage> messages) {
     this.context = context;
     this.messages = messages;
+    this.timeFormat = DateFormat.getTimeFormat(context);
   }
 
   static class ViewHolder extends RecyclerView.ViewHolder {
+    final LinearLayout bubble;
     final TextView text;
+    final TextView time;
 
     ViewHolder(@NonNull View itemView) {
       super(itemView);
+      bubble = itemView.findViewById(R.id.muhan_ai_bubble);
       text = itemView.findViewById(R.id.muhan_ai_message_text);
+      time = itemView.findViewById(R.id.muhan_ai_message_time);
     }
+  }
+
+  @Override
+  public int getItemViewType(int position) {
+    return messages.get(position).isUser() ? TYPE_SENT : TYPE_RECEIVED;
   }
 
   @NonNull
   @Override
   public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-    View view =
-        LayoutInflater.from(parent.getContext())
-            .inflate(R.layout.muhan_ai_message_item, parent, false);
+    int layout =
+        viewType == TYPE_SENT
+            ? R.layout.muhan_ai_message_sent
+            : R.layout.muhan_ai_message_received;
+    View view = LayoutInflater.from(parent.getContext()).inflate(layout, parent, false);
     return new ViewHolder(view);
   }
 
@@ -54,53 +70,43 @@ public class MuhanAiChatAdapter extends RecyclerView.Adapter<MuhanAiChatAdapter.
     MuhanAiMessage message = messages.get(position);
     boolean user = message.isUser();
 
-    LinearLayout container = (LinearLayout) holder.itemView;
-    container.setGravity(user ? Gravity.END : Gravity.START);
-
     holder.text.setText(message.content);
     holder.text.setTextColor(
-        resolveColor(
+        ThemeUtil.getThemedColor(
             context,
             user
                 ? R.attr.conversation_item_outgoing_text_primary_color
-                : R.attr.conversation_item_incoming_text_primary_color,
-            user ? R.color.black : R.color.black));
-    holder.text.setBackground(
-        bubble(
-            resolveColor(
+                : R.attr.conversation_item_incoming_text_primary_color));
+
+    // Same trick as ConversationItem: the bubble drawable is plain white and gets multiplied by
+    // the themed bubble colour, which keeps the shape (asymmetric corner radius) of real bubbles.
+    holder.bubble.setBackgroundResource(
+        user
+            ? R.drawable.message_bubble_background_sent_alone
+            : R.drawable.message_bubble_background_received_alone);
+    holder.bubble
+        .getBackground()
+        .setColorFilter(
+            ThemeUtil.getThemedColor(
                 context,
                 user
                     ? R.attr.conversation_item_outgoing_bubble_color
-                    : R.attr.conversation_item_incoming_bubble_color,
-                R.color.white)));
+                    : R.attr.conversation_item_incoming_bubble_color),
+            PorterDuff.Mode.MULTIPLY);
+
+    holder.time.setTextColor(
+        ThemeUtil.getThemedColor(
+            context,
+            user
+                ? R.attr.conversation_item_outgoing_text_secondary_color
+                : R.attr.conversation_item_incoming_text_secondary_color));
+    holder.time.setText(
+        message.timestamp > 0 ? timeFormat.format(new Date(message.timestamp)) : "");
+    holder.time.setVisibility(TextUtils.isEmpty(holder.time.getText()) ? View.GONE : View.VISIBLE);
   }
 
   @Override
   public int getItemCount() {
     return messages.size();
-  }
-
-  private GradientDrawable bubble(@ColorInt int color) {
-    GradientDrawable drawable = new GradientDrawable();
-    drawable.setShape(GradientDrawable.RECTANGLE);
-    float radius = context.getResources().getDimension(R.dimen.message_corner_radius);
-    drawable.setCornerRadius(radius);
-    drawable.setColor(color);
-    return drawable;
-  }
-
-  @ColorInt
-  private static int resolveColor(@NonNull Context context, int attr, int fallbackRes) {
-    TypedValue value = new TypedValue();
-    if (context.getTheme().resolveAttribute(attr, value, true)) {
-      if (value.type >= TypedValue.TYPE_FIRST_COLOR_INT
-          && value.type <= TypedValue.TYPE_LAST_COLOR_INT) {
-        return value.data;
-      }
-      if (value.resourceId != 0) {
-        return ContextCompat.getColor(context, value.resourceId);
-      }
-    }
-    return ContextCompat.getColor(context, fallbackRes);
   }
 }

@@ -1,6 +1,6 @@
 # Nova Chat · 新星聊
 
-> 基于 [Delta Chat](https://github.com/deltachat) 的邮箱即时通讯软件，当前版本 **1.2.1**，仅发布 Android。
+> 基于 [Delta Chat](https://github.com/deltachat) 的邮箱即时通讯软件，当前版本 **1.2.1.1**，仅发布 Android。
 > Delta Chat 的核心理念——"以电子邮件协议为传输、无中心服务器"——被完整保留；Nova Chat 在此基础上重构了首次使用体验，并让加密与账号同步变得可选、可控。
 
 Nova Chat（新星聊）围绕 Delta Chat 做了三项核心改造：
@@ -45,6 +45,15 @@ Nova Chat（新星聊）围绕 Delta Chat 做了三项核心改造：
 - 服务器只见密文；备份口令丢失则无法恢复（请妥善保存）。
 
 ## 更新日志
+
+### 1.2.1.1（2026-09-30）
+
+- **慕寒智能会话页 UI 与常规会话保持一致**：
+  - 消息气泡改用与常规会话相同的形状与配色（`message_bubble_background_received_alone` / `sent_alone` + 主题取色），圆角、深浅色与莫奈取色完全一致；
+  - 助手消息（左侧）显示头像，并新增与常规会话一致的**时间戳**（跟随主题次级文字颜色）；
+  - 聊天背景复用常规会话背景（纯色 / 莫奈取色 / 用户自定义背景图）；
+  - 底部输入栏参照常规会话输入面板重做：使用 `ComposeEditText` 样式与圆形发送按钮（`?attr/send_button_bg`）。
+- 版本号更新为 1.2.1.1（`versionCode 12101`）。
 
 ### 1.2.1（2026-09-30）
 

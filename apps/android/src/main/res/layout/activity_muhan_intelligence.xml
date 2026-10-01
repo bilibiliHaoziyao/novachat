@@ -1,16 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout
+<RelativeLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/root_layout"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="?attr/input_panel_bg_color">
 
     <!-- extends the toolbar color behind the status bar (edge-to-edge) -->
     <include layout="@layout/status_bar_background" />
 
+    <!-- Nova Chat: same chat background as a regular conversation (solid / Monet / user image) -->
+    <org.thoughtcrime.securesms.components.ScaleStableImageView
+        android:id="@+id/muhan_ai_background"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="centerCrop"
+        android:importantForAccessibility="no" />
+
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:gravity="bottom"
+        android:clipToPadding="false"
+        android:clipChildren="false">
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/muhan_ai_list"
@@ -18,45 +31,69 @@
             android:layout_height="0dp"
             android:layout_weight="1"
             android:clipToPadding="false"
-            android:paddingTop="8dp"
-            android:paddingBottom="8dp"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp"
             android:scrollbars="vertical" />
 
-        <View
-            android:layout_width="match_parent"
-            android:layout_height="1dp"
-            android:background="?attr/conversation_list_item_divider" />
-
+        <!-- input bar styled after conversation_input_panel -->
         <LinearLayout
             android:id="@+id/muhan_ai_input_bar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="?attr/conversation_list_item_background"
-            android:gravity="center_vertical"
             android:orientation="horizontal"
-            android:padding="8dp">
+            android:gravity="center_vertical"
+            android:clickable="true"
+            android:paddingTop="6dp"
+            android:paddingBottom="6dp"
+            android:paddingLeft="6dp"
+            android:paddingStart="6dp"
+            android:paddingRight="6dp"
+            android:paddingEnd="6dp"
+            android:clipChildren="false"
+            android:clipToPadding="false"
+            android:background="?attr/input_panel_bg_color">
 
             <EditText
                 android:id="@+id/muhan_ai_input"
+                style="@style/ComposeEditText"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
+                android:layout_marginLeft="6dp"
+                android:layout_marginStart="6dp"
+                android:layout_marginRight="6dp"
+                android:layout_marginEnd="6dp"
                 android:hint="@string/muhan_ai_input_hint"
-                android:importantForAutofill="no"
-                android:inputType="textMultiLine|textCapSentences"
-                android:maxLines="5" />
+                android:importantForAutofill="no" />
 
-            <Button
-                android:id="@+id/muhan_ai_send"
-                style="@style/ButtonPrimary"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginLeft="8dp"
-                android:layout_marginStart="8dp"
-                android:text="@string/muhan_ai_send" />
+            <FrameLayout
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginLeft="6dp"
+                android:layout_marginStart="6dp"
+                android:layout_marginRight="6dp"
+                android:layout_marginEnd="6dp"
+                android:background="?attr/send_button_bg">
+
+                <ImageButton
+                    android:id="@+id/muhan_ai_send"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:paddingTop="6dp"
+                    android:paddingBottom="6dp"
+                    android:paddingLeft="11dp"
+                    android:paddingStart="11dp"
+                    android:paddingRight="6dp"
+                    android:paddingEnd="6dp"
+                    android:scaleType="fitCenter"
+                    android:src="@drawable/ic_send_sms_white_24dp"
+                    android:background="@drawable/circle_touch_highlight_background"
+                    android:contentDescription="@string/muhan_ai_send" />
+
+            </FrameLayout>
 
         </LinearLayout>
 
     </LinearLayout>
 
-</FrameLayout>
+</RelativeLayout>
