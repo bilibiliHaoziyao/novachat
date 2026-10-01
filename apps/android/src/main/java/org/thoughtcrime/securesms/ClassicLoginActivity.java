@@ -21,6 +21,7 @@ import java.util.concurrent.Executors;
 import org.thoughtcrime.securesms.connect.AccountManager;
 import org.thoughtcrime.securesms.connect.DcEventCenter;
 import org.thoughtcrime.securesms.connect.DcHelper;
+import org.thoughtcrime.securesms.oobe.OobeActivity;
 import org.thoughtcrime.securesms.util.Util;
 import org.thoughtcrime.securesms.util.ViewUtil;
 import org.thoughtcrime.securesms.util.views.ProgressDialog;
@@ -172,6 +173,12 @@ public class ClassicLoginActivity extends BaseActionBarActivity
     if (progressDialog != null) {
       progressDialog.dismiss();
       progressDialog = null;
+    }
+    if (getIntent().getBooleanExtra(OobeActivity.EXTRA_FROM_OOBE, false)) {
+      // hand control back to the setup wizard, which continues with the remaining steps
+      setResult(RESULT_OK);
+      finish();
+      return;
     }
     Toast.makeText(this, R.string.classic_login_success, Toast.LENGTH_LONG).show();
     Intent intent = new Intent(getApplicationContext(), ConversationListActivity.class);

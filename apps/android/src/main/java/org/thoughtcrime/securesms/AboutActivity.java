@@ -1,11 +1,15 @@
 package org.thoughtcrime.securesms;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.MenuItem;
 import android.widget.TextView;
 import androidx.annotation.Nullable;
+import androidx.appcompat.app.AlertDialog;
+import org.thoughtcrime.securesms.oobe.OobeActivity;
 import org.thoughtcrime.securesms.preferences.AdvancedPreferenceFragment;
 import org.thoughtcrime.securesms.util.IntentUtils;
+import org.thoughtcrime.securesms.util.Prefs;
 import org.thoughtcrime.securesms.util.ViewUtil;
 
 /**
@@ -31,6 +35,29 @@ public class AboutActivity extends BaseActionBarActivity {
     findViewById(R.id.about_source_button)
         .setOnClickListener(
             v -> IntentUtils.showInBrowser(this, "https://github.com/bilibiliHaoziyao/novachat"));
+
+    findViewById(R.id.about_oobe_button).setOnClickListener(v -> confirmRerunOobe());
+  }
+
+  /** Nova Chat: forget that the setup wizard ran, so it is shown again on the next start. */
+  private void confirmRerunOobe() {
+    new AlertDialog.Builder(this)
+        .setTitle(R.string.oobe_rerun_title)
+        .setMessage(R.string.oobe_rerun_message)
+        .setNegativeButton(R.string.cancel, null)
+        .setPositiveButton(
+            R.string.oobe_rerun_positive,
+            (dialog, which) -> {
+              Prefs.setOobeCompleted(this, false);
+              Prefs.setOobeStarted(this, false);
+              Prefs.setOobeStep(this, 0);
+
+              Intent intent = new Intent(this, OobeActivity.class);
+              intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+              startActivity(intent);
+              finish();
+            })
+        .show();
   }
 
   @Override

@@ -1,11 +1,11 @@
 # Nova Chat · 新星聊
 
-> 基于 [Delta Chat](https://github.com/deltachat) 的邮箱即时通讯软件，当前版本 **1.2.1.4**，仅发布 Android。
+> 基于 [Delta Chat](https://github.com/deltachat) 的邮箱即时通讯软件，当前版本 **1.3**，仅发布 Android。
 > Delta Chat 的核心理念——"以电子邮件协议为传输、无中心服务器"——被完整保留；Nova Chat 在此基础上重构了首次使用体验，并让加密与账号同步变得可选、可控。
 
 Nova Chat（新星聊）围绕 Delta Chat 做了三项核心改造：
 
-1. **优化首次使用登录向导** —— 邮箱登录升级为主入口，服务商智能预设（QQ / 163 / Gmail / Outlook 等），实时连接测试，失败可返回修改；
+1. **开箱向导（OOBE）** —— 首次安装即进入 HyperOS 风格全屏向导：语言 → 国家或地区 → 创建账户 / 登录 → WebDAV 备份（可跳过）→ 慕寒智能 → 设置完毕；邮箱登录入口保留服务商智能预设（QQ / 163 / Gmail / Outlook 等）与实时连接测试；
 2. **端到端加密默认关闭** —— 不再强制 E2E，设置中随时开启，可与普通邮件客户端互通；
 3. **账号支持 WebDAV 同步** —— 账号备份经 WebDAV（Nextcloud / 坚果云 / 自建服务等）加密上传，换机可一键恢复。
 
@@ -24,6 +24,7 @@ Nova Chat（新星聊）围绕 Delta Chat 做了三项核心改造：
 
 | 特性 | 说明 |
 |---|---|
+| 开箱向导（OOBE） | [OobeActivity.java](apps/android/src/main/java/org/thoughtcrime/securesms/oobe/OobeActivity.java)：首次安装自动进入，语言 → 国家或地区 → 创建账户 → WebDAV → 慕寒智能 → 完成；可在 关于页 → 重新运行开箱向导 再次体验 |
 | 邮箱登录向导 | [ClassicLoginActivity.java](apps/android/src/main/java/org/thoughtcrime/securesms/ClassicLoginActivity.java)：邮箱/密码/显示名 + 高级折叠，欢迎页直达；服务商预设自动填写 IMAP/SMTP |
 | 端到端加密可选 | 新账号写入 `force_encryption=0`，高级设置保留开关，关闭后可与普通邮件客户端互通 |
 | WebDAV 账号同步 | [WebDavSyncManager.java](apps/android/src/main/java/org/thoughtcrime/securesms/connect/WebDavSyncManager.java) + [WebDavSettingsActivity.java](apps/android/src/main/java/org/thoughtcrime/securesms/WebDavSettingsActivity.java) |

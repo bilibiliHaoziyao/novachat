@@ -1,10 +1,13 @@
 package org.thoughtcrime.securesms;
 
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
 import org.thoughtcrime.securesms.connect.DcHelper;
+import org.thoughtcrime.securesms.oobe.OobeActivity;
 import org.thoughtcrime.securesms.service.GenericForegroundService;
+import org.thoughtcrime.securesms.util.Prefs;
 
 public abstract class PassphraseRequiredActionBarActivity extends BaseActionBarActivity {
   private static final String TAG = "PassReqBarActivity";
@@ -28,8 +31,18 @@ public abstract class PassphraseRequiredActionBarActivity extends BaseActionBarA
       return;
     }
 
-    if (!DcHelper.isConfigured(getApplicationContext())) {
-      Intent intent = new Intent(this, WelcomeActivity.class);
+    // Nova Chat: first-run "out of the box experience". It is shown to brand new installs and,
+    // until it was finished once, to anyone who started it before (e.g. after creating an account
+    // in one of the external flows). Existing accounts are never pulled into it.
+    Context context = getApplicationContext();
+    boolean configured = DcHelper.isConfigured(context);
+    boolean oobeCompleted = Prefs.isOobeCompleted(this);
+    boolean oobePending = Prefs.isOobeStarted(this) && !oobeCompleted;
+    boolean needsOobe = oobePending || (!configured && !oobeCompleted);
+
+    if (needsOobe || !configured) {
+      Intent intent =
+          new Intent(this, needsOobe ? OobeActivity.class : WelcomeActivity.class);
       startActivity(intent);
       super.onCreate(savedInstanceState);
       finish();

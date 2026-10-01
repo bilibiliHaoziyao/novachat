@@ -1345,4 +1345,47 @@
         <item>@string/muhan_ai_api_source_custom</item>
     </string-array>
 
+    <!-- Nova Chat: 开箱向导 -->
+    <string name="oobe_continue">继续</string>
+    <string name="oobe_skip">跳过</string>
+
+    <string name="oobe_language_title">选择语言</string>
+    <string name="oobe_language_subtitle">之后可以在“设置”中随时更改。</string>
+
+    <string name="oobe_region_title">国家或地区</string>
+    <string name="oobe_region_subtitle">仅用于界面展示，不会上传或保存。</string>
+    <string name="oobe_region_hint">国家或地区</string>
+
+    <string name="oobe_account_title">创建账户</string>
+    <string name="oobe_account_subtitle">Nova Chat 使用邮箱账户，无需手机号。</string>
+    <string name="oobe_account_instant">立即创建新账户</string>
+    <string name="oobe_account_email">使用我的邮箱登录</string>
+    <string name="oobe_account_migrate">从其他设备迁移</string>
+    <string name="oobe_account_continue">使用现有账户继续</string>
+
+    <string name="oobe_webdav_title">备份到 WebDAV</string>
+    <string name="oobe_webdav_subtitle">可跳过</string>
+    <string name="oobe_webdav_explain">将账户的加密副本保存到你自己的 WebDAV 服务器，随时可在其他设备上恢复。</string>
+    <string name="oobe_webdav_configure">立即配置</string>
+
+    <string name="oobe_muhan_title">慕寒智能</string>
+    <string name="oobe_muhan_subtitle">内置的 AI 助手</string>
+    <string name="oobe_muhan_explain">在 Nova Chat 里直接与慕寒智能畅聊。请选择它使用的服务来源。</string>
+    <string name="oobe_muhan_source_builtin">使用内置服务（推荐）</string>
+    <string name="oobe_muhan_source_custom">使用自定义 API</string>
+    <string name="oobe_muhan_base_url">API 地址（例如 https://api.openai.com/v1）</string>
+    <string name="oobe_muhan_api_key">API 密钥（可留空）</string>
+    <string name="oobe_muhan_model">模型（例如 gpt-4o-mini）</string>
+    <string name="oobe_muhan_custom_hint">任意字段都可以留空，之后在“设置”中补全。</string>
+    <string name="oobe_muhan_done">完成设置</string>
+
+    <string name="oobe_finish_title">设置完毕</string>
+    <string name="oobe_finish_message">体验激动人心的 Nova Chat 吧！</string>
+    <string name="oobe_finish_action">开始使用</string>
+
+    <string name="about_rerun_oobe">重新运行开箱向导</string>
+    <string name="oobe_rerun_title">重新运行开箱向导？</string>
+    <string name="oobe_rerun_message">下次启动应用时会重新显示欢迎向导，现有聊天记录不会丢失。</string>
+    <string name="oobe_rerun_positive">重新运行</string>
+
     </resources>

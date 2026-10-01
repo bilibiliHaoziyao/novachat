@@ -1488,4 +1488,47 @@
     <string name="update_downloading">Downloading %1$s …</string>
     <string name="update_now">Update Now</string>
     <string name="update_install_permission_explain">To install the update, please first allow Nova Chat to install apps in the system settings.</string>
+
+    <!-- Nova Chat: first-run "out of the box experience" -->
+    <string name="oobe_continue">Continue</string>
+    <string name="oobe_skip">Skip</string>
+
+    <string name="oobe_language_title">Choose your language</string>
+    <string name="oobe_language_subtitle">You can change this later in Settings.</string>
+
+    <string name="oobe_region_title">Country or region</string>
+    <string name="oobe_region_subtitle">Used only to tailor the on-screen experience. It is neither uploaded nor stored.</string>
+    <string name="oobe_region_hint">Country or region</string>
+
+    <string name="oobe_account_title">Create your account</string>
+    <string name="oobe_account_subtitle">Nova Chat works with an email address — no phone number needed.</string>
+    <string name="oobe_account_instant">Create an instant account</string>
+    <string name="oobe_account_email">Sign in with my email</string>
+    <string name="oobe_account_migrate">Move from another device</string>
+    <string name="oobe_account_continue">Continue with the existing account</string>
+
+    <string name="oobe_webdav_title">Back up to WebDAV</string>
+    <string name="oobe_webdav_subtitle">Optional</string>
+    <string name="oobe_webdav_explain">Keep an encrypted copy of your account on your own WebDAV server, so you can restore it on another device at any time.</string>
+    <string name="oobe_webdav_configure">Set up now</string>
+
+    <string name="oobe_muhan_title">MuHan Intelligence</string>
+    <string name="oobe_muhan_subtitle">Your built-in assistant</string>
+    <string name="oobe_muhan_explain">Chat with MuHan Intelligence about anything, right inside Nova Chat. Choose which service it uses.</string>
+    <string name="oobe_muhan_source_builtin">Use the built-in service (recommended)</string>
+    <string name="oobe_muhan_source_custom">Use my own API</string>
+    <string name="oobe_muhan_base_url">API address (e.g. https://api.openai.com/v1)</string>
+    <string name="oobe_muhan_api_key">API key (optional)</string>
+    <string name="oobe_muhan_model">Model (e.g. gpt-4o-mini)</string>
+    <string name="oobe_muhan_custom_hint">Leave a field empty to fill it in later in Settings.</string>
+    <string name="oobe_muhan_done">Done</string>
+
+    <string name="oobe_finish_title">All set!</string>
+    <string name="oobe_finish_message">Enjoy the exciting Nova Chat.</string>
+    <string name="oobe_finish_action">Get started</string>
+
+    <string name="about_rerun_oobe">Run setup wizard again</string>
+    <string name="oobe_rerun_title">Run setup wizard again?</string>
+    <string name="oobe_rerun_message">The welcome wizard will be shown again the next time the app starts. Your chats are kept.</string>
+    <string name="oobe_rerun_positive">Run wizard</string>
 </resources>

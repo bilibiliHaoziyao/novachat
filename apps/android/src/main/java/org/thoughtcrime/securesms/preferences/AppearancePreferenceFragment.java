@@ -5,22 +5,16 @@ import android.content.Intent;
 import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatDelegate;
-import androidx.core.os.LocaleListCompat;
 import androidx.preference.ListPreference;
 import androidx.preference.Preference;
 import java.util.Arrays;
 import org.thoughtcrime.securesms.ApplicationPreferencesActivity;
 import org.thoughtcrime.securesms.R;
 import org.thoughtcrime.securesms.connect.DcHelper;
+import org.thoughtcrime.securesms.util.LanguageUtil;
 import org.thoughtcrime.securesms.util.Prefs;
 
 public class AppearancePreferenceFragment extends ListSummaryPreferenceFragment {
-
-  /** Nova Chat: preference key backing the in-app language selection. */
-  public static final String LANGUAGE_PREF = "pref_language";
-
-  private static final String LANGUAGE_SYSTEM = "system";
 
   @Override
   public void onCreate(Bundle paramBundle) {
@@ -32,25 +26,16 @@ public class AppearancePreferenceFragment extends ListSummaryPreferenceFragment 
         .setOnPreferenceClickListener(new BackgroundClickListener());
 
     // Nova Chat: in-app language selection (Simplified/Traditional Chinese, English, Japanese).
-    ListPreference languagePreference = (ListPreference) findPreference(LANGUAGE_PREF);
+    ListPreference languagePreference = (ListPreference) findPreference(LanguageUtil.LANGUAGE_PREF);
     if (languagePreference != null) {
       initializeListSummary(languagePreference);
       languagePreference.setOnPreferenceChangeListener(
           (preference, newValue) -> {
-            applyLanguage((String) newValue);
+            LanguageUtil.apply(requireContext(), (String) newValue);
             updateListSummary(preference, newValue);
             return true;
           });
     }
-  }
-
-  /** Switch the app locale; "system" restores the device language. */
-  private void applyLanguage(String languageTag) {
-    LocaleListCompat locales =
-        languageTag == null || LANGUAGE_SYSTEM.equals(languageTag)
-            ? LocaleListCompat.getEmptyLocaleList()
-            : LocaleListCompat.forLanguageTags(languageTag);
-    AppCompatDelegate.setApplicationLocales(locales);
   }
 
   @Override

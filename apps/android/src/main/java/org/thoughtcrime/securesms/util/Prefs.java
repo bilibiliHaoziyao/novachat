@@ -60,6 +60,12 @@ public class Prefs {
   public static final String MUHAN_AI_QUOTA_DATE_PREF = "pref_muhan_ai_quota_date";
   public static final String MUHAN_AI_QUOTA_COUNT_PREF = "pref_muhan_ai_quota_count";
 
+  /** First-run "out of the box experience", see {@code org.thoughtcrime.securesms.oobe}. */
+  public static final String OOBE_COMPLETED_PREF = "pref_nova_oobe_completed";
+
+  public static final String OOBE_STARTED_PREF = "pref_nova_oobe_started";
+  public static final String OOBE_STEP_PREF = "pref_nova_oobe_step";
+
   private static final String DATABASE_ENCRYPTED_SECRET =
       "pref_database_encrypted_secret_"; // followed by account-id
   private static final String DATABASE_UNENCRYPTED_SECRET =
@@ -368,6 +374,34 @@ public class Prefs {
 
   public static void setMuhanAiQuotaCount(Context context, int count) {
     setIntegerPreference(context, MUHAN_AI_QUOTA_COUNT_PREF, count);
+  }
+
+  // Nova Chat: first-run "out of the box experience", see org.thoughtcrime.securesms.oobe.
+  /** Whether the tour was walked through (or deliberately skipped) at least once. */
+  public static boolean isOobeCompleted(Context context) {
+    return getBooleanPreference(context, OOBE_COMPLETED_PREF, false);
+  }
+
+  public static void setOobeCompleted(Context context, boolean completed) {
+    setBooleanPreference(context, OOBE_COMPLETED_PREF, completed);
+  }
+
+  /** Whether the tour has ever been shown; used to tell new installs from existing accounts. */
+  public static boolean isOobeStarted(Context context) {
+    return getBooleanPreference(context, OOBE_STARTED_PREF, false);
+  }
+
+  public static void setOobeStarted(Context context, boolean started) {
+    setBooleanPreference(context, OOBE_STARTED_PREF, started);
+  }
+
+  /** Page the tour was left on, so it can be resumed after an account was created. */
+  public static int getOobeStep(Context context) {
+    return getIntegerPreference(context, OOBE_STEP_PREF, 0);
+  }
+
+  public static void setOobeStep(Context context, int step) {
+    setIntegerPreference(context, OOBE_STEP_PREF, step);
   }
 
   private static int getIntegerPreference(Context context, String key, int defaultValue) {

@@ -57,6 +57,14 @@ public final class MuhanAiConfig {
     return API_SOURCE_BUILTIN.equals(getApiSource(context));
   }
 
+  /** Selects the built-in or a custom endpoint. */
+  public static void setApiSource(@NonNull Context context, String source) {
+    Prefs.setStringPreference(
+        context,
+        Prefs.MUHAN_AI_API_SOURCE_PREF,
+        API_SOURCE_CUSTOM.equals(source) ? API_SOURCE_CUSTOM : API_SOURCE_BUILTIN);
+  }
+
   public static String getBaseUrl(@NonNull Context context) {
     if (isBuiltinApi(context)) {
       return Prefs.MUHAN_AI_BASE_URL_DEFAULT;
@@ -77,6 +85,23 @@ public final class MuhanAiConfig {
       return Prefs.MUHAN_AI_MODEL_DEFAULT;
     }
     return Prefs.getStringPreference(context, Prefs.MUHAN_AI_MODEL_PREF, "").trim();
+  }
+
+  /** Stores the custom endpoint address; an empty value falls back to the built-in address. */
+  public static void setBaseUrl(@NonNull Context context, String url) {
+    Prefs.setStringPreference(context, Prefs.MUHAN_AI_BASE_URL_PREF, url == null ? "" : url.trim());
+  }
+
+  /** Stores the custom endpoint API key, may be empty for endpoints that do not need one. */
+  public static void setApiKey(@NonNull Context context, String apiKey) {
+    Prefs.setStringPreference(
+        context, Prefs.MUHAN_AI_API_KEY_PREF, apiKey == null ? "" : apiKey.trim());
+  }
+
+  /** Stores the custom endpoint model, may be empty. */
+  public static void setModel(@NonNull Context context, String model) {
+    Prefs.setStringPreference(
+        context, Prefs.MUHAN_AI_MODEL_PREF, model == null ? "" : model.trim());
   }
 
   /** The user's custom prompt, may be empty. */

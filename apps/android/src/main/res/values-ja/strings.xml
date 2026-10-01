@@ -703,4 +703,47 @@
         <item>@string/muhan_ai_api_source_builtin</item>
         <item>@string/muhan_ai_api_source_custom</item>
     </string-array>
+
+    <!-- Nova Chat: 初回セットアップ -->
+    <string name="oobe_continue">続行</string>
+    <string name="oobe_skip">スキップ</string>
+
+    <string name="oobe_language_title">言語を選択</string>
+    <string name="oobe_language_subtitle">後で「設定」からいつでも変更できます。</string>
+
+    <string name="oobe_region_title">国または地域</string>
+    <string name="oobe_region_subtitle">画面表示のためだけに使用されます。アップロードや保存は行われません。</string>
+    <string name="oobe_region_hint">国または地域</string>
+
+    <string name="oobe_account_title">アカウントを作成</string>
+    <string name="oobe_account_subtitle">Nova Chat はメールアドレスで利用できます。電話番号は不要です。</string>
+    <string name="oobe_account_instant">今すぐアカウントを作成</string>
+    <string name="oobe_account_email">メールでログイン</string>
+    <string name="oobe_account_migrate">別の端末から移行</string>
+    <string name="oobe_account_continue">既存のアカウントで続行</string>
+
+    <string name="oobe_webdav_title">WebDAV にバックアップ</string>
+    <string name="oobe_webdav_subtitle">スキップ可能</string>
+    <string name="oobe_webdav_explain">アカウントの暗号化コピーを自分の WebDAV サーバーに保存し、いつでも別の端末で復元できます。</string>
+    <string name="oobe_webdav_configure">今すぐ設定</string>
+
+    <string name="oobe_muhan_title">慕寒智能</string>
+    <string name="oobe_muhan_subtitle">内蔵の AI アシスタント</string>
+    <string name="oobe_muhan_explain">Nova Chat の中で慕寒智能と自由に会話できます。使用するサービスを選択してください。</string>
+    <string name="oobe_muhan_source_builtin">内蔵サービスを使う（推奨）</string>
+    <string name="oobe_muhan_source_custom">独自の API を使う</string>
+    <string name="oobe_muhan_base_url">API アドレス（例: https://api.openai.com/v1）</string>
+    <string name="oobe_muhan_api_key">API キー（空欄可）</string>
+    <string name="oobe_muhan_model">モデル（例: gpt-4o-mini）</string>
+    <string name="oobe_muhan_custom_hint">空欄のままでも、後で「設定」から入力できます。</string>
+    <string name="oobe_muhan_done">設定を完了</string>
+
+    <string name="oobe_finish_title">設定完了</string>
+    <string name="oobe_finish_message">刺激的な Nova Chat をお楽しみください。</string>
+    <string name="oobe_finish_action">はじめる</string>
+
+    <string name="about_rerun_oobe">セットアップウィザードを再実行</string>
+    <string name="oobe_rerun_title">セットアップウィザードを再実行しますか？</string>
+    <string name="oobe_rerun_message">次回アプリ起動時にウェルカムウィザードが再表示されます。既存のチャットは保持されます。</string>
+    <string name="oobe_rerun_positive">再実行</string>
     </resources>

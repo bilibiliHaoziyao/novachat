@@ -82,6 +82,14 @@
                 android:layout_height="wrap_content"
                 android:text="@string/about_view_source" />
 
+            <Button
+                android:id="@+id/about_oobe_button"
+                style="@style/ButtonSecondary"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:text="@string/about_rerun_oobe" />
+
         </LinearLayout>
 
     </ScrollView>

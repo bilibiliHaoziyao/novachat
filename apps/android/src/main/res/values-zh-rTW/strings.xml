@@ -1268,4 +1268,47 @@
         <item>@string/muhan_ai_api_source_custom</item>
     </string-array>
 
+    <!-- Nova Chat: 開箱精靈 -->
+    <string name="oobe_continue">繼續</string>
+    <string name="oobe_skip">跳過</string>
+
+    <string name="oobe_language_title">選擇語言</string>
+    <string name="oobe_language_subtitle">之後可以在「設定」中隨時更改。</string>
+
+    <string name="oobe_region_title">國家或地區</string>
+    <string name="oobe_region_subtitle">僅用於介面顯示，不會上傳或保存。</string>
+    <string name="oobe_region_hint">國家或地區</string>
+
+    <string name="oobe_account_title">建立帳戶</string>
+    <string name="oobe_account_subtitle">Nova Chat 使用電子郵件帳戶，無需手機號碼。</string>
+    <string name="oobe_account_instant">立即建立新帳戶</string>
+    <string name="oobe_account_email">使用我的電子郵件登入</string>
+    <string name="oobe_account_migrate">從其他裝置移轉</string>
+    <string name="oobe_account_continue">使用現有帳戶繼續</string>
+
+    <string name="oobe_webdav_title">備份到 WebDAV</string>
+    <string name="oobe_webdav_subtitle">可跳過</string>
+    <string name="oobe_webdav_explain">將帳戶的加密副本儲存到你自己的 WebDAV 伺服器，隨時可在其他裝置上還原。</string>
+    <string name="oobe_webdav_configure">立即設定</string>
+
+    <string name="oobe_muhan_title">慕寒智能</string>
+    <string name="oobe_muhan_subtitle">內建的 AI 助手</string>
+    <string name="oobe_muhan_explain">在 Nova Chat 裡直接與慕寒智能暢聊。請選擇它使用的服務來源。</string>
+    <string name="oobe_muhan_source_builtin">使用內建服務（推薦）</string>
+    <string name="oobe_muhan_source_custom">使用自訂 API</string>
+    <string name="oobe_muhan_base_url">API 位址（例如 https://api.openai.com/v1）</string>
+    <string name="oobe_muhan_api_key">API 金鑰（可留空）</string>
+    <string name="oobe_muhan_model">模型（例如 gpt-4o-mini）</string>
+    <string name="oobe_muhan_custom_hint">任意欄位都可以留空，之後在「設定」中補齊。</string>
+    <string name="oobe_muhan_done">完成設定</string>
+
+    <string name="oobe_finish_title">設定完畢</string>
+    <string name="oobe_finish_message">體驗激動人心的 Nova Chat 吧！</string>
+    <string name="oobe_finish_action">開始使用</string>
+
+    <string name="about_rerun_oobe">重新執行開箱精靈</string>
+    <string name="oobe_rerun_title">重新執行開箱精靈？</string>
+    <string name="oobe_rerun_message">下次啟動應用程式時會重新顯示歡迎精靈，現有聊天記錄不會遺失。</string>
+    <string name="oobe_rerun_positive">重新執行</string>
+
     </resources>

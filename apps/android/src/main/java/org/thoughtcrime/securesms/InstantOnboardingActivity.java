@@ -46,6 +46,7 @@ import org.thoughtcrime.securesms.connect.DcHelper;
 import org.thoughtcrime.securesms.contacts.avatars.ResourceContactPhoto;
 import org.thoughtcrime.securesms.mms.AttachmentManager;
 import org.thoughtcrime.securesms.mms.GlideApp;
+import org.thoughtcrime.securesms.oobe.OobeActivity;
 import org.thoughtcrime.securesms.permissions.Permissions;
 import org.thoughtcrime.securesms.profiles.AvatarHelper;
 import org.thoughtcrime.securesms.proxy.ProxySettingsActivity;
@@ -503,6 +504,13 @@ public class InstantOnboardingActivity extends BaseActionBarActivity
   private void progressSuccess() {
     if (progressDialog != null) {
       progressDialog.dismiss();
+    }
+
+    if (getIntent().getBooleanExtra(OobeActivity.EXTRA_FROM_OOBE, false)) {
+      // hand control back to the setup wizard, which continues with the remaining steps
+      setResult(RESULT_OK);
+      finish();
+      return;
     }
 
     Intent intent = new Intent(getApplicationContext(), ConversationListActivity.class);

@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Nova Chat: first-run "out of the box experience" -->
+    <dimen name="oobe_dot_size">8dp</dimen>
+    <dimen name="oobe_dot_margin">4dp</dimen>
+
     <dimen name="min_keyboard_size">50dp</dimen>
     <dimen name="default_custom_keyboard_size">220dp</dimen>
     <dimen name="min_custom_keyboard_size">110dp</dimen>

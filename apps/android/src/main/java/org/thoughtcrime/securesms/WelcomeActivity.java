@@ -32,6 +32,7 @@ import org.thoughtcrime.securesms.connect.AccountManager;
 import org.thoughtcrime.securesms.connect.DcEventCenter;
 import org.thoughtcrime.securesms.connect.DcHelper;
 import org.thoughtcrime.securesms.mms.AttachmentManager;
+import org.thoughtcrime.securesms.oobe.OobeActivity;
 import org.thoughtcrime.securesms.permissions.Permissions;
 import org.thoughtcrime.securesms.qr.BackupTransferActivity;
 import org.thoughtcrime.securesms.qr.QrCodeHandler;
@@ -48,6 +49,10 @@ import org.thoughtcrime.securesms.util.views.ProgressDialog;
 public class WelcomeActivity extends BaseActionBarActivity
     implements DcEventCenter.DcEventDelegate {
   public static final String BACKUP_QR_EXTRA = "backup_qr_extra";
+
+  /** Nova Chat: open the "alternative logins" dialog right away (used by the setup wizard). */
+  public static final String EXTRA_OPEN_SIGN_IN_OPTIONS = "open_sign_in_options";
+
   public static final int PICK_BACKUP = 20574;
   private static final String TAG = "WelcomeActivity";
   public static final String TMP_BACKUP_FILE = "tmp-backup-file";
@@ -93,6 +98,11 @@ public class WelcomeActivity extends BaseActionBarActivity
     signUpButton.setOnClickListener(
         (v) -> startActivity(new Intent(this, InstantOnboardingActivity.class)));
     signInButton.setOnClickListener((v) -> signInDialog.show());
+
+    // Nova Chat: the setup wizard jumps straight to the migrate/restore options
+    if (getIntent().getBooleanExtra(EXTRA_OPEN_SIGN_IN_OPTIONS, false)) {
+      signInDialog.show();
+    }
 
     registerForEvents();
     initializeActionBar();
@@ -330,6 +340,12 @@ public class WelcomeActivity extends BaseActionBarActivity
   private void progressSuccess() {
     DcHelper.getEventCenter(this).endCaptureNextError();
     progressDialog.dismiss();
+    if (getIntent().getBooleanExtra(OobeActivity.EXTRA_FROM_OOBE, false)) {
+      // hand control back to the setup wizard, which continues with the remaining steps
+      setResult(RESULT_OK);
+      finish();
+      return;
+    }
     Intent intent = new Intent(getApplicationContext(), ConversationListActivity.class);
     intent.putExtra(ConversationListActivity.FROM_WELCOME, true);
     startActivity(intent);
