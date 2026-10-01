@@ -1,6 +1,6 @@
 # Nova Chat · 新星聊
 
-> 基于 [Delta Chat](https://github.com/deltachat) 的邮箱即时通讯软件，当前版本 **1.2.1.1**，仅发布 Android。
+> 基于 [Delta Chat](https://github.com/deltachat) 的邮箱即时通讯软件，当前版本 **1.2.1.4**，仅发布 Android。
 > Delta Chat 的核心理念——"以电子邮件协议为传输、无中心服务器"——被完整保留；Nova Chat 在此基础上重构了首次使用体验，并让加密与账号同步变得可选、可控。
 
 Nova Chat（新星聊）围绕 Delta Chat 做了三项核心改造：
@@ -17,7 +17,7 @@ Nova Chat（新星聊）围绕 Delta Chat 做了三项核心改造：
 |---|---|---|
 | Android | `NovaChat-universal.apk` | 32 位 + 64 位二合一（armeabi-v7a / arm64-v8a），Android 5.0+（`minSdk 21`），仓库密钥固定签名，跨版本可直接覆盖安装 |
 
-> 产物由 GitHub Actions 在打 `v*` 标签时自动构建（见 [.github/workflows/build-release.yml](.github/workflows/build-release.yml)）。
+> 产物由 GitHub Actions 在打 `v*` 标签时自动构建并发布（见 [.github/workflows/build-release.yml](.github/workflows/build-release.yml)）。
 > 桌面端源码保留在 `apps/desktop/`，但自 v0.2.0 起已停止构建与发布。
 
 ## 主要特性
@@ -34,7 +34,16 @@ Nova Chat（新星聊）围绕 Delta Chat 做了三项核心改造：
 | 后台收取消息指南 | 进入软件时提示开启即时传送、后台加锁与自启动，保证离线收信 |
 | 账号备份提示 | 初次登录在设备消息中提示备份账号 |
 | 关于页 | 软件介绍、版本号、开发者与 **Powered by Delta Chat** 致谢、源码链接 |
-| MuHan Intelligence | 内置 AI 助手（慕寒智能），默认置顶在会话列表，可在 设置 → MuHan Intelligence 中关闭；需自定义 API 地址与模型，兼容 OpenAI 格式（`/chat/completions`），支持流式回复与多轮上下文，对话历史仅保存在本机 |
+| MuHan Intelligence（慕寒智能） | 内置 AI 助手，默认置顶在会话列表，可在 设置 → MuHan Intelligence 中关闭；支持多会话，对话界面与常规会话保持一致，可发送文字 / 图片 / 语音，对话历史仅保存在本机 |
+
+### 慕寒智能（MuHan Intelligence）
+
+- **API 来源可选**：设置中可在 **内置 API** 与 **自定义 API** 之间切换。
+  - 内置 API：开箱即用，无需填写地址与密钥（编译期注入默认端点与模型）；
+  - 自定义 API：兼容 OpenAI 格式，可填写任意 `POST {baseUrl}/chat/completions` 地址、密钥与模型，支持流式（SSE）回复，附「测试连接」。
+- **每日额度**：使用内置 API 时，每天可发送 **5** 条消息，额度按自然日自动重置；用完后可在设置中切换为自定义 API 继续使用。
+- **会话管理**：对话页右上角可 **新建会话**，**长按该按钮** 可在已有会话间切换。
+- **本地存储**：对话历史按账号保存在本机（`filesDir/muhan-ai/`），仅发送至所选 API，可随时在设置或对话页清空。
 
 设计文档：[登录向导](docs/features/onboarding-wizard.md) · [可选加密](docs/features/optional-e2ee.md) · [WebDAV 同步](docs/features/webdav-sync.md) · [架构总览](docs/architecture.md) · [路线图](docs/roadmap.md)
 
@@ -44,62 +53,9 @@ Nova Chat（新星聊）围绕 Delta Chat 做了三项核心改造：
 - 恢复时反向操作：`GET` → 解密 → 核心导入备份；
 - 服务器只见密文；备份口令丢失则无法恢复（请妥善保存）。
 
-## 更新日志
+## 版本与更新日志
 
-### 1.2.1.1（2026-09-30）
-
-- **慕寒智能会话页 UI 与常规会话保持一致**：
-  - 消息气泡改用与常规会话相同的形状与配色（`message_bubble_background_received_alone` / `sent_alone` + 主题取色），圆角、深浅色与莫奈取色完全一致；
-  - 助手消息（左侧）显示头像，并新增与常规会话一致的**时间戳**（跟随主题次级文字颜色）；
-  - 聊天背景复用常规会话背景（纯色 / 莫奈取色 / 用户自定义背景图）；
-  - 底部输入栏参照常规会话输入面板重做：使用 `ComposeEditText` 样式与圆形发送按钮（`?attr/send_button_bg`）。
-- 版本号更新为 1.2.1.1（`versionCode 12101`）。
-
-### 1.2.1（2026-09-30）
-
-- **新增 MuHan Intelligence（慕寒智能）AI 助手**：默认置顶在会话列表，所有用户可用，可在 设置 → MuHan Intelligence 中关闭；
-- 兼容 OpenAI API 格式：在设置中自定义 **API 地址**、**API 密钥**与**模型**，支持流式（SSE）回复与多轮对话上下文，附「测试连接」；
-- 支持**自定义提示词**：留空时使用内置人设，填写后**完全替换**内置提示词；
-- 对话历史按账号保存在本机（`filesDir/muhan-ai/`），仅发送至用户自行配置的 API，可随时在设置或对话页清空；
-- 版本号更新为 1.2.1（`versionCode 1201`）。
-
-### 1.2（2026-09-30）
-
-- **深色模式适配莫奈取色**：新增 `values-night-v31` 深色调色板，深色主题下的工具栏、状态栏与整体配色跟随壁纸取色（使用调色板中较亮的色阶，保证深色背景下的可读性）；浅色模式取色保持不变；
-- **关于页新增 "Powered by Delta Chat"**：在开发者信息下方展示对上游项目的致谢；
-- **移除首次登录设备消息中的欢迎图片**：新账号的设备消息不再发送欢迎图片，仅保留文字欢迎消息；
-- 版本号更新为 1.2（`versionCode 1200`）。
-
-### 1.1（2026-09-27）
-
-- 应用配色（工具栏 / 标签栏等）跟随莫奈取色；
-- 更换应用图标并调小图标缩放比例，软件内所有图标替换为 Nova Chat 图标；
-- 进入软件时显示后台收取消息指南（开启即时传送、后台加锁、允许自启动）；
-- 初次登录在设备消息中新增账号备份提示；
-- 包名改为 `com.muhan.chat`（可与 Delta Chat 共存安装）；
-- 发布签名密钥入库（`apps/android/keystore/novachat-release.jks`），CI 固定签名。
-
-### 1.0（2026-09-27）
-
-- 全新应用图标；
-- 默认聊天背景改为纯色，深色模式黑色 / 浅色模式白色，支持跟随系统；
-- 分享邀请链接时提供快捷分享至 QQ / WeChat / 复制链接；
-- 新增莫奈取色（默认开启），聊天背景随壁纸取色；
-- 关于页新增开发者描述。
-
-### 0.2.0（2026-09-26）
-
-- 修复"使用自己邮箱"界面无法使用软件控件返回、状态栏不沉浸的问题；
-- 新增软件内选择语言；
-- 语言精简为 简体中文 / 繁體中文 / English / 日本語；
-- 全局品牌替换：软件内 Delta Chat 字样改为 Nova Chat（简体中文界面显示"新星聊"）；
-- 移除"发送统计数据给 Delta Chat 开发者"，移除设置页的捐赠与帮助，新增关于页；
-- 停止 Windows 版本构建，Android 改为同时输出 32 位 + 64 位。
-
-### 0.1.0（2026-09-26）
-
-- 首个开源版本，三项核心改造全部落地：登录向导优化、端到端加密默认关闭、WebDAV 账号同步；
-- 提供 Android（arm64）与 Windows（NSIS 安装包 / 便携版）双端产物。
+各版本的更新日志统一维护在 [Releases](https://github.com/bilibiliHaoziyao/novachat/releases) 页面，本 README 不再重复记录。
 
 ## 项目结构
 
@@ -112,7 +68,7 @@ novachat/
 │   │   │   ├── WebDavSettingsActivity.java    # WebDAV 同步设置
 │   │   │   ├── AboutActivity.java             # 关于页
 │   │   │   ├── MuhanIntelligenceActivity.java # MuHan Intelligence AI 对话界面
-│   │   │   ├── muhan/                         # AI 配置 / OpenAI 兼容客户端 / 本地历史
+│   │   │   ├── muhan/                         # AI 配置 / OpenAI 兼容客户端 / 本地多会话存储
 │   │   │   └── connect/WebDavSyncManager.java # WebDAV 客户端 + 备份加解密
 │   │   ├── src/main/res/values-night-v31/      # 深色莫奈取色调色板
 │   │   ├── keystore/novachat-release.jks      # 发布签名密钥（CI 使用）
@@ -135,8 +91,11 @@ bash scripts/ndk-make.sh armeabi-v7a        # 32 位核心
 ./gradlew assembleFossRelease               # 使用仓库内 keystore 签名
 ```
 
+> 内置 API 的默认端点与模型在 `apps/android/build.gradle` 中定义；其密钥通过 `MUHAN_AI_API_KEY`（Gradle 属性或环境变量，CI 使用 Secret）在构建期注入，不会进入仓库。
+
 ## 已知限制
 
+- 内置 API 每日限额 5 条消息，超出后需切换为自定义 API；
 - WebDAV 同步为整库备份上传，无增量与冲突合并；Android 端 WebDAV 配置暂不持久化（每次需重新填写）；
 - 仅内置四种语言（简中 / 繁中 / 英 / 日），其余语言未提供；
 - APK 为自行签名（非公共 CA 证书），安装时需允许未知来源应用；
