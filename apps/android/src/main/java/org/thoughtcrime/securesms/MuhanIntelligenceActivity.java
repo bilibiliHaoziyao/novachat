@@ -25,15 +25,18 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import org.thoughtcrime.securesms.components.ScaleStableImageView;
 import org.thoughtcrime.securesms.connect.DcHelper;
 import org.thoughtcrime.securesms.mms.GlideApp;
+import org.thoughtcrime.securesms.muhan.MuhanAiArchive;
 import org.thoughtcrime.securesms.muhan.MuhanAiChatAdapter;
 import org.thoughtcrime.securesms.muhan.MuhanAiClient;
 import org.thoughtcrime.securesms.muhan.MuhanAiConfig;
+import org.thoughtcrime.securesms.muhan.MuhanAiConversation;
 import org.thoughtcrime.securesms.muhan.MuhanAiMessage;
 import org.thoughtcrime.securesms.muhan.MuhanAiStore;
 import org.thoughtcrime.securesms.muhan.MuhanMediaUtil;
@@ -71,7 +74,12 @@ public class MuhanIntelligenceActivity extends BaseActionBarActivity {
 
   private MuhanAiChatAdapter adapter;
 
+  // Live list of the messages of the conversation currently shown; it backs the adapter. Every
+  // conversation owns its own list, {@link #persist} snapshots this one into the current
+  // conversation so that switching away keeps the previous conversation intact.
   private final List<MuhanAiMessage> messages = new ArrayList<>();
+  private MuhanAiArchive archive;
+  private MuhanAiConversation conversation;
   private int accountId;
   private MuhanAiClient.Request request;
   private boolean sending;
@@ -160,7 +168,9 @@ public class MuhanIntelligenceActivity extends BaseActionBarActivity {
     listView.setLayoutManager(layoutManager);
     listView.setAdapter(adapter);
 
-    messages.addAll(MuhanAiStore.load(this, accountId));
+    archive = MuhanAiStore.load(this, accountId);
+    conversation = archive.current();
+    messages.addAll(conversation.messages());
     ensureGreeting();
     adapter.notifyDataSetChanged();
     scrollToBottom();
@@ -177,8 +187,15 @@ public class MuhanIntelligenceActivity extends BaseActionBarActivity {
       messages.add(
           new MuhanAiMessage(
               MuhanAiMessage.ROLE_ASSISTANT, getString(R.string.muhan_ai_greeting)));
-      MuhanAiStore.save(this, accountId, messages);
+      persist();
     }
+  }
+
+  /** Writes the whole archive (every conversation plus the current one) to disk. */
+  private void persist() {
+    // snapshot the live list: the next conversation gets its own one
+    conversation.messages = new ArrayList<>(messages);
+    MuhanAiStore.save(this, accountId, archive);
   }
 
   // region attachments
@@ -420,6 +437,10 @@ public class MuhanIntelligenceActivity extends BaseActionBarActivity {
       showNotConfiguredDialog();
       return;
     }
+    if (!MuhanAiConfig.canSend(this)) {
+      showQuotaDialog();
+      return;
+    }
 
     boolean transcribeAudio = MuhanAiConfig.isTranscribeMode(this);
     boolean audioAttachment = hasAttachment && MuhanAiMessage.ATTACHMENT_AUDIO.equals(pendingType);
@@ -429,6 +450,8 @@ public class MuhanIntelligenceActivity extends BaseActionBarActivity {
       showAudioFormatHint();
       return;
     }
+    // the built-in endpoint is rationed, book the message against today's budget
+    MuhanAiConfig.recordMessageSent(this);
 
     MuhanAiMessage userMessage = new MuhanAiMessage(MuhanAiMessage.ROLE_USER, text);
     if (hasAttachment) {
@@ -448,7 +471,7 @@ public class MuhanIntelligenceActivity extends BaseActionBarActivity {
     }
     adapter.notifyDataSetChanged();
     scrollToBottom();
-    MuhanAiStore.save(this, accountId, messages);
+    persist();
 
     List<MuhanAiMessage> requestMessages = new ArrayList<>();
     requestMessages.add(
@@ -514,7 +537,7 @@ public class MuhanIntelligenceActivity extends BaseActionBarActivity {
     request = null;
     updateSendState(false);
     adapter.notifyItemChanged(messages.size() - 1);
-    MuhanAiStore.save(this, accountId, messages);
+    persist();
     scrollToBottom();
   }
 
@@ -551,16 +574,95 @@ public class MuhanIntelligenceActivity extends BaseActionBarActivity {
   }
 
   private void clearHistory() {
+    abortRequest();
+    messages.clear();
+    MuhanAiStore.clear(this, accountId);
+    archive = new MuhanAiArchive();
+    conversation = archive.current();
+    ensureGreeting();
+    adapter.notifyDataSetChanged();
+  }
+
+  /** Drops an in-flight request and returns the composer to its idle state. */
+  private void abortRequest() {
     if (request != null) {
       request.cancel();
       request = null;
     }
     sending = false;
     updateSendState(false);
+  }
+
+  private void startNewConversation() {
+    abortRequest();
+    persist();
+    conversation = archive.createConversation();
     messages.clear();
-    MuhanAiStore.clear(this, accountId);
     ensureGreeting();
     adapter.notifyDataSetChanged();
+    scrollToBottom();
+    persist();
+  }
+
+  private void switchConversation(@NonNull MuhanAiConversation target) {
+    if (target == conversation) {
+      return;
+    }
+    abortRequest();
+    persist();
+    conversation = target;
+    archive.currentId = target.id;
+    messages.clear();
+    messages.addAll(target.messages());
+    ensureGreeting();
+    adapter.notifyDataSetChanged();
+    scrollToBottom();
+    persist();
+  }
+
+  /** Long-press target of the "new conversation" action: pick one of the existing conversations. */
+  private void showConversationSwitcher() {
+    final List<MuhanAiConversation> conversations = new ArrayList<>(archive.conversations());
+    Collections.reverse(conversations);
+    if (conversations.size() <= 1) {
+      Toast.makeText(this, R.string.muhan_ai_switch_conversation_empty, Toast.LENGTH_SHORT).show();
+      return;
+    }
+    final String[] titles = new String[conversations.size()];
+    for (int i = 0; i < conversations.size(); i++) {
+      MuhanAiConversation item = conversations.get(i);
+      titles[i] =
+          conversationTitle(item)
+              + (item.id == archive.currentId
+                  ? " (" + getString(R.string.muhan_ai_conversation_current) + ")"
+                  : "");
+    }
+    new AlertDialog.Builder(this)
+        .setTitle(R.string.muhan_ai_switch_conversation)
+        .setItems(titles, (dialog, which) -> switchConversation(conversations.get(which)))
+        .setNegativeButton(android.R.string.cancel, null)
+        .show();
+  }
+
+  /** Label of a conversation in the switcher: its first user message, or a generic name. */
+  private String conversationTitle(@NonNull MuhanAiConversation target) {
+    for (MuhanAiMessage message : target.messages()) {
+      if (MuhanAiMessage.ROLE_USER.equals(message.role) && !TextUtils.isEmpty(message.content)) {
+        String text = message.content.replace('\n', ' ').trim();
+        return text.length() > 24 ? text.substring(0, 24) + "…" : text;
+      }
+    }
+    return getString(R.string.muhan_ai_conversation_new);
+  }
+
+  private void showQuotaDialog() {
+    new AlertDialog.Builder(this)
+        .setTitle(R.string.muhan_ai_quota_title)
+        .setMessage(
+            getString(R.string.muhan_ai_quota_limited, MuhanAiConfig.BUILTIN_DAILY_LIMIT))
+        .setPositiveButton(R.string.muhan_ai_open_settings, (d, w) -> openSettings())
+        .setNegativeButton(android.R.string.cancel, null)
+        .show();
   }
 
   private void openSettings() {
@@ -576,6 +678,18 @@ public class MuhanIntelligenceActivity extends BaseActionBarActivity {
   @Override
   public boolean onCreateOptionsMenu(@NonNull Menu menu) {
     getMenuInflater().inflate(R.menu.menu_muhan_intelligence, menu);
+    MenuItem newConversation = menu.findItem(R.id.menu_muhan_ai_new);
+    if (newConversation != null) {
+      // the action view is used instead of a plain item so that a long press can be observed
+      View actionView = getLayoutInflater().inflate(R.layout.muhan_ai_action_new_conversation, null);
+      actionView.setOnClickListener(v -> startNewConversation());
+      actionView.setOnLongClickListener(
+          v -> {
+            showConversationSwitcher();
+            return true;
+          });
+      newConversation.setActionView(actionView);
+    }
     return true;
   }
 
@@ -584,6 +698,9 @@ public class MuhanIntelligenceActivity extends BaseActionBarActivity {
     int id = item.getItemId();
     if (id == android.R.id.home) {
       finish();
+      return true;
+    } else if (id == R.id.menu_muhan_ai_new) {
+      startNewConversation();
       return true;
     } else if (id == R.id.menu_muhan_ai_clear) {
       confirmClearHistory();
@@ -604,6 +721,10 @@ public class MuhanIntelligenceActivity extends BaseActionBarActivity {
 
   @Override
   protected void onDestroy() {
+    // persist first, so a reply that was still streaming when the user left is not lost
+    if (archive != null && conversation != null) {
+      persist();
+    }
     super.onDestroy();
     if (request != null) {
       request.cancel();

@@ -688,4 +688,19 @@
     <string name="muhan_ai_audio_play">音声を再生</string>
     <string name="muhan_ai_audio_pause">再生を一時停止</string>
     <string name="muhan_ai_attach_remove">添付を削除</string>
+    <string name="muhan_ai_api_source_title">API ソース</string>
+    <string name="muhan_ai_api_source_summary">内蔵 API とカスタム API のどちらを使うか選択します</string>
+    <string name="muhan_ai_api_source_builtin">内蔵 API（1日5通）</string>
+    <string name="muhan_ai_api_source_custom">カスタム API</string>
+    <string name="muhan_ai_new_conversation">新しい会話</string>
+    <string name="muhan_ai_switch_conversation">会話を切り替え</string>
+    <string name="muhan_ai_switch_conversation_empty">他の会話はまだありません</string>
+    <string name="muhan_ai_conversation_current">現在</string>
+    <string name="muhan_ai_conversation_new">新しい会話</string>
+    <string name="muhan_ai_quota_title">1日の上限に達しました</string>
+    <string name="muhan_ai_quota_limited">内蔵 API は1日に %1$d 通まで送信できます。設定でカスタム API に切り替えると無制限で利用できます。</string>
+    <string-array name="muhan_ai_api_source_entries">
+        <item>@string/muhan_ai_api_source_builtin</item>
+        <item>@string/muhan_ai_api_source_custom</item>
+    </string-array>
     </resources>

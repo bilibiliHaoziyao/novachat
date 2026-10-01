@@ -2,6 +2,13 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
 
+    <!-- Nova Chat: tap starts a new conversation, long-press switches to another one. The action
+         view is attached in onCreateOptionsMenu so that the long press can be observed. -->
+    <item
+        android:id="@+id/menu_muhan_ai_new"
+        android:title="@string/muhan_ai_new_conversation"
+        app:showAsAction="always" />
+
     <item
         android:id="@+id/menu_muhan_ai_clear"
         android:title="@string/muhan_ai_clear"

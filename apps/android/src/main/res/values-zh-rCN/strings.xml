@@ -1329,5 +1329,20 @@
     <string name="muhan_ai_audio_play">播放音频</string>
     <string name="muhan_ai_audio_pause">暂停播放</string>
     <string name="muhan_ai_attach_remove">移除附件</string>
+    <string name="muhan_ai_api_source_title">API 来源</string>
+    <string name="muhan_ai_api_source_summary">选择使用内置 API 还是自定义 API</string>
+    <string name="muhan_ai_api_source_builtin">内置 API（每天 5 句话）</string>
+    <string name="muhan_ai_api_source_custom">自定义 API</string>
+    <string name="muhan_ai_new_conversation">新建会话</string>
+    <string name="muhan_ai_switch_conversation">切换会话</string>
+    <string name="muhan_ai_switch_conversation_empty">暂无其它会话</string>
+    <string name="muhan_ai_conversation_current">当前</string>
+    <string name="muhan_ai_conversation_new">新会话</string>
+    <string name="muhan_ai_quota_title">已达今日上限</string>
+    <string name="muhan_ai_quota_limited">内置 API 每天仅可发送 %1$d 句话。前往设置切换为自定义 API 即可不限量使用。</string>
+    <string-array name="muhan_ai_api_source_entries">
+        <item>@string/muhan_ai_api_source_builtin</item>
+        <item>@string/muhan_ai_api_source_custom</item>
+    </string-array>
 
     </resources>

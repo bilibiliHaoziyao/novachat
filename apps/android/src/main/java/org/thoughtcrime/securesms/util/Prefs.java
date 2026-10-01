@@ -52,6 +52,14 @@ public class Prefs {
   public static final String MUHAN_AI_TRANSCRIBE_MODEL_PREF = "pref_muhan_ai_transcribe_model";
   public static final String MUHAN_AI_TRANSCRIBE_MODEL_DEFAULT = "whisper-1";
 
+  /** Whether the built-in endpoint or the user's own one is used: {@code builtin}/{@code custom}. */
+  public static final String MUHAN_AI_API_SOURCE_PREF = "pref_muhan_ai_api_source";
+  public static final String MUHAN_AI_API_SOURCE_DEFAULT = "builtin";
+
+  /** Daily usage of the built-in endpoint, reset whenever the stored date changes. */
+  public static final String MUHAN_AI_QUOTA_DATE_PREF = "pref_muhan_ai_quota_date";
+  public static final String MUHAN_AI_QUOTA_COUNT_PREF = "pref_muhan_ai_quota_count";
+
   private static final String DATABASE_ENCRYPTED_SECRET =
       "pref_database_encrypted_secret_"; // followed by account-id
   private static final String DATABASE_UNENCRYPTED_SECRET =
@@ -351,6 +359,15 @@ public class Prefs {
 
   public static String getStringPreference(Context context, String key, String defaultValue) {
     return PreferenceManager.getDefaultSharedPreferences(context).getString(key, defaultValue);
+  }
+
+  // Nova Chat: daily message budget consumed through the built-in "MuHan Intelligence" endpoint.
+  public static int getMuhanAiQuotaCount(Context context) {
+    return getIntegerPreference(context, MUHAN_AI_QUOTA_COUNT_PREF, 0);
+  }
+
+  public static void setMuhanAiQuotaCount(Context context, int count) {
+    setIntegerPreference(context, MUHAN_AI_QUOTA_COUNT_PREF, count);
   }
 
   private static int getIntegerPreference(Context context, String key, int defaultValue) {

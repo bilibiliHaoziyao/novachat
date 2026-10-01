@@ -1,12 +1,15 @@
 package org.thoughtcrime.securesms.muhan;
 
 import androidx.annotation.NonNull;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 /**
  * Nova Chat: a single message of a "MuHan Intelligence" conversation.
  *
- * <p>Public fields keep it directly (de)serializable by Jackson, see {@link MuhanAiStore}.
+ * <p>Public fields keep it directly (de)serializable by Jackson, see {@link MuhanAiStore}. Unknown
+ * properties are ignored so that a history written by an older build still loads.
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class MuhanAiMessage {
 
   public static final String ROLE_SYSTEM = "system";

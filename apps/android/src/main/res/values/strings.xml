@@ -62,6 +62,17 @@
     <string name="muhan_ai_audio_play">Play audio</string>
     <string name="muhan_ai_audio_pause">Pause audio</string>
     <string name="muhan_ai_attach_remove">Remove attachment</string>
+    <string name="muhan_ai_api_source_title">API source</string>
+    <string name="muhan_ai_api_source_summary">Use the built-in API or your own endpoint</string>
+    <string name="muhan_ai_api_source_builtin">Built-in API (5 messages a day)</string>
+    <string name="muhan_ai_api_source_custom">Custom API</string>
+    <string name="muhan_ai_new_conversation">New conversation</string>
+    <string name="muhan_ai_switch_conversation">Switch conversation</string>
+    <string name="muhan_ai_switch_conversation_empty">No other conversation yet</string>
+    <string name="muhan_ai_conversation_current">current</string>
+    <string name="muhan_ai_conversation_new">New conversation</string>
+    <string name="muhan_ai_quota_title">Daily limit reached</string>
+    <string name="muhan_ai_quota_limited">The built-in API allows %1$d messages per day. Switch to a custom API in the settings for unlimited use.</string>
     <string-array name="muhan_ai_media_mode_values" translatable="false">
         <item>multimodal</item>
         <item>transcribe</item>
@@ -69,6 +80,14 @@
     <string-array name="muhan_ai_media_mode_entries">
         <item>@string/muhan_ai_media_mode_multimodal</item>
         <item>@string/muhan_ai_media_mode_transcribe</item>
+    </string-array>
+    <string-array name="muhan_ai_api_source_values" translatable="false">
+        <item>builtin</item>
+        <item>custom</item>
+    </string-array>
+    <string-array name="muhan_ai_api_source_entries">
+        <item>@string/muhan_ai_api_source_builtin</item>
+        <item>@string/muhan_ai_api_source_custom</item>
     </string-array>
 
     <!-- Nova Chat: guide shown on app entry about receiving messages in the background -->

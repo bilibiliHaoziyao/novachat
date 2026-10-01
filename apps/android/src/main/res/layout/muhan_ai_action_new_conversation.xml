@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Nova Chat: action view of the "new conversation" toolbar button; the padding keeps the icon at
+     its intended 24dp on every density (the asset ships no xxxhdpi bitmap). -->
+<ImageButton xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="48dp"
+    android:layout_height="48dp"
+    android:background="?attr/selectableItemBackgroundBorderless"
+    android:contentDescription="@string/muhan_ai_new_conversation"
+    android:padding="12dp"
+    android:scaleType="fitCenter"
+    android:src="@drawable/ic_add_white_24dp"
+    android:tint="?icon_tint" />

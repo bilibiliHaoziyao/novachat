@@ -10,6 +10,7 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.preference.EditTextPreference;
 import androidx.preference.ListPreference;
+import androidx.preference.Preference;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -80,6 +81,15 @@ public class MuhanAiPreferenceFragment extends CorrectedPreferenceFragment {
           });
     }
 
+    ListPreference apiSource = findPreference(Prefs.MUHAN_AI_API_SOURCE_PREF);
+    if (apiSource != null) {
+      apiSource.setOnPreferenceChangeListener(
+          (preference, newValue) -> {
+            mainHandler.post(this::refreshSummaries);
+            return true;
+          });
+    }
+
     findPreference(KEY_TEST).setOnPreferenceClickListener(p -> { testConnection(); return true; });
     findPreference(KEY_CLEAR).setOnPreferenceClickListener(p -> { confirmClear(); return true; });
 
@@ -126,6 +136,26 @@ public class MuhanAiPreferenceFragment extends CorrectedPreferenceFragment {
       CharSequence entry = mediaMode.getEntry();
       mediaMode.setSummary(
           getString(R.string.muhan_ai_media_mode_summary) + "\n" + (entry == null ? "" : entry));
+    }
+
+    ListPreference apiSource = findPreference(Prefs.MUHAN_AI_API_SOURCE_PREF);
+    if (apiSource != null) {
+      CharSequence entry = apiSource.getEntry();
+      apiSource.setSummary(
+          getString(R.string.muhan_ai_api_source_summary) + "\n" + (entry == null ? "" : entry));
+    }
+
+    // the address, key and model only matter for a custom endpoint
+    boolean custom = !MuhanAiConfig.isBuiltinApi(context);
+    setEnabled(Prefs.MUHAN_AI_BASE_URL_PREF, custom);
+    setEnabled(Prefs.MUHAN_AI_API_KEY_PREF, custom);
+    setEnabled(Prefs.MUHAN_AI_MODEL_PREF, custom);
+  }
+
+  private void setEnabled(String key, boolean enabled) {
+    Preference preference = findPreference(key);
+    if (preference != null) {
+      preference.setEnabled(enabled);
     }
   }
 
