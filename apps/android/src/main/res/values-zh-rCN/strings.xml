@@ -9,6 +9,7 @@
     <string name="about_developer">该软件由慕寒_Official开发</string>
     <string name="about_license">新星聊是自由开源软件，遵循 GNU 通用公共许可证 v3 发布。</string>
     <string name="about_view_source">查看源代码</string>
+    <string name="about_powered_by">基于 Delta Chat</string>
 
     <!-- Nova Chat: 进入软件时显示的后台收取消息指南 -->
     <string name="nova_bg_guide_title">后台收取消息指南</string>
@@ -1392,4 +1393,8 @@
     <string name="pref_privacy_security">隐私与安全</string>
     <string name="pref_network">网络</string>
     <string name="multidevice_summary">在其他设备上使用同一账户</string>
+
+    <!-- Nova Chat：WebDAV 同步 -->
+    <string name="webdav_sync">WebDAV 同步</string>
+    <string name="webdav_sync_explain">将账号备份（含消息、联系人、密钥）加密同步到任意 WebDAV 服务（Nextcloud、坚果云等），用于多端同步与换机恢复。</string>
     </resources>

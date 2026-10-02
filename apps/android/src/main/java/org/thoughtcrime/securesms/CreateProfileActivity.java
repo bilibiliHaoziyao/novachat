@@ -1,5 +1,8 @@
 package org.thoughtcrime.securesms;
 
+import static android.app.Activity.RESULT_OK;
+import static org.thoughtcrime.securesms.connect.DcHelper.CONFIG_BCC_SELF;
+
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
@@ -19,7 +22,11 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.activity.OnBackPressedCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.widget.SwitchCompat;
 import androidx.loader.app.LoaderManager;
 import com.b44t.messenger.DcContext;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
@@ -39,6 +46,7 @@ import org.thoughtcrime.securesms.permissions.Permissions;
 import org.thoughtcrime.securesms.profiles.AvatarHelper;
 import org.thoughtcrime.securesms.scribbles.ScribbleActivity;
 import org.thoughtcrime.securesms.util.Prefs;
+import org.thoughtcrime.securesms.util.ScreenLockUtil;
 import org.thoughtcrime.securesms.util.ViewUtil;
 
 @SuppressLint("StaticFieldLeak")
@@ -53,6 +61,9 @@ public class CreateProfileActivity extends BaseActionBarActivity {
   private EditText name;
   private EditText statusView;
 
+  private SwitchCompat multideviceSwitch;
+  private ActivityResultLauncher<Intent> screenLockLauncher;
+
   private boolean avatarChanged;
   private boolean imageLoaded;
 
@@ -64,6 +75,15 @@ public class CreateProfileActivity extends BaseActionBarActivity {
     super.onCreate(bundle);
 
     setContentView(R.layout.profile_create_activity);
+
+    screenLockLauncher =
+        registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+              if (result.getResultCode() == RESULT_OK) {
+                ApplicationPreferencesActivity.showBackupProvider(this);
+              }
+            });
 
     DcContext dcContext = DcHelper.getContext(this);
     getSupportActionBar()
@@ -80,6 +100,7 @@ public class CreateProfileActivity extends BaseActionBarActivity {
     initializeProfileName();
     initializeProfileAvatar();
     initializeStatusText();
+    initializeAccountSection();
 
     getOnBackPressedDispatcher()
         .addCallback(
@@ -95,6 +116,14 @@ public class CreateProfileActivity extends BaseActionBarActivity {
                 }
               }
             });
+  }
+
+  @Override
+  protected void onResume() {
+    super.onResume();
+    if (multideviceSwitch != null) {
+      multideviceSwitch.setChecked(0 != DcHelper.getContext(this).getConfigInt(CONFIG_BCC_SELF));
+    }
   }
 
   @Override
@@ -227,6 +256,56 @@ public class CreateProfileActivity extends BaseActionBarActivity {
   private void initializeStatusText() {
     String status = DcHelper.get(this, DcHelper.CONFIG_SELF_STATUS);
     statusView.setText(status);
+  }
+
+  /**
+   * Nova Chat: account settings (second device, multi-device mode, WebDAV) moved here from the
+   * separate "Account" settings screen.
+   */
+  private void initializeAccountSection() {
+    View addSecondDevice = findViewById(R.id.account_multidevice_row);
+    addSecondDevice.setOnClickListener(
+        v -> {
+          if (!ScreenLockUtil.applyScreenLock(
+              this,
+              getString(R.string.multidevice_title),
+              getString(R.string.multidevice_this_creates_a_qr_code)
+                  + "\n\n"
+                  + getString(R.string.enter_system_secret_to_continue),
+              screenLockLauncher)) {
+            new AlertDialog.Builder(this)
+                .setTitle(R.string.multidevice_title)
+                .setMessage(R.string.multidevice_this_creates_a_qr_code)
+                .setPositiveButton(
+                    R.string.perm_continue,
+                    (dialog, which) -> ApplicationPreferencesActivity.showBackupProvider(this))
+                .setNegativeButton(R.string.cancel, null)
+                .show();
+          }
+        });
+
+    multideviceSwitch = findViewById(R.id.account_bcc_self_switch);
+    multideviceSwitch.setOnCheckedChangeListener(
+        (button, isChecked) -> {
+          DcContext dcContext = DcHelper.getContext(this);
+          if (isChecked) {
+            dcContext.setConfigInt(CONFIG_BCC_SELF, 1);
+          } else {
+            new AlertDialog.Builder(this)
+                .setMessage(R.string.pref_multidevice_change_warn)
+                .setPositiveButton(
+                    R.string.ok,
+                    (dialogInterface, i) -> dcContext.setConfigInt(CONFIG_BCC_SELF, 0))
+                .setNegativeButton(
+                    R.string.cancel, (dialogInterface, i) -> button.setChecked(true))
+                .setOnCancelListener(dialog -> button.setChecked(true))
+                .show();
+          }
+        });
+
+    View webdav = findViewById(R.id.account_webdav_row);
+    webdav.setOnClickListener(
+        v -> startActivity(new Intent(this, WebDavSettingsActivity.class)));
   }
 
   private void updateProfile() {

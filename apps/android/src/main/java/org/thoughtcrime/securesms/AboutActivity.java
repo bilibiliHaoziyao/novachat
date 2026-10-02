@@ -15,8 +15,8 @@ import org.thoughtcrime.securesms.util.ViewUtil;
 /**
  * Nova Chat: the "About" screen.
  *
- * <p>Replaces the removed "Donate" and "Help" entries on the settings page. Shows the app name,
- * version and a short description together with a link to the source code.
+ * <p>Hero header (logo, name, version chip, developer) plus two cards: description/license and
+ * the actions (source code link, re-run the setup wizard).
  */
 public class AboutActivity extends BaseActionBarActivity {
 

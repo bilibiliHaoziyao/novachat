@@ -6,12 +6,6 @@
         android:key="preference_category_profile" />
 
     <Preference
-        android:key="preference_category_account"
-        android:title="@string/pref_account"
-        android:icon="@drawable/ic_person"
-        android:layout="@layout/preference_item" />
-
-    <Preference
         android:key="preference_category_chats"
         android:title="@string/pref_chats"
         android:icon="@drawable/ic_forum_24dp"
@@ -32,7 +26,7 @@
     <Preference
         android:key="preference_category_privacy"
         android:title="@string/pref_privacy_security"
-        android:icon="@drawable/ic_lock"
+        android:icon="@drawable/ic_lock_24dp"
         android:layout="@layout/preference_item" />
 
     <Preference

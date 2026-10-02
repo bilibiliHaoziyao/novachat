@@ -18,6 +18,7 @@
 package org.thoughtcrime.securesms;
 
 import android.Manifest;
+import android.app.Activity;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
@@ -36,7 +37,6 @@ import com.b44t.messenger.DcEvent;
 import org.thoughtcrime.securesms.connect.DcEventCenter;
 import org.thoughtcrime.securesms.connect.DcHelper;
 import org.thoughtcrime.securesms.permissions.Permissions;
-import org.thoughtcrime.securesms.preferences.AccountPreferenceFragment;
 import org.thoughtcrime.securesms.preferences.AdvancedPreferenceFragment;
 import org.thoughtcrime.securesms.preferences.AppearancePreferenceFragment;
 import org.thoughtcrime.securesms.preferences.ChatsPreferenceFragment;
@@ -54,15 +54,15 @@ import org.thoughtcrime.securesms.util.ViewUtil;
 /**
  * The Activity for application preference display and management.
  *
- * <p>Nova Chat: the entries are grouped by topic — account, chats, notifications, appearance,
- * privacy &amp; security, network, MuHan Intelligence, advanced and about.
+ * <p>Nova Chat: the entries are grouped by topic — chats, notifications, appearance,
+ * privacy &amp; security, network, MuHan Intelligence, advanced and about. Account settings
+ * live in the profile editor ({@link CreateProfileActivity}).
  *
  * @author Moxie Marlinspike
  */
 public class ApplicationPreferencesActivity extends PassphraseRequiredActionBarActivity
     implements SharedPreferences.OnSharedPreferenceChangeListener {
   private static final String PREFERENCE_CATEGORY_PROFILE = "preference_category_profile";
-  private static final String PREFERENCE_CATEGORY_ACCOUNT = "preference_category_account";
   private static final String PREFERENCE_CATEGORY_CHATS = "preference_category_chats";
   private static final String PREFERENCE_CATEGORY_NOTIFICATIONS =
       "preference_category_notifications";
@@ -112,41 +112,43 @@ public class ApplicationPreferencesActivity extends PassphraseRequiredActionBarA
     }
   }
 
-  public void showBackupProvider() {
+  /** Nova Chat: opens the second-device QR flow; now shared with the profile editor. */
+  public static void showBackupProvider(Activity activity) {
     if (Build.VERSION.SDK_INT >= 37) {
-      requestLocalNetworkForBackupProvider();
+      requestLocalNetworkForBackupProvider(activity);
     } else {
-      startBackupProvider();
+      startBackupProvider(activity);
     }
   }
 
   @RequiresApi(api = 37)
-  public void requestLocalNetworkForBackupProvider() {
-    Permissions.with(this)
+  private static void requestLocalNetworkForBackupProvider(Activity activity) {
+    Permissions.with(activity)
         .request(Manifest.permission.ACCESS_LOCAL_NETWORK)
         .ifNecessary()
-        .onAllGranted(this::startBackupProvider)
+        .onAllGranted(() -> startBackupProvider(activity))
         .onAnyDenied(
             () ->
-                new AlertDialog.Builder(this)
+                new AlertDialog.Builder(activity)
                     .setTitle(R.string.perm_required_title)
                     .setMessage(R.string.perm_explain_local_network_denied)
                     .setPositiveButton(android.R.string.ok, null)
                     .show())
-        .withPermanentDenialDialog(getString(R.string.perm_explain_local_network_denied))
+        .withPermanentDenialDialog(
+            activity.getString(R.string.perm_explain_local_network_denied))
         .execute();
   }
 
-  private void startBackupProvider() {
-    Intent intent = new Intent(this, BackupTransferActivity.class);
+  private static void startBackupProvider(Activity activity) {
+    Intent intent = new Intent(activity, BackupTransferActivity.class);
     intent.putExtra(
         BackupTransferActivity.TRANSFER_MODE,
         BackupTransferActivity.TransferMode.SENDER_SHOW_QR.getInt());
-    startActivity(intent);
-    overridePendingTransition(
+    activity.startActivity(intent);
+    activity.overridePendingTransition(
         0, 0); // let the activity appear in the same way as the other pages (which are mostly
     // fragments)
-    finishAffinity(); // see comment (**2) in BackupTransferActivity.doFinish()
+    activity.finishAffinity(); // see comment (**2) in BackupTransferActivity.doFinish()
   }
 
   public static class ApplicationPreferenceFragment extends CorrectedPreferenceFragment
@@ -158,8 +160,6 @@ public class ApplicationPreferencesActivity extends PassphraseRequiredActionBarA
 
       this.findPreference(PREFERENCE_CATEGORY_PROFILE)
           .setOnPreferenceClickListener(new ProfileClickListener());
-      this.findPreference(PREFERENCE_CATEGORY_ACCOUNT)
-          .setOnPreferenceClickListener(new CategoryClickListener(PREFERENCE_CATEGORY_ACCOUNT));
       this.findPreference(PREFERENCE_CATEGORY_CHATS)
           .setOnPreferenceClickListener(new CategoryClickListener(PREFERENCE_CATEGORY_CHATS));
       this.findPreference(PREFERENCE_CATEGORY_NOTIFICATIONS)
@@ -246,9 +246,6 @@ public class ApplicationPreferencesActivity extends PassphraseRequiredActionBarA
         Fragment fragment = null;
 
         switch (category) {
-          case PREFERENCE_CATEGORY_ACCOUNT:
-            fragment = new AccountPreferenceFragment();
-            break;
           case PREFERENCE_CATEGORY_CHATS:
             fragment = new ChatsPreferenceFragment();
             break;

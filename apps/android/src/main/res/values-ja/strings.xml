@@ -9,6 +9,7 @@
     <string name="about_developer">このソフトウェアは慕寒_Officialによって開発されました。</string>
     <string name="about_license">新星聊は自由でオープンソースなソフトウェアで、GNU 一般公衆利用許諾契約書 v3 の下で公開されています。</string>
     <string name="about_view_source">ソースコードを表示</string>
+    <string name="about_powered_by">Powered by Delta Chat</string>
 
     <!-- Nova Chat: アプリ起動時に表示するバックグラウンド受信ガイド -->
     <string name="nova_bg_guide_title">バックグラウンドでメッセージを受信するには</string>
@@ -751,4 +752,16 @@
     <string name="pref_privacy_security">プライバシーとセキュリティ</string>
     <string name="pref_network">ネットワーク</string>
     <string name="multidevice_summary">別の端末で同じアカウントを使う</string>
+
+    <!-- Nova Chat: マルチデバイス（旧「アカウント」設定から個人プロフィール編集へ移動） -->
+    <string name="multidevice_title">端末を追加</string>
+    <string name="multidevice_this_creates_a_qr_code">QR コードが作成され、2 台目の端末でスキャンしてプロフィールをコピーできます。\n\n次の画面が不要な観察者やカメラから見えないことを確認してください。</string>
+    <string name="pref_multidevice">マルチデバイスモード</string>
+    <string name="pref_multidevice_explain">他の端末とメッセージを同期します。2 台目の端末を追加すると自動的に有効になります</string>
+    <string name="pref_multidevice_change_warn">複数の端末で同じプロフィールを使用する場合は、マルチデバイスモードを有効にする必要があります。他のすべての端末からこのプロフィールを削除した場合にのみ、この設定を無効にしてください。\n\n複数の端末でプロフィールを使用したままマルチデバイスモードを無効にすると、メッセージが受信できないなどの問題が発生します。</string>
+    <string name="enter_system_secret_to_continue">ロックを解除して続行</string>
+
+    <!-- Nova Chat: WebDAV 同期 -->
+    <string name="webdav_sync">WebDAV 同期</string>
+    <string name="webdav_sync_explain">アカウントのバックアップ（メッセージ・連絡先・鍵を含む）を任意の WebDAV サーバー（Nextcloud、坚果雲など）へ暗号化して同期します。複数端末での同期と端末変更後の復元に使用します。</string>
     </resources>
