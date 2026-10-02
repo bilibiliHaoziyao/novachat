@@ -6,16 +6,15 @@
         android:key="preference_category_profile" />
 
     <Preference
+        android:key="preference_category_account"
+        android:title="@string/pref_account"
+        android:icon="@drawable/ic_person"
+        android:layout="@layout/preference_item" />
+
+    <Preference
         android:key="preference_category_chats"
         android:title="@string/pref_chats"
         android:icon="@drawable/ic_forum_24dp"
-        android:layout="@layout/preference_item" />
-
-    <!-- Nova Chat: MuHan Intelligence AI assistant -->
-    <Preference
-        android:key="preference_category_muhan_ai"
-        android:title="@string/muhan_ai_title"
-        android:icon="@drawable/ic_muhan_ai_24dp"
         android:layout="@layout/preference_item" />
 
     <Preference
@@ -31,24 +30,31 @@
         android:layout="@layout/preference_item" />
 
     <Preference
-        android:key="preference_category_multidevice"
-        android:title="@string/multidevice_title"
-        android:icon="@drawable/ic_baseline_devices_24"
+        android:key="preference_category_privacy"
+        android:title="@string/pref_privacy_security"
+        android:icon="@drawable/ic_lock"
         android:layout="@layout/preference_item" />
 
     <Preference
-        android:key="preference_category_connectivity"
-        android:title="@string/connectivity"
+        android:key="preference_category_network"
+        android:title="@string/pref_network"
         android:icon="@drawable/ic_swap_vert_24dp"
         android:layout="@layout/preference_item" />
 
+    <!-- Nova Chat: MuHan Intelligence AI assistant -->
     <Preference
-        android:key="preference_category_advanced"
-        android:title="@string/menu_advanced"
-        android:icon="@drawable/ic_advanced_24dp"
+        android:key="preference_category_muhan_ai"
+        android:title="@string/muhan_ai_title"
+        android:icon="@drawable/ic_muhan_ai_24dp"
         android:layout="@layout/preference_item" />
 
     <PreferenceCategory>
+
+        <Preference
+            android:key="preference_category_advanced"
+            android:title="@string/menu_advanced"
+            android:icon="@drawable/ic_advanced_24dp"
+            android:layout="@layout/preference_item" />
 
         <!-- Nova Chat: the "Donate" and "Help" entries were removed; an "About" page
              replaced them. -->

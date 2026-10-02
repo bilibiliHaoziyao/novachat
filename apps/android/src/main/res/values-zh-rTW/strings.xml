@@ -1310,4 +1310,9 @@
     <string name="oobe_rerun_message">下次啟動應用程式時會重新顯示歡迎精靈，現有聊天記錄不會遺失。</string>
     <string name="oobe_rerun_positive">重新執行</string>
 
+    <!-- Nova Chat：設定首頁分類 -->
+    <string name="pref_account">帳戶</string>
+    <string name="pref_privacy_security">隱私與安全</string>
+    <string name="pref_network">網路</string>
+    <string name="multidevice_summary">在其他裝置上使用同一帳戶</string>
     </resources>

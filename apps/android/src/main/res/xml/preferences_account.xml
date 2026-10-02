@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <Preference
+        android:key="pref_account_multidevice"
+        android:title="@string/multidevice_title"
+        android:summary="@string/multidevice_summary" />
+
+    <org.thoughtcrime.securesms.components.SwitchPreferenceCompat
+        android:defaultValue="true"
+        android:key="pref_bcc_self"
+        android:title="@string/pref_multidevice"
+        android:summary="@string/pref_multidevice_explain" />
+
+    <Preference
+        android:key="pref_webdav"
+        android:title="@string/webdav_sync"
+        android:summary="@string/webdav_sync_explain" />
+
+</PreferenceScreen>

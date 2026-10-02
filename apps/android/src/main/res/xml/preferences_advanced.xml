@@ -6,37 +6,6 @@
         android:key="pref_view_log"
         android:title="@string/pref_view_log" />
 
-    <PreferenceCategory android:title="@string/pref_server">
-
-        <Preference
-            android:key="pref_relay_list_button"
-            android:title="@string/transports" />
-
-        <Preference
-            android:key="proxy_settings_button"
-            android:title="@string/proxy_settings" />
-
-        <org.thoughtcrime.securesms.components.SwitchPreferenceCompat
-            android:defaultValue="true"
-            android:key="pref_bcc_self"
-            android:title="@string/pref_multidevice"
-            android:summary="@string/pref_multidevice_explain" />
-
-        <!-- Nova Chat: end-to-end encryption is optional -->
-        <org.thoughtcrime.securesms.components.SwitchPreferenceCompat
-            android:defaultValue="false"
-            android:key="pref_e2ee"
-            android:title="@string/pref_e2ee"
-            android:summary="@string/pref_e2ee_explain" />
-
-        <!-- Nova Chat: WebDAV account sync -->
-        <Preference
-            android:key="pref_webdav"
-            android:title="@string/webdav_sync"
-            android:summary="@string/webdav_sync_explain" />
-
-    </PreferenceCategory>
-
     <PreferenceCategory android:title="@string/pref_experimental_features">
 
         <Preference
@@ -52,21 +21,6 @@
             android:key="pref_webxdc_store_url"
             android:title="@string/webxdc_store_url"
             android:summary="@string/none" />
-
-    </PreferenceCategory>
-
-    <PreferenceCategory>
-        <org.thoughtcrime.securesms.components.SwitchPreferenceCompat
-            android:defaultValue="false"
-            android:key="pref_screen_security"
-            android:summary="@string/pref_screen_security_explain"
-            android:title="@string/pref_screen_security" />
-
-        <org.thoughtcrime.securesms.components.SwitchPreferenceCompat
-            android:defaultValue="false"
-            android:key="pref_incognito_keyboard"
-            android:summary="@string/pref_incognito_keyboard_explain"
-            android:title="@string/pref_incognito_keyboard" />
 
     </PreferenceCategory>
 

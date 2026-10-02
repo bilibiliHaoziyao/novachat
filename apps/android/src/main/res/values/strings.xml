@@ -122,9 +122,9 @@
     <string name="classic_login_smtp_port">SMTP 端口</string>
     <string name="classic_login_ssl">使用 SSL/TLS</string>
 
-    <!-- Nova Chat: optional end-to-end encryption -->
+    <!-- Nova Chat: end-to-end encryption -->
     <string name="pref_e2ee">端到端加密</string>
-    <string name="pref_e2ee_explain">默认关闭；开启后新消息将尝试加密发送（Autocrypt）。关闭时消息以明文邮件收发，邮箱服务商可读取。</string>
+    <string name="pref_e2ee_explain">默认开启；开启时拒收明文消息并对新消息端到端加密（Autocrypt）。关闭后消息以明文邮件收发，邮箱服务商可读取。</string>
     <string name="pref_e2ee_on_warn">开启后，Nova Chat 将生成加密密钥并对新消息尝试端到端加密。确定开启？</string>
     <string name="pref_e2ee_off_warn">关闭后，新消息将以明文邮件收发，邮箱服务商与网络链路均可读取。确定关闭？</string>
 
@@ -1530,4 +1530,10 @@
     <string name="oobe_rerun_title">Run setup wizard again?</string>
     <string name="oobe_rerun_message">The welcome wizard will be shown again the next time the app starts. Your chats are kept.</string>
     <string name="oobe_rerun_positive">Run wizard</string>
+
+    <!-- Nova Chat: settings overview categories -->
+    <string name="pref_account">Account</string>
+    <string name="pref_privacy_security">Privacy &amp; Security</string>
+    <string name="pref_network">Network</string>
+    <string name="multidevice_summary">Use the same account on another device</string>
 </resources>

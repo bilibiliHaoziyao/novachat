@@ -745,4 +745,10 @@
     <string name="oobe_rerun_title">セットアップウィザードを再実行しますか？</string>
     <string name="oobe_rerun_message">次回アプリ起動時にウェルカムウィザードが再表示されます。既存のチャットは保持されます。</string>
     <string name="oobe_rerun_positive">再実行</string>
+
+    <!-- Nova Chat: 設定トップのカテゴリ -->
+    <string name="pref_account">アカウント</string>
+    <string name="pref_privacy_security">プライバシーとセキュリティ</string>
+    <string name="pref_network">ネットワーク</string>
+    <string name="multidevice_summary">別の端末で同じアカウントを使う</string>
     </resources>

@@ -1387,4 +1387,9 @@
     <string name="oobe_rerun_message">下次启动应用时会重新显示欢迎向导，现有聊天记录不会丢失。</string>
     <string name="oobe_rerun_positive">重新运行</string>
 
+    <!-- Nova Chat：设置首页分类 -->
+    <string name="pref_account">账户</string>
+    <string name="pref_privacy_security">隐私与安全</string>
+    <string name="pref_network">网络</string>
+    <string name="multidevice_summary">在其他设备上使用同一账户</string>
     </resources>

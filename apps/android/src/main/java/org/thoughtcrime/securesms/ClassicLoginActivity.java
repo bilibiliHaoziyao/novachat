@@ -30,8 +30,8 @@ import org.thoughtcrime.securesms.util.views.ProgressDialog;
  * Nova Chat: classic first-run login wizard for using your own email account.
  *
  * <p>Single page with email / password / display name and collapsible advanced (IMAP/SMTP)
- * options. Server settings are auto-detected by the core when left empty. E2EE is optional
- * by default (force_encryption is disabled for new accounts).
+ * options. Server settings are auto-detected by the core when left empty. End-to-end encryption is
+ * enabled by default for new accounts.
  */
 public class ClassicLoginActivity extends BaseActionBarActivity
     implements DcEventCenter.DcEventDelegate {
@@ -154,8 +154,8 @@ public class ClassicLoginActivity extends BaseActionBarActivity
               dcContext.setConfig("send_security", "1");
             }
 
-            // Nova Chat: end-to-end encryption is optional by default.
-            dcContext.setConfig("force_encryption", "0");
+            // Nova Chat: end-to-end encryption is on by default.
+            dcContext.setConfig("force_encryption", "1");
 
             final Rpc rpc = DcHelper.getRpc(ClassicLoginActivity.this);
             rpc.configure(dcContext.getAccountId());

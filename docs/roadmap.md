@@ -1,6 +1,6 @@
 # Nova Chat 路线图
 
-> 目标：在保持 Delta Chat 核心能力的前提下，完成登录向导优化、可选端到端加密、WebDAV 账号同步三项改造，实现 Android 与 Windows 双端可用并开源发布。
+> 目标：在保持 Delta Chat 核心能力的前提下，完成登录向导优化、默认开启的端到端加密、WebDAV 账号同步三项改造，实现 Android 与 Windows 双端可用并开源发布。
 
 ## M0 —— 上游组装与构建基线 ✅
 
@@ -18,14 +18,14 @@
 - [ ] 向导内嵌「从 WebDAV 恢复」入口（当前在备份恢复对话框中）
 - **验收**：桌面端 1 次点击进入向导；常见服务商自动预填；失败可重试不丢输入
 
-## M2 —— 端到端加密可关闭 ✅
+## M2 —— 端到端加密默认开启 ✅
 
-- [x] 核心：[config.rs](file:///workspace/apps/android/jni/deltachat-core-rust/src/config.rs) 中 `force_encryption` 默认值显式声明为 `0`
-- [x] Android：登录向导写入 `force_encryption=0`；高级设置保留开关
-- [x] 桌面端：向导开关（默认关）+ 设置 → 高级 → 端到端加密开关
-- [x] 文案说明"关闭后可与普通邮件客户端互通"
+- [x] 核心：[config.rs](file:///workspace/apps/android/jni/deltachat-core-rust/src/config.rs) 中 `force_encryption` 默认值显式声明为 `1`（v1.4）
+- [x] Android：登录向导写入 `force_encryption=1`；既有账号首次启动一次性迁移开启；设置 → 隐私与安全 保留开关
+- [x] 桌面端：向导开关（默认关）+ 设置 → 高级 → 端到端加密开关（未同步为默认开启）
+- [x] 文案说明"默认开启，关闭后可与普通邮件客户端互通"
 - [ ] 会话页"未加密"提示的强化（沿用上游标识）
-- **验收**：新账号默认不强制加密；双端可随时开关
+- **验收**：新账号与既有账号默认强制加密；可随时开关
 
 ## M3 —— WebDAV 账号同步（v1 加密备份）✅
 

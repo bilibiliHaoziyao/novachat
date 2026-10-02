@@ -196,6 +196,10 @@ public class ApplicationContext extends Application {
 
               int[] allAccounts = dcAccounts.getAll();
               Log.i(TAG, "Number of profiles: " + allAccounts.length);
+
+              // Nova Chat: end-to-end encryption became the default in 1.4. Apply it once to
+              // accounts that already exist, so the change is visible for them as well.
+              boolean e2eeDefaultOnApplied = Prefs.isE2eeDefaultOnApplied(this);
               for (int accountId : allAccounts) {
                 DcContext ac = dcAccounts.getAccount(accountId);
                 if (!ac.isOpen()) {
@@ -229,6 +233,13 @@ public class ApplicationContext extends Application {
                 // 2025-12-16: The setting was removed.
                 // Revert it to the default if it was changed in the past.
                 ac.setConfigInt("webxdc_realtime_enabled", 1);
+
+                if (!e2eeDefaultOnApplied) {
+                  ac.setConfig(DcHelper.CONFIG_FORCE_ENCRYPTION, "1");
+                }
+              }
+              if (!e2eeDefaultOnApplied && allAccounts.length > 0) {
+                Prefs.setE2eeDefaultOnApplied(this, true);
               }
               if (allAccounts.length == 0) {
                 try {

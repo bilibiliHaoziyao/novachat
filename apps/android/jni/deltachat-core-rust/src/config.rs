@@ -466,8 +466,8 @@ pub enum Config {
     /// When enabled, unencrypted messages cannot be sent
     /// and incoming unencrypted messages are not fetched and not processed.
     ///
-    /// Nova Chat: end-to-end encryption is optional by default.
-    #[strum(props(default = "0"))]
+    /// Nova Chat: end-to-end encryption is on by default.
+    #[strum(props(default = "1"))]
     ForceEncryption,
 }
 

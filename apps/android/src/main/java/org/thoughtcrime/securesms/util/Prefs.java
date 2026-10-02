@@ -66,6 +66,9 @@ public class Prefs {
   public static final String OOBE_STARTED_PREF = "pref_nova_oobe_started";
   public static final String OOBE_STEP_PREF = "pref_nova_oobe_step";
 
+  /** One-time migration that enables end-to-end encryption for pre-existing accounts. */
+  public static final String E2EE_DEFAULT_ON_APPLIED_PREF = "pref_nova_e2ee_default_on_applied";
+
   private static final String DATABASE_ENCRYPTED_SECRET =
       "pref_database_encrypted_secret_"; // followed by account-id
   private static final String DATABASE_UNENCRYPTED_SECRET =
@@ -402,6 +405,19 @@ public class Prefs {
 
   public static void setOobeStep(Context context, int step) {
     setIntegerPreference(context, OOBE_STEP_PREF, step);
+  }
+
+  /**
+   * Nova Chat: whether the one-time migration that turns on end-to-end encryption for already
+   * existing accounts has been applied. New installations and new accounts are covered by the
+   * default, so the migration only has to run once.
+   */
+  public static boolean isE2eeDefaultOnApplied(Context context) {
+    return getBooleanPreference(context, E2EE_DEFAULT_ON_APPLIED_PREF, false);
+  }
+
+  public static void setE2eeDefaultOnApplied(Context context, boolean applied) {
+    setBooleanPreference(context, E2EE_DEFAULT_ON_APPLIED_PREF, applied);
   }
 
   private static int getIntegerPreference(Context context, String key, int defaultValue) {

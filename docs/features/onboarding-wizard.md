@@ -25,7 +25,7 @@ Delta Chat 的首次使用流程以"创建即时账号（chatmail）"为默认�
 
 - [ClassicLoginActivity.java](file:///workspace/apps/android/src/main/java/org/thoughtcrime/securesms/ClassicLoginActivity.java)：新增「经典邮箱登录」单页表单
   - 字段：邮箱、密码、显示名（可选）、高级折叠区（IMAP/SMTP 主机、端口、SSL）；
-  - 点击「连接」后创建账号 → 写入 `addr` / `mail_pw` / 可选服务器参数 → 写入 `force_encryption=0` → 调用 `rpc.configure()`；
+  - 点击「连接」后创建账号 → 写入 `addr` / `mail_pw` / 可选服务器参数 → 写入 `force_encryption=1` → 调用 `rpc.configure()`；
   - 通过 `DcEventCenter` 捕获配置错误并以 Toast 提示，失败即可直接重试；
 - [WelcomeActivity.java](file:///workspace/apps/android/src/main/java/org/thoughtcrime/securesms/WelcomeActivity.java)：新增"使用自己的邮箱"入口直达该向导；
 - 布局与文案：`res/layout/activity_classic_login.xml`、`values/strings.xml`（含 `classic_login_*` 系列字符串）。
@@ -45,7 +45,7 @@ Delta Chat 的首次使用流程以"创建即时账号（chatmail）"为默认�
 - [x] 桌面端：欢迎页 1 次点击进入邮箱登录向导；
 - [x] 输入 QQ/163/Gmail/Outlook/iCloud 等地址能自动预填服务器设置；
 - [x] 连接失败可返回上一步修改，已填内容不丢失；
-- [x] 新账号默认 `force_encryption=0`；
+- [x] 新账号默认 `force_encryption=1`；
 - [ ] 从 WebDAV 一键恢复为向导第一步的入口（当前在"恢复备份"对话框中，后续合并进向导）。
 
 ## 5. 后续可做

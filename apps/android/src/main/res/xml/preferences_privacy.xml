@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Nova Chat: end-to-end encryption is on by default -->
+    <org.thoughtcrime.securesms.components.SwitchPreferenceCompat
+        android:defaultValue="true"
+        android:key="pref_e2ee"
+        android:title="@string/pref_e2ee"
+        android:summary="@string/pref_e2ee_explain" />
+
+    <org.thoughtcrime.securesms.components.SwitchPreferenceCompat
+        android:defaultValue="false"
+        android:key="pref_screen_security"
+        android:summary="@string/pref_screen_security_explain"
+        android:title="@string/pref_screen_security" />
+
+    <org.thoughtcrime.securesms.components.SwitchPreferenceCompat
+        android:defaultValue="false"
+        android:key="pref_incognito_keyboard"
+        android:summary="@string/pref_incognito_keyboard_explain"
+        android:title="@string/pref_incognito_keyboard" />
+
+</PreferenceScreen>

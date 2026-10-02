@@ -29,7 +29,7 @@ Nova Chat 沿用 Delta Chat 的分层架构：Rust 核心负责协议，客户�
 | 改造 | 核心（Rust） | Android | 桌面端（Windows） |
 |---|---|---|---|
 | 登录向导优化 | 无需改动（复用 `configure` / `add_or_update_transport`） | [ClassicLoginActivity.java](file:///workspace/apps/android/src/main/java/org/thoughtcrime/securesms/ClassicLoginActivity.java) | [NovaWizard/index.tsx](file:///workspace/apps/desktop/packages/frontend/src/components/screens/NovaWizard/index.tsx) |
-| 端到端加密可选 | [config.rs](file:///workspace/apps/android/jni/deltachat-core-rust/src/config.rs)（`force_encryption` 默认值 `0`） | ClassicLoginActivity（新账号写入 `force_encryption=0`）、AdvancedPreferenceFragment（开关） | NovaWizard（默认关闭）、Settings/Advanced.tsx（开关） |
+| 端到端加密默认开启 | [config.rs](file:///workspace/apps/android/jni/deltachat-core-rust/src/config.rs)（`force_encryption` 默认值 `1`） | ClassicLoginActivity（新账号写入 `force_encryption=1`）、ApplicationContext（既有账号一次性迁移）、PrivacyPreferenceFragment（开关） | 未同步（桌面端向导仍默认关闭，Settings/Advanced.tsx 提供开关） |
 | WebDAV 账号同步 | 复用 `imex` 备份导出/导入 | [WebDavSyncManager.java](file:///workspace/apps/android/src/main/java/org/thoughtcrime/securesms/connect/WebDavSyncManager.java) + [WebDavSettingsActivity.java](file:///workspace/apps/android/src/main/java/org/thoughtcrime/securesms/WebDavSettingsActivity.java) | [nova/webdav-client.ts](file:///workspace/apps/desktop/packages/target-electron/src/nova/webdav-client.ts) + [nova/nova-sync.ts](file:///workspace/apps/desktop/packages/target-electron/src/nova/nova-sync.ts) + Settings/WebdavSync.tsx |
 
 ## 3. 桌面端模块划分（apps/desktop）
@@ -49,9 +49,9 @@ Nova Chat 沿用 Delta Chat 的分层架构：Rust 核心负责协议，客户�
 **登录向导（普通邮箱）**：
 
 1. 用户输入邮箱地址 → 前端按域名匹配服务商预设，自动填充 IMAP/SMTP 主机与端口；
-2. 用户输入密码（或授权码）→ 可选择是否要求端到端加密（默认关闭）；
+2. 用户输入密码（或授权码）→ 可选择是否要求端到端加密（Android 默认开启，桌面端默认关闭）；
 3. 前端调用 `addOrUpdateTransport(accountId, credentials)` → 核心执行配置并持续发出 `ConfigureProgress` 事件；
-4. 向导实时展示进度；失败时返回第二步修改，成功后写入 `force_encryption` 并进入可选的 WebDAV 步骤。
+4. 向导实时展示进度；失败时返回第二步修改，成功后写入 `force_encryption`（Android 为 `1`）并进入 WebDAV 步骤。
 
 **WebDAV 同步一次**：
 

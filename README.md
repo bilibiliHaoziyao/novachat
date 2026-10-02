@@ -1,12 +1,12 @@
 # Nova Chat · 新星聊
 
-> 基于 [Delta Chat](https://github.com/deltachat) 的邮箱即时通讯软件，当前版本 **1.3**，仅发布 Android。
-> Delta Chat 的核心理念——"以电子邮件协议为传输、无中心服务器"——被完整保留；Nova Chat 在此基础上重构了首次使用体验，并让加密与账号同步变得可选、可控。
+> 基于 [Delta Chat](https://github.com/deltachat) 的邮箱即时通讯软件，当前版本 **1.4**，仅发布 Android。
+> Delta Chat 的核心理念——"以电子邮件协议为传输、无中心服务器"——被完整保留；Nova Chat 在此基础上重构了首次使用体验与设置页，并默认开启端到端加密。
 
 Nova Chat（新星聊）围绕 Delta Chat 做了三项核心改造：
 
-1. **开箱向导（OOBE）** —— 首次安装即进入 HyperOS 风格全屏向导：语言 → 国家或地区 → 创建账户 / 登录 → WebDAV 备份（可跳过）→ 慕寒智能 → 设置完毕；邮箱登录入口保留服务商智能预设（QQ / 163 / Gmail / Outlook 等）与实时连接测试；
-2. **端到端加密默认关闭** —— 不再强制 E2E，设置中随时开启，可与普通邮件客户端互通；
+1. **开箱向导（OOBE）** —— 首次安装即进入 HyperOS 风格全屏向导：语言 → 国家或地区 → 创建账户 / 登录 → WebDAV 备份 → 慕寒智能 → 设置完毕；邮箱登录入口保留服务商智能预设（QQ / 163 / Gmail / Outlook 等）与实时连接测试；
+2. **端到端加密默认开启** —— 新账号与既有账号均默认开启 `force_encryption`，可在 设置 → 隐私与安全 中关闭，以便与普通邮件客户端互通；
 3. **账号支持 WebDAV 同步** —— 账号备份经 WebDAV（Nextcloud / 坚果云 / 自建服务等）加密上传，换机可一键恢复。
 
 ## 下载
@@ -26,12 +26,13 @@ Nova Chat（新星聊）围绕 Delta Chat 做了三项核心改造：
 |---|---|
 | 开箱向导（OOBE） | [OobeActivity.java](apps/android/src/main/java/org/thoughtcrime/securesms/oobe/OobeActivity.java)：首次安装自动进入，语言 → 国家或地区 → 创建账户 → WebDAV → 慕寒智能 → 完成；可在 关于页 → 重新运行开箱向导 再次体验 |
 | 邮箱登录向导 | [ClassicLoginActivity.java](apps/android/src/main/java/org/thoughtcrime/securesms/ClassicLoginActivity.java)：邮箱/密码/显示名 + 高级折叠，欢迎页直达；服务商预设自动填写 IMAP/SMTP |
-| 端到端加密可选 | 新账号写入 `force_encryption=0`，高级设置保留开关，关闭后可与普通邮件客户端互通 |
+| 端到端加密默认开启 | 核心 `force_encryption` 默认值 `1`；新账号写入 `1`，既有账号升级后一次性迁移开启；设置 → 隐私与安全 保留开关 |
 | WebDAV 账号同步 | [WebDavSyncManager.java](apps/android/src/main/java/org/thoughtcrime/securesms/connect/WebDavSyncManager.java) + [WebDavSettingsActivity.java](apps/android/src/main/java/org/thoughtcrime/securesms/WebDavSettingsActivity.java) |
 | 莫奈取色（Monet） | 默认开启：聊天背景、工具栏与配色随壁纸取色，深浅色模式分别适配（Android 12+），可在 设置 → 外观 中关闭 |
 | 纯色聊天背景 | 默认背景为纯色，深浅色跟随系统 |
 | 快捷分享邀请 | 二维码页分享邀请链接时提供 快捷分享至 QQ / WeChat / 复制链接 |
-| 软件内切换语言 | 设置 → 语言，支持 简体中文 / 繁體中文 / English / 日本語（跟随系统为默认） |
+| 软件内切换语言 | 设置 → 外观 → 语言，支持 简体中文 / 繁體中文 / English / 日本語（跟随系统为默认） |
+| 设置页分类 | 设置首页按使用场景分组：账户 / 聊天 / 通知 / 外观 / 隐私与安全 / 网络 / 慕寒智能 / 高级 / 关于。端到端加密、屏幕安全、隐身键盘归入「隐私与安全」，WebDAV 与多设备归入「账户」，连接状态 / 中继 / 代理归入「网络」 |
 | 后台收取消息指南 | 进入软件时提示开启即时传送、后台加锁与自启动，保证离线收信 |
 | 账号备份提示 | 初次登录在设备消息中提示备份账号 |
 | 关于页 | 软件介绍、版本号、开发者与 **Powered by Delta Chat** 致谢、源码链接 |
@@ -46,7 +47,7 @@ Nova Chat（新星聊）围绕 Delta Chat 做了三项核心改造：
 - **会话管理**：对话页右上角可 **新建会话**，**长按该按钮** 可在已有会话间切换。
 - **本地存储**：对话历史按账号保存在本机（`filesDir/muhan-ai/`），仅发送至所选 API，可随时在设置或对话页清空。
 
-设计文档：[登录向导](docs/features/onboarding-wizard.md) · [可选加密](docs/features/optional-e2ee.md) · [WebDAV 同步](docs/features/webdav-sync.md) · [架构总览](docs/architecture.md) · [路线图](docs/roadmap.md)
+设计文档：[登录向导](docs/features/onboarding-wizard.md) · [端到端加密](docs/features/optional-e2ee.md) · [WebDAV 同步](docs/features/webdav-sync.md) · [架构总览](docs/architecture.md) · [路线图](docs/roadmap.md)
 
 ### WebDAV 同步怎么工作
 

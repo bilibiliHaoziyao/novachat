@@ -22,8 +22,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
-import androidx.activity.result.ActivityResultLauncher;
-import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
@@ -38,36 +36,41 @@ import com.b44t.messenger.DcEvent;
 import org.thoughtcrime.securesms.connect.DcEventCenter;
 import org.thoughtcrime.securesms.connect.DcHelper;
 import org.thoughtcrime.securesms.permissions.Permissions;
+import org.thoughtcrime.securesms.preferences.AccountPreferenceFragment;
 import org.thoughtcrime.securesms.preferences.AdvancedPreferenceFragment;
 import org.thoughtcrime.securesms.preferences.AppearancePreferenceFragment;
 import org.thoughtcrime.securesms.preferences.ChatsPreferenceFragment;
 import org.thoughtcrime.securesms.preferences.CorrectedPreferenceFragment;
 import org.thoughtcrime.securesms.preferences.MuhanAiPreferenceFragment;
+import org.thoughtcrime.securesms.preferences.NetworkPreferenceFragment;
 import org.thoughtcrime.securesms.preferences.NotificationsPreferenceFragment;
+import org.thoughtcrime.securesms.preferences.PrivacyPreferenceFragment;
 import org.thoughtcrime.securesms.preferences.widgets.ProfilePreference;
 import org.thoughtcrime.securesms.qr.BackupTransferActivity;
 import org.thoughtcrime.securesms.util.DynamicTheme;
-import org.thoughtcrime.securesms.util.IntentUtils;
 import org.thoughtcrime.securesms.util.Prefs;
-import org.thoughtcrime.securesms.util.ScreenLockUtil;
 import org.thoughtcrime.securesms.util.ViewUtil;
 
 /**
  * The Activity for application preference display and management.
+ *
+ * <p>Nova Chat: the entries are grouped by topic — account, chats, notifications, appearance,
+ * privacy &amp; security, network, MuHan Intelligence, advanced and about.
  *
  * @author Moxie Marlinspike
  */
 public class ApplicationPreferencesActivity extends PassphraseRequiredActionBarActivity
     implements SharedPreferences.OnSharedPreferenceChangeListener {
   private static final String PREFERENCE_CATEGORY_PROFILE = "preference_category_profile";
+  private static final String PREFERENCE_CATEGORY_ACCOUNT = "preference_category_account";
+  private static final String PREFERENCE_CATEGORY_CHATS = "preference_category_chats";
   private static final String PREFERENCE_CATEGORY_NOTIFICATIONS =
       "preference_category_notifications";
   private static final String PREFERENCE_CATEGORY_APPEARANCE = "preference_category_appearance";
-  private static final String PREFERENCE_CATEGORY_CHATS = "preference_category_chats";
+  private static final String PREFERENCE_CATEGORY_PRIVACY = "preference_category_privacy";
+  private static final String PREFERENCE_CATEGORY_NETWORK = "preference_category_network";
   private static final String PREFERENCE_CATEGORY_MUHAN_AI = "preference_category_muhan_ai";
-  private static final String PREFERENCE_CATEGORY_MULTIDEVICE = "preference_category_multidevice";
   private static final String PREFERENCE_CATEGORY_ADVANCED = "preference_category_advanced";
-  private static final String PREFERENCE_CATEGORY_CONNECTIVITY = "preference_category_connectivity";
   private static final String PREFERENCE_CATEGORY_ABOUT = "preference_category_about";
 
   public static final int REQUEST_CODE_SET_BACKGROUND = 11;
@@ -148,40 +151,30 @@ public class ApplicationPreferencesActivity extends PassphraseRequiredActionBarA
 
   public static class ApplicationPreferenceFragment extends CorrectedPreferenceFragment
       implements DcEventCenter.DcEventDelegate {
-    private ActivityResultLauncher<Intent> screenLockLauncher;
 
     @Override
     public void onCreate(Bundle icicle) {
       super.onCreate(icicle);
 
-      screenLockLauncher =
-          registerForActivityResult(
-              new ActivityResultContracts.StartActivityForResult(),
-              result -> {
-                if (result.getResultCode() == RESULT_OK) {
-                  ((ApplicationPreferencesActivity) getActivity()).showBackupProvider();
-                }
-              });
-
       this.findPreference(PREFERENCE_CATEGORY_PROFILE)
           .setOnPreferenceClickListener(new ProfileClickListener());
+      this.findPreference(PREFERENCE_CATEGORY_ACCOUNT)
+          .setOnPreferenceClickListener(new CategoryClickListener(PREFERENCE_CATEGORY_ACCOUNT));
+      this.findPreference(PREFERENCE_CATEGORY_CHATS)
+          .setOnPreferenceClickListener(new CategoryClickListener(PREFERENCE_CATEGORY_CHATS));
       this.findPreference(PREFERENCE_CATEGORY_NOTIFICATIONS)
           .setOnPreferenceClickListener(
               new CategoryClickListener(PREFERENCE_CATEGORY_NOTIFICATIONS));
-      this.findPreference(PREFERENCE_CATEGORY_CONNECTIVITY)
-          .setOnPreferenceClickListener(
-              new CategoryClickListener(PREFERENCE_CATEGORY_CONNECTIVITY));
       this.findPreference(PREFERENCE_CATEGORY_APPEARANCE)
           .setOnPreferenceClickListener(new CategoryClickListener(PREFERENCE_CATEGORY_APPEARANCE));
-      this.findPreference(PREFERENCE_CATEGORY_CHATS)
-          .setOnPreferenceClickListener(new CategoryClickListener(PREFERENCE_CATEGORY_CHATS));
+      this.findPreference(PREFERENCE_CATEGORY_PRIVACY)
+          .setOnPreferenceClickListener(new CategoryClickListener(PREFERENCE_CATEGORY_PRIVACY));
+      this.findPreference(PREFERENCE_CATEGORY_NETWORK)
+          .setOnPreferenceClickListener(new CategoryClickListener(PREFERENCE_CATEGORY_NETWORK));
       this.findPreference(PREFERENCE_CATEGORY_MUHAN_AI)
           .setOnPreferenceClickListener(new CategoryClickListener(PREFERENCE_CATEGORY_MUHAN_AI));
-      this.findPreference(PREFERENCE_CATEGORY_MULTIDEVICE)
-          .setOnPreferenceClickListener(new CategoryClickListener(PREFERENCE_CATEGORY_MULTIDEVICE));
       this.findPreference(PREFERENCE_CATEGORY_ADVANCED)
           .setOnPreferenceClickListener(new CategoryClickListener(PREFERENCE_CATEGORY_ADVANCED));
-
       this.findPreference(PREFERENCE_CATEGORY_ABOUT)
           .setOnPreferenceClickListener(new CategoryClickListener(PREFERENCE_CATEGORY_ABOUT));
 
@@ -213,7 +206,7 @@ public class ApplicationPreferencesActivity extends PassphraseRequiredActionBarA
     @Override
     public void handleEvent(@NonNull DcEvent event) {
       if (event.getId() == DcContext.DC_EVENT_CONNECTIVITY_CHANGED) {
-        this.findPreference(PREFERENCE_CATEGORY_CONNECTIVITY)
+        this.findPreference(PREFERENCE_CATEGORY_NETWORK)
             .setSummary(
                 DcHelper.getConnectivitySummary(
                     getActivity(), getString(R.string.connectivity_connected)));
@@ -223,18 +216,20 @@ public class ApplicationPreferencesActivity extends PassphraseRequiredActionBarA
     private void setCategorySummaries() {
       ((ProfilePreference) this.findPreference(PREFERENCE_CATEGORY_PROFILE)).refresh();
 
+      this.findPreference(PREFERENCE_CATEGORY_CHATS)
+          .setSummary(ChatsPreferenceFragment.getSummary(getActivity()));
       this.findPreference(PREFERENCE_CATEGORY_NOTIFICATIONS)
           .setSummary(NotificationsPreferenceFragment.getSummary(getActivity()));
       this.findPreference(PREFERENCE_CATEGORY_APPEARANCE)
           .setSummary(AppearancePreferenceFragment.getSummary(getActivity()));
-      this.findPreference(PREFERENCE_CATEGORY_CHATS)
-          .setSummary(ChatsPreferenceFragment.getSummary(getActivity()));
-      this.findPreference(PREFERENCE_CATEGORY_MUHAN_AI)
-          .setSummary(MuhanAiPreferenceFragment.getSummary(getActivity()));
-      this.findPreference(PREFERENCE_CATEGORY_CONNECTIVITY)
+      this.findPreference(PREFERENCE_CATEGORY_PRIVACY)
+          .setSummary(PrivacyPreferenceFragment.getSummary(getActivity()));
+      this.findPreference(PREFERENCE_CATEGORY_NETWORK)
           .setSummary(
               DcHelper.getConnectivitySummary(
                   getActivity(), getString(R.string.connectivity_connected)));
+      this.findPreference(PREFERENCE_CATEGORY_MUHAN_AI)
+          .setSummary(MuhanAiPreferenceFragment.getSummary(getActivity()));
       this.findPreference(PREFERENCE_CATEGORY_ABOUT)
           .setSummary(AdvancedPreferenceFragment.getVersion(getActivity()));
     }
@@ -251,6 +246,12 @@ public class ApplicationPreferencesActivity extends PassphraseRequiredActionBarA
         Fragment fragment = null;
 
         switch (category) {
+          case PREFERENCE_CATEGORY_ACCOUNT:
+            fragment = new AccountPreferenceFragment();
+            break;
+          case PREFERENCE_CATEGORY_CHATS:
+            fragment = new ChatsPreferenceFragment();
+            break;
           case PREFERENCE_CATEGORY_NOTIFICATIONS:
             NotificationManagerCompat notificationManager =
                 NotificationManagerCompat.from(getActivity());
@@ -271,37 +272,17 @@ public class ApplicationPreferencesActivity extends PassphraseRequiredActionBarA
                   .show();
             }
             break;
-          case PREFERENCE_CATEGORY_CONNECTIVITY:
-            startActivity(new Intent(getActivity(), ConnectivityActivity.class));
-            break;
           case PREFERENCE_CATEGORY_APPEARANCE:
             fragment = new AppearancePreferenceFragment();
             break;
-          case PREFERENCE_CATEGORY_CHATS:
-            fragment = new ChatsPreferenceFragment();
+          case PREFERENCE_CATEGORY_PRIVACY:
+            fragment = new PrivacyPreferenceFragment();
+            break;
+          case PREFERENCE_CATEGORY_NETWORK:
+            fragment = new NetworkPreferenceFragment();
             break;
           case PREFERENCE_CATEGORY_MUHAN_AI:
             fragment = new MuhanAiPreferenceFragment();
-            break;
-          case PREFERENCE_CATEGORY_MULTIDEVICE:
-            if (!ScreenLockUtil.applyScreenLock(
-                getActivity(),
-                getString(R.string.multidevice_title),
-                getString(R.string.multidevice_this_creates_a_qr_code)
-                    + "\n\n"
-                    + getString(R.string.enter_system_secret_to_continue),
-                screenLockLauncher)) {
-              new AlertDialog.Builder(getActivity())
-                  .setTitle(R.string.multidevice_title)
-                  .setMessage(R.string.multidevice_this_creates_a_qr_code)
-                  .setPositiveButton(
-                      R.string.perm_continue,
-                      (dialog, which) ->
-                          ((ApplicationPreferencesActivity) getActivity()).showBackupProvider())
-                  .setNegativeButton(R.string.cancel, null)
-                  .show();
-              ;
-            }
             break;
           case PREFERENCE_CATEGORY_ADVANCED:
             fragment = new AdvancedPreferenceFragment();
