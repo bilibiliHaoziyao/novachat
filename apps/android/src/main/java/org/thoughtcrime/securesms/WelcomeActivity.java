@@ -68,7 +68,8 @@ public class WelcomeActivity extends BaseActionBarActivity
     setContentView(R.layout.welcome_activity);
 
     // add padding to avoid content hidden behind system bars
-    ViewUtil.applyWindowInsets(findViewById(R.id.content_container));
+    ViewUtil.forceApplyWindowInsets(
+        findViewById(R.id.content_container), true, true, true, true);
 
     Button signUpButton = findViewById(R.id.signup_button);
     Button signInButton = findViewById(R.id.signin_button);

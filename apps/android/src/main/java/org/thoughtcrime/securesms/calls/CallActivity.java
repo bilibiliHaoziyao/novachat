@@ -50,6 +50,7 @@ import org.thoughtcrime.securesms.EglUtils;
 import org.thoughtcrime.securesms.R;
 import org.thoughtcrime.securesms.permissions.LocalNetworkPermission;
 import org.thoughtcrime.securesms.util.Prefs;
+import org.thoughtcrime.securesms.util.ViewUtil;
 import org.webrtc.RendererCommon;
 import org.webrtc.SurfaceViewRenderer;
 import org.webrtc.VideoTrack;
@@ -250,12 +251,17 @@ public class CallActivity extends AppCompatActivity {
     ViewCompat.setOnApplyWindowInsetsListener(
         rootView,
         (v, windowInsets) -> {
-          Insets systemBars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars());
+          WindowInsetsCompat rootInsets = ViewCompat.getRootWindowInsets(v);
+          Insets systemBars =
+              (rootInsets != null ? rootInsets : windowInsets)
+                  .getInsets(WindowInsetsCompat.Type.systemBars());
 
           v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
 
           return windowInsets;
         });
+
+    ViewUtil.dispatchRootWindowInsets(rootView);
   }
 
   private void setupWindowFlags() {

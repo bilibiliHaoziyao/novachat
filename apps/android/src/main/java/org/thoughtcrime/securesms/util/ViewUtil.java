@@ -30,6 +30,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewStub;
+import android.view.ViewTreeObserver;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
 import android.widget.AbsSpinner;
@@ -317,6 +318,75 @@ public class ViewUtil {
   }
 
   /**
+   * Resolve the insets to compensate from.
+   *
+   * <p>Forced dispatch reads the raw root insets, which are never consumed by the decor, so the
+   * status bar insets survive even when the dispatched values have been consumed by ancestors.
+   */
+  private static WindowInsetsCompat resolveInsets(
+      @NonNull View view, @NonNull WindowInsetsCompat dispatched, boolean forceDispatch) {
+    if (forceDispatch) {
+      WindowInsetsCompat rootInsets = ViewCompat.getRootWindowInsets(view);
+      if (rootInsets != null) {
+        return rootInsets;
+      }
+    }
+    return dispatched;
+  }
+
+  /**
+   * Dispatch the raw root window insets to the view directly, bypassing the decor view chain that
+   * consumes system window insets before they reach app views.
+   *
+   * @return true if the insets were dispatched
+   */
+  private static boolean dispatchRootInsetsNow(@NonNull View view) {
+    if (!view.isAttachedToWindow()) {
+      return false;
+    }
+
+    WindowInsetsCompat rootInsets = ViewCompat.getRootWindowInsets(view);
+    if (rootInsets == null) {
+      return false;
+    }
+
+    ViewCompat.dispatchApplyWindowInsets(view, rootInsets);
+    return true;
+  }
+
+  /**
+   * Dispatch root window insets as soon as they are available. Inset listeners are commonly
+   * registered before the view is attached and before the root insets are constructed during the
+   * first traversal, so fall back to the first layout pass when the immediate dispatch is not
+   * possible yet.
+   */
+  private static void dispatchRootInsetsWhenReady(@NonNull View view) {
+    if (dispatchRootInsetsNow(view)) {
+      return;
+    }
+
+    view.getViewTreeObserver()
+        .addOnGlobalLayoutListener(
+            new ViewTreeObserver.OnGlobalLayoutListener() {
+              @Override
+              public void onGlobalLayout() {
+                view.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                dispatchRootInsetsNow(view);
+              }
+            });
+  }
+
+  /**
+   * Dispatch the raw root window insets to the view immediately. Use this after registering a
+   * custom {@code OnApplyWindowInsetsListener} that must receive the unconsumed status bar
+   * insets, which never reach app views through a plain requestApplyInsets().
+   */
+  public static void dispatchRootWindowInsets(@NonNull View view) {
+    if (!isEdgeToEdgeSupported()) return;
+    dispatchRootInsetsWhenReady(view);
+  }
+
+  /**
    * Apply window insets to a view by adding margin to avoid drawing it behind system bars.
    * Convenience method that applies insets to all sides.
    *
@@ -375,7 +445,7 @@ public class ViewUtil {
     ViewCompat.setOnApplyWindowInsetsListener(
         view,
         (v, windowInsets) -> {
-          Insets insets = getCombinedInsets(windowInsets);
+          Insets insets = getCombinedInsets(resolveInsets(v, windowInsets, forceDispatch));
 
           // Retrieve the original margin values from tags with null checks
           Integer leftTag = (Integer) v.getTag(R.id.tag_window_insets_margin_left);
@@ -401,16 +471,12 @@ public class ViewUtil {
           return windowInsets;
         });
 
-    // Request the initial insets to be dispatched if the view is attached
-    if (view.isAttachedToWindow()) {
-      if (forceDispatch) {
-        WindowInsetsCompat insets = ViewCompat.getRootWindowInsets(view);
-        if (insets != null) {
-          ViewCompat.dispatchApplyWindowInsets(view, insets);
-        }
-      } else {
-        ViewCompat.requestApplyInsets(view);
-      }
+    // Dispatch the raw root insets: the decor consumes system window insets before they reach
+    // app views, so a plain requestApplyInsets() delivers zeroed status bar insets.
+    if (forceDispatch) {
+      dispatchRootInsetsWhenReady(view);
+    } else if (view.isAttachedToWindow()) {
+      ViewCompat.requestApplyInsets(view);
     }
   }
 
@@ -492,7 +558,7 @@ public class ViewUtil {
     ViewCompat.setOnApplyWindowInsetsListener(
         view,
         (v, windowInsets) -> {
-          Insets insets = getCombinedInsets(windowInsets);
+          Insets insets = getCombinedInsets(resolveInsets(v, windowInsets, forceDispatch));
 
           // Retrieve the original padding values from tags with null checks
           Integer leftTag = (Integer) v.getTag(R.id.tag_window_insets_padding_left);
@@ -519,16 +585,12 @@ public class ViewUtil {
           return windowInsets;
         });
 
-    // Request the initial insets to be dispatched if the view is attached
-    if (view.isAttachedToWindow()) {
-      if (forceDispatch) {
-        WindowInsetsCompat insets = ViewCompat.getRootWindowInsets(view);
-        if (insets != null) {
-          ViewCompat.dispatchApplyWindowInsets(view, insets);
-        }
-      } else {
-        ViewCompat.requestApplyInsets(view);
-      }
+    // Dispatch the raw root insets: the decor consumes system window insets before they reach
+    // app views, so a plain requestApplyInsets() delivers zeroed status bar insets.
+    if (forceDispatch) {
+      dispatchRootInsetsWhenReady(view);
+    } else if (view.isAttachedToWindow()) {
+      ViewCompat.requestApplyInsets(view);
     }
   }
 
@@ -537,7 +599,7 @@ public class ViewUtil {
     ViewCompat.setOnApplyWindowInsetsListener(
         view,
         (v, windowInsets) -> {
-          Insets insets = getCombinedInsets(windowInsets);
+          Insets insets = getCombinedInsets(resolveInsets(v, windowInsets, true));
 
           android.view.ViewGroup.LayoutParams params = v.getLayoutParams();
           if (params != null) {
@@ -548,10 +610,9 @@ public class ViewUtil {
           return windowInsets;
         });
 
-    // Request the initial insets to be dispatched if the view is attached
-    if (view.isAttachedToWindow()) {
-      ViewCompat.requestApplyInsets(view);
-    }
+    // Dispatch the raw root insets: the decor consumes system window insets before they reach
+    // app views, so a plain requestApplyInsets() delivers zeroed status bar insets.
+    dispatchRootInsetsWhenReady(view);
   }
 
   /**
@@ -570,9 +631,9 @@ public class ViewUtil {
       // Check if toolbar is inside an AppBarLayout
       View parent = (View) toolbar.getParent();
       if (parent instanceof com.google.android.material.appbar.AppBarLayout) {
-        ViewUtil.applyWindowInsets(parent, true, true, true, false);
+        ViewUtil.forceApplyWindowInsets(parent, true, true, true, false);
       } else {
-        ViewUtil.applyWindowInsets(toolbar, true, true, true, false);
+        ViewUtil.forceApplyWindowInsets(toolbar, true, true, true, false);
       }
     }
 

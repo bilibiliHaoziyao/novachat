@@ -61,7 +61,7 @@ public class OobeActivity extends BaseActionBarActivity implements OobeHost {
   public void onCreate(@Nullable Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_oobe);
-    ViewUtil.applyWindowInsets(findViewById(R.id.oobe_root));
+    ViewUtil.forceApplyWindowInsets(findViewById(R.id.oobe_root), true, true, true, true);
     applyImmersiveSystemBars();
 
     backButton = findViewById(R.id.oobe_back_button);
