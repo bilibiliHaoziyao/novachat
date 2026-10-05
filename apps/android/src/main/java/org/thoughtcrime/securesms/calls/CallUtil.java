@@ -37,11 +37,28 @@ public class CallUtil {
   @RequiresApi(api = Build.VERSION_CODES.O)
   public static void startVideoCall(Context context, int chatId) {
     Log.d(TAG, "Starting video call to " + chatId);
-    startCall(context, chatId, true);
+    startCall(context, chatId, true, 0, null);
+  }
+
+  @RequiresApi(api = Build.VERSION_CODES.O)
+  public static void startScreenShareCall(
+      Context context, int chatId, int projectionResultCode, Intent projectionData) {
+    Log.d(TAG, "Starting screen share call to " + chatId);
+    startCall(context, chatId, true, projectionResultCode, projectionData);
   }
 
   @RequiresApi(api = Build.VERSION_CODES.O)
   private static void startCall(Context context, int chatId, boolean startsWithVideo) {
+    startCall(context, chatId, startsWithVideo, 0, null);
+  }
+
+  @RequiresApi(api = Build.VERSION_CODES.O)
+  private static void startCall(
+      Context context,
+      int chatId,
+      boolean startsWithVideo,
+      int projectionResultCode,
+      @Nullable Intent projectionData) {
     if (chatId < 0) {
       Log.e(TAG, "Cannot start call: wrong chatId");
       return;
@@ -60,7 +77,8 @@ public class CallUtil {
     Runnable proceedWithCall =
         () -> {
           int accId = DcHelper.getContext(context).getAccountId();
-          coordinator.initiateOutgoingCall(accId, chatId, startsWithVideo);
+          coordinator.initiateOutgoingCall(
+              accId, chatId, startsWithVideo, projectionResultCode, projectionData);
         };
 
     if (!isNetworkAvailable(context)) {

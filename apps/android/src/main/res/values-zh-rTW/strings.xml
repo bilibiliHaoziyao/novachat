@@ -5,6 +5,7 @@
 
     <!-- Nova Chat: 關於頁 -->
     <string name="about_title">關於</string>
+    <string name="about_build_time">編譯於 %1$s</string>
     <string name="about_description">新星聊（Nova Chat）是一款以信箱為底座的即時通訊軟體。它改進了首次使用精靈，端對端加密可自由選擇，並支援使用 WebDAV 同步帳號。</string>
     <string name="about_developer">本軟體由慕寒_Official開發</string>
     <string name="about_license">新星聊是自由開源軟體，遵循 GNU 通用公共許可證 v3 發布。</string>
@@ -405,6 +406,15 @@
     <string name="start_audio_call">音訊通話</string>
     <!-- Menu item to start a video call; verbs as "start" are probably superfluous in many translations -->
     <string name="start_video_call">視訊通話</string>
+    <!-- Nova Chat: 實驗性功能，發起螢幕共享通話 -->
+    <string name="start_screen_share">螢幕共享</string>
+    <!-- Nova Chat: 螢幕共享前的防詐騙警告 -->
+    <string name="screen_share_warning_title">螢幕共享防詐騙提醒</string>
+    <string name="screen_share_warning_message">螢幕共享會將你螢幕上的全部內容即時展示給對方，包括聊天訊息、照片、銀行資訊和驗證碼等。\n\n凡是自稱客服、快遞員或公檢法，要求你開啟螢幕共享、轉帳匯款或輸入支付密碼的，都是詐騙。如有疑問，請掛斷後透過官方管道查證。</string>
+    <string name="screen_share_confirm">開始螢幕共享</string>
+    <string name="screen_share_cancel">取消</string>
+    <string name="screen_share_active">正在共享螢幕</string>
+    <string name="screen_share_remote_active">對方正在共享螢幕</string>
     <!-- the action "to answer" or to "accept" or to "pick up" a call. not: "the answer" -->
     <string name="answer_call">接聽</string>
     <!-- the action "to decline" a call, not: "the decline" -->
@@ -828,6 +838,7 @@
     <string name="pref_experimental_features">實驗性功能</string>
     <string name="pref_experimental_features_explain">這些功能可能不穩定，並且可能會被更改或移除</string>
     <string name="pref_on_demand_location_streaming">按需要位置串流</string>
+    <string name="pref_screen_share">螢幕共享</string>
     <string name="pref_background_default">預設圖片</string>
     <string name="pref_background_default_color">預設顏色</string>
     <string name="pref_background_custom_image">自訂圖片</string>

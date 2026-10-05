@@ -28,8 +28,8 @@ android {
     useLibrary 'org.apache.http.legacy'
 
     defaultConfig {
-        versionCode 20000
-        versionName "2.0"
+        versionCode 21000
+        versionName "2.1"
         applicationId "com.muhan.chat"
         multiDexEnabled true
 
@@ -63,6 +63,8 @@ android {
                 "String", "MUHAN_AI_DEFAULT_MODEL",
                 buildConfigProperty("MUHAN_AI_MODEL", "mimo-v2.6-flash"))
         buildConfigField("String", "MUHAN_AI_DEFAULT_API_KEY", buildConfigProperty("MUHAN_AI_API_KEY"))
+
+        buildConfigField("long", "BUILD_TIME_MS", "${System.currentTimeMillis()}")
     }
 
     compileOptions {

@@ -5,6 +5,7 @@
 
     <!-- Nova Chat: このアプリについて画面 -->
     <string name="about_title">このアプリについて</string>
+    <string name="about_build_time">ビルド日時 %1$s</string>
     <string name="about_description">新星聊（Nova Chat）は電子メールを基盤としたインスタントメッセンジャーです。初回セットアップウィザードを改善し、エンドツーエンド暗号化を選択でき、WebDAV でのアカウント同期にも対応しています。</string>
     <string name="about_developer">このソフトウェアは慕寒_Officialによって開発されました。</string>
     <string name="about_license">新星聊は自由でオープンソースなソフトウェアで、GNU 一般公衆利用許諾契約書 v3 の下で公開されています。</string>
@@ -467,6 +468,7 @@
     <string name="pref_show_emails_all">全部</string>
     <string name="pref_experimental_features">実験的な機能</string>
     <string name="pref_on_demand_location_streaming">オンデマンドの位置情報配信</string>
+    <string name="pref_screen_share">画面共有</string>
     <string name="pref_background_default">デフォルトの壁紙</string>
     <string name="pref_background_default_color">デフォルト色</string>
     <string name="pref_background_custom_image">画像</string>

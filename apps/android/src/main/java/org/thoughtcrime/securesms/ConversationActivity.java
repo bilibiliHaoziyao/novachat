@@ -26,12 +26,14 @@ import android.annotation.SuppressLint;
 import android.content.ActivityNotFoundException;
 import android.content.ClipData;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.ActivityInfo;
 import android.content.res.Configuration;
 import android.content.res.TypedArray;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
+import android.media.projection.MediaProjectionManager;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Build;
@@ -59,6 +61,8 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.activity.OnBackPressedCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.annotation.StringRes;
@@ -90,6 +94,7 @@ import org.thoughtcrime.securesms.attachments.Attachment;
 import org.thoughtcrime.securesms.attachments.UriAttachment;
 import org.thoughtcrime.securesms.audio.AudioRecorder;
 import org.thoughtcrime.securesms.calls.CallUtil;
+import org.thoughtcrime.securesms.calls.ScreenShareWarningDialog;
 import org.thoughtcrime.securesms.components.AnimatingToggle;
 import org.thoughtcrime.securesms.components.AttachmentTypeSelector;
 import org.thoughtcrime.securesms.components.ComposeText;
@@ -203,10 +208,29 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
   private boolean isEditing = false;
   private boolean switchedProfile = false;
 
+  private ActivityResultLauncher<Intent> screenShareLauncher;
+
+  /** Nova Chat: ask the system for screen capture permission, then start the screen share call. */
+  private void startScreenShareConsent() {
+    MediaProjectionManager projectionManager =
+        (MediaProjectionManager) getSystemService(Context.MEDIA_PROJECTION_SERVICE);
+    screenShareLauncher.launch(projectionManager.createScreenCaptureIntent());
+  }
+
   @Override
   protected void onCreate(Bundle state, boolean ready) {
     this.context = ApplicationContext.getInstance(getApplicationContext());
     this.rpc = DcHelper.getRpc(context);
+
+    screenShareLauncher =
+        registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+              if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                CallUtil.startScreenShareCall(
+                    this, chatId, result.getResultCode(), result.getData());
+              }
+            });
 
     supportRequestWindowFeature(WindowCompat.FEATURE_ACTION_BAR_OVERLAY);
     setContentView(R.layout.conversation_activity);
@@ -556,6 +580,11 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
                 && !dcChat.isSelfTalk()
                 && !dcChat.isMultiUser());
 
+    MenuItem screenShareItem = menu.findItem(R.id.menu_start_screen_share);
+    if (screenShareItem != null) {
+      screenShareItem.setVisible(Prefs.isScreenShareEnabled(this));
+    }
+
     if (!dcChat.isEncrypted() || !dcChat.canSend() || dcChat.isMailingList()) {
       menu.findItem(R.id.menu_ephemeral_messages).setVisible(false);
     }
@@ -652,6 +681,11 @@ public class ConversationActivity extends PassphraseRequiredActionBarActivity
     } else if (itemId == R.id.menu_start_video_call) {
       if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         CallUtil.startVideoCall(this, chatId);
+      }
+      return true;
+    } else if (itemId == R.id.menu_start_screen_share) {
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        ScreenShareWarningDialog.show(this, this::startScreenShareConsent);
       }
       return true;
     } else if (itemId == R.id.menu_all_media) {

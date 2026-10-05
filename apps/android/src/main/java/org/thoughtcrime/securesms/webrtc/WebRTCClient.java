@@ -73,6 +73,7 @@ public class WebRTCClient {
   private final List<IceCandidate> iceCandidateBuffer;
   private volatile boolean iceTricklingChannelOpen;
   private volatile boolean mutedStateChannelOpen;
+  private volatile boolean localScreenShare;
   private volatile boolean enableIceTrickling;
   private final AtomicBoolean isEnded = new AtomicBoolean(false);
 
@@ -118,7 +119,7 @@ public class WebRTCClient {
 
     void onConnectionStateChanged(PeerConnection.PeerConnectionState state);
 
-    void onRemoteMutedStateChanged(boolean audioEnabled, boolean videoEnabled);
+    void onRemoteMutedStateChanged(boolean audioEnabled, boolean videoEnabled, boolean screenShare);
 
     void onRelayUsageChanged(Boolean isRelayUsed);
 
@@ -519,9 +520,10 @@ public class WebRTCClient {
               JSONObject obj = new JSONObject(json);
               boolean audioEnabled = obj.getBoolean("audioEnabled");
               boolean videoEnabled = obj.getBoolean("videoEnabled");
+              boolean screenShare = obj.optBoolean("screenShare", false);
 
               mainHandler.post(
-                  () -> callbacks.onRemoteMutedStateChanged(audioEnabled, videoEnabled));
+                  () -> callbacks.onRemoteMutedStateChanged(audioEnabled, videoEnabled, screenShare));
             } catch (JSONException e) {
               Log.e(TAG, "Failed to parse muted state JSON", e);
             }
@@ -563,14 +565,26 @@ public class WebRTCClient {
       JSONObject json = new JSONObject();
       json.put("audioEnabled", audioEnabled);
       json.put("videoEnabled", videoEnabled);
+      json.put("screenShare", localScreenShare);
 
       ByteBuffer buffer = ByteBuffer.wrap(json.toString().getBytes(StandardCharsets.UTF_8));
       mutedStateDataChannel.send(new DataChannel.Buffer(buffer, false));
 
-      Log.d(TAG, "Sent muted state: audio: " + audioEnabled + ", video: " + videoEnabled);
+      Log.d(
+          TAG,
+          "Sent muted state: audio: "
+              + audioEnabled
+              + ", video: "
+              + videoEnabled
+              + ", screenShare: "
+              + localScreenShare);
     } catch (JSONException e) {
       Log.e(TAG, "Failed to create muted state JSON", e);
     }
+  }
+
+  public void setLocalScreenShare(boolean screenShare) {
+    localScreenShare = screenShare;
   }
 
   // ICE Gathering

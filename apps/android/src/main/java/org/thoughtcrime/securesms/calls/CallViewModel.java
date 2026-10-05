@@ -40,6 +40,8 @@ public class CallViewModel extends AndroidViewModel {
   private final LiveData<CallEndpointCompat> currentAudioEndpoint;
   private final LiveData<List<CallEndpointCompat>> availableAudioEndpoints;
   private final LiveData<Boolean> isFrontCamera;
+  private final LiveData<Boolean> localScreenShare;
+  private final LiveData<Boolean> remoteScreenShare;
 
   // Translated from coordinator's connectionState
   private final MediatorLiveData<CallState> callState;
@@ -83,6 +85,8 @@ public class CallViewModel extends AndroidViewModel {
     this.currentAudioEndpoint = callCoordinator.getCurrentAudioEndpoint();
     this.availableAudioEndpoints = callCoordinator.getAvailableAudioEndpoints();
     this.isFrontCamera = callCoordinator.getIsFrontCamera();
+    this.localScreenShare = callCoordinator.getLocalScreenShare();
+    this.remoteScreenShare = callCoordinator.getRemoteScreenShare();
 
     this.callState = new MediatorLiveData<>(CallState.INITIALIZING);
 
@@ -350,6 +354,14 @@ public class CallViewModel extends AndroidViewModel {
 
   public LiveData<Boolean> getIsFrontCamera() {
     return isFrontCamera;
+  }
+
+  public LiveData<Boolean> getLocalScreenShare() {
+    return localScreenShare;
+  }
+
+  public LiveData<Boolean> getRemoteScreenShare() {
+    return remoteScreenShare;
   }
 
   // Notification Action Handlers

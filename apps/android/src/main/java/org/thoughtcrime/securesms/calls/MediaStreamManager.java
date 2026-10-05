@@ -2,8 +2,12 @@ package org.thoughtcrime.securesms.calls;
 
 import android.Manifest;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.media.projection.MediaProjection;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -19,6 +23,7 @@ import org.webrtc.CameraVideoCapturer;
 import org.webrtc.MediaConstraints;
 import org.webrtc.MediaStream;
 import org.webrtc.PeerConnectionFactory;
+import org.webrtc.ScreenCapturerAndroid;
 import org.webrtc.SurfaceTextureHelper;
 import org.webrtc.VideoCapturer;
 import org.webrtc.VideoSource;
@@ -45,6 +50,8 @@ public class MediaStreamManager {
   private SurfaceTextureHelper surfaceTextureHelper;
   private volatile boolean isFrontCamera = true;
   private volatile boolean isCapturing = false;
+  private volatile boolean isScreenSharing = false;
+  private volatile boolean forceCameraFallback = false;
   private volatile String currentDeviceName;
   private volatile int currentCaptureWidth;
   private volatile int currentCaptureHeight;
@@ -216,6 +223,28 @@ public class MediaStreamManager {
 
   @Nullable
   private VideoCapturer createVideoCapturer() {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && !forceCameraFallback) {
+      Intent projectionData =
+          CallCoordinator.getInstance(context).getScreenShareProjectionData();
+      if (projectionData != null) {
+        VideoCapturer capturer =
+            new ScreenCapturerAndroid(
+                projectionData,
+                new MediaProjection.Callback() {
+                  @Override
+                  public void onStop() {
+                    Log.d(TAG, "MediaProjection stopped, falling back to camera");
+                    new Handler(Looper.getMainLooper())
+                        .post(MediaStreamManager.this::onScreenShareStopped);
+                  }
+                });
+        isScreenSharing = true;
+        currentDeviceName = null;
+        Log.d(TAG, "Screen capturer created");
+        return capturer;
+      }
+    }
+
     if (ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA)
         != PackageManager.PERMISSION_GRANTED) {
       Log.w(TAG, "Camera permission not granted");
@@ -337,6 +366,41 @@ public class MediaStreamManager {
 
   public boolean isFrontCamera() {
     return isFrontCamera;
+  }
+
+  public boolean isScreenSharing() {
+    return isScreenSharing;
+  }
+
+  private synchronized void onScreenShareStopped() {
+    if (!isScreenSharing) {
+      return;
+    }
+    isScreenSharing = false;
+    forceCameraFallback = true;
+
+    stopVideoCapture();
+
+    if (videoCapturer != null) {
+      videoCapturer.dispose();
+      videoCapturer = null;
+    }
+    currentDeviceName = null;
+
+    if (startVideoCapture()) {
+      Log.d(TAG, "Screen share stopped, camera capture resumed");
+      if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        CallCoordinator.getInstance(context).handleLocalScreenShareStopped();
+      }
+      return;
+    }
+
+    Log.w(TAG, "Screen share stopped and no camera available, disabling video");
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+      CallCoordinator coordinator = CallCoordinator.getInstance(context);
+      coordinator.handleLocalScreenShareStopped();
+      coordinator.setVideoEnabled(false);
+    }
   }
 
   /** Cleanup resources */

@@ -45,6 +45,11 @@
                 android:title="@string/start_video_call"
                 android:icon="@drawable/ic_videocam_white_24dp"
                 app:iconTint="?attr/menu_icon_tint" />
+            <item
+                android:id="@+id/menu_start_screen_share"
+                android:title="@string/start_screen_share"
+                android:icon="@drawable/ic_cast"
+                app:iconTint="?attr/menu_icon_tint" />
         </menu>
     </item>
 

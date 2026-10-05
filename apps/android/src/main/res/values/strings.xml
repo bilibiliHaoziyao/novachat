@@ -5,6 +5,7 @@
 
     <!-- Nova Chat: about screen -->
     <string name="about_title">About</string>
+    <string name="about_build_time">Built %1$s</string>
     <string name="about_description">Nova Chat (新星聊) is an instant messenger built on top of email. It ships a friendlier first-run wizard, lets you choose whether to use end-to-end encryption, and supports syncing your account over WebDAV.</string>
     <string name="about_developer">Nova Chat is developed by 慕寒_Official.</string>
     <string name="about_powered_by">Powered by Delta Chat</string>
@@ -596,6 +597,15 @@
     <string name="start_audio_call">Audio Call</string>
     <!-- Menu item to start a video call; verbs as "start" are probably superfluous in many translations -->
     <string name="start_video_call">Video Call</string>
+    <!-- Nova Chat: menu item to start a screen sharing call (experimental feature) -->
+    <string name="start_screen_share">Screen Share</string>
+    <!-- Nova Chat: anti-scam warning shown before a screen sharing call starts -->
+    <string name="screen_share_warning_title">Screen Sharing Warning</string>
+    <string name="screen_share_warning_message">Screen sharing shows everything on your screen — including chat messages, photos, bank information and verification codes — to the other person.\n\nNever share your screen at the request of someone claiming to be customer support, a courier or an official, and never follow their instructions to transfer money or enter a payment password. If in doubt, hang up and contact the real organization through an official channel.</string>
+    <string name="screen_share_confirm">Start Screen Share</string>
+    <string name="screen_share_cancel">Cancel</string>
+    <string name="screen_share_active">Screen sharing</string>
+    <string name="screen_share_remote_active">The other party is sharing their screen</string>
     <!-- the action "to answer" or to "accept" or to "pick up" a call. not: "the answer" -->
     <string name="answer_call">Answer</string>
     <!-- the action "to decline" a call, not: "the decline" -->
@@ -1068,6 +1078,7 @@
     <string name="pref_experimental_features">Experimental Features</string>
     <string name="pref_experimental_features_explain">These features may be unstable and may be changed or removed</string>
     <string name="pref_on_demand_location_streaming">Location Streaming</string>
+    <string name="pref_screen_share">Screen Sharing</string>
     <string name="pref_background_default">Default image</string>
     <string name="pref_background_default_color">Default color</string>
     <string name="pref_background_custom_image">Custom image</string>

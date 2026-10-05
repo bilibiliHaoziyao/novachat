@@ -256,6 +256,14 @@ public class Prefs {
     }
   }
 
+  public static boolean isScreenShareEnabled(Context context) {
+    try {
+      return getBooleanPreference(context, "pref_screen_share_enabled", false);
+    } catch (Exception e) {
+      return false;
+    }
+  }
+
   // ringtone
 
   public static @NonNull Uri getNotificationRingtone(Context context) {

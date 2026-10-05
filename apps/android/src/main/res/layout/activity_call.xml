@@ -79,6 +79,27 @@
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
+    <!-- Screen Share Banner -->
+    <TextView
+        android:id="@+id/screen_share_banner"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="#F44336"
+        android:gravity="center"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingTop="4dp"
+        android:paddingBottom="4dp"
+        android:textColor="@android:color/white"
+        android:textSize="13sp"
+        android:textStyle="bold"
+        android:visibility="gone"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/top_bar"
+        tools:text="@string/screen_share_active"
+        tools:visibility="visible" />
+
     <!-- Local Video (Top Right) -->
     <androidx.cardview.widget.CardView
         android:id="@+id/local_video_container"

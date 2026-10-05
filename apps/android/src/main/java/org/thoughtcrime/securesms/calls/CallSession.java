@@ -1,6 +1,8 @@
 package org.thoughtcrime.securesms.calls;
 
+import android.content.Intent;
 import android.os.Build;
+import androidx.annotation.Nullable;
 import androidx.annotation.RequiresApi;
 import androidx.core.telecom.CallControlScope;
 
@@ -15,6 +17,9 @@ final class CallSession {
   boolean answerInProgress;
   boolean hasNotifiedBackend;
   volatile String cachedIceServersJson;
+  boolean withScreenShare;
+  int projectionResultCode;
+  @Nullable Intent projectionData;
 
   CallControlScope callControlScope;
   Runnable endpointTask;

@@ -111,6 +111,8 @@ public class CallCoordinator implements DcEventCenter.DcEventDelegate {
   private final MutableLiveData<Boolean> answeredElsewhere = new MutableLiveData<>(false);
   private final MutableLiveData<Boolean> isFrontCamera = new MutableLiveData<>(true);
   private final MutableLiveData<Boolean> mediaCaptureReady = new MutableLiveData<>(false);
+  private final MutableLiveData<Boolean> localScreenShare = new MutableLiveData<>(false);
+  private final MutableLiveData<Boolean> remoteScreenShare = new MutableLiveData<>(false);
 
   // Audio Routing Support
   private final MediatorLiveData<CallEndpointCompat> currentAudioEndpoint =
@@ -429,6 +431,14 @@ public class CallCoordinator implements DcEventCenter.DcEventDelegate {
     return mediaCaptureReady;
   }
 
+  public LiveData<Boolean> getLocalScreenShare() {
+    return localScreenShare;
+  }
+
+  public LiveData<Boolean> getRemoteScreenShare() {
+    return remoteScreenShare;
+  }
+
   // State Update Methods (CallService)
 
   public void updateConnectionState(PeerConnection.PeerConnectionState state) {
@@ -452,10 +462,37 @@ public class CallCoordinator implements DcEventCenter.DcEventDelegate {
     remoteVideoTrack.postValue(track);
   }
 
-  public void updateRemoteMutedState(boolean audioEnabled, boolean videoEnabled) {
-    Log.d(TAG, "updateRemoteMutedState: audio=" + audioEnabled + ", video=" + videoEnabled);
+  public void updateRemoteMutedState(
+      boolean audioEnabled, boolean videoEnabled, boolean screenShare) {
+    Log.d(
+        TAG,
+        "updateRemoteMutedState: audio="
+            + audioEnabled
+            + ", video="
+            + videoEnabled
+            + ", screenShare="
+            + screenShare);
     remoteAudioEnabled.postValue(audioEnabled);
     remoteVideoEnabled.postValue(videoEnabled);
+    remoteScreenShare.postValue(screenShare);
+  }
+
+  /** Local MediaProjection stopped (user pulled down the projection tile or system killed it). */
+  public synchronized void handleLocalScreenShareStopped() {
+    if (!Boolean.TRUE.equals(localScreenShare.getValue())) {
+      return;
+    }
+    Log.d(TAG, "Local screen share stopped");
+    localScreenShare.postValue(false);
+    if (activeSession != null) {
+      activeSession.withScreenShare = false;
+    }
+    if (callService != null) {
+      callService.setLocalScreenShare(false);
+      callService.sendMutedState(
+          Boolean.TRUE.equals(localAudioEnabled.getValue()),
+          Boolean.TRUE.equals(localVideoEnabled.getValue()));
+    }
   }
 
   public void updateRelayUsage(Boolean isRelay) {
@@ -1341,9 +1378,20 @@ public class CallCoordinator implements DcEventCenter.DcEventDelegate {
     currentAudioEndpoint.postValue(null);
     availableAudioEndpoints.postValue(null);
     mediaCaptureReady.postValue(false);
+    localScreenShare.postValue(false);
+    remoteScreenShare.postValue(false);
   }
 
   public synchronized void initiateOutgoingCall(int accId, int chatId, boolean startsWithVideo) {
+    initiateOutgoingCall(accId, chatId, startsWithVideo, 0, null);
+  }
+
+  public synchronized void initiateOutgoingCall(
+      int accId,
+      int chatId,
+      boolean startsWithVideo,
+      int projectionResultCode,
+      @Nullable Intent projectionData) {
     Log.d(TAG, "Initiating outgoing call: accId=" + accId + ", chatId=" + chatId);
 
     if (hasActiveCall()) {
@@ -1356,6 +1404,10 @@ public class CallCoordinator implements DcEventCenter.DcEventDelegate {
     CallSession session = new CallSession(accId, -1, false); // Placeholder call ID
     session.chatId = chatId;
     session.startsWithVideo = startsWithVideo;
+    session.withScreenShare = projectionData != null;
+    session.projectionResultCode = projectionResultCode;
+    session.projectionData = projectionData;
+    localScreenShare.postValue(session.withScreenShare);
     sessions.add(session);
     activeSession = session;
 
@@ -1724,9 +1776,10 @@ public class CallCoordinator implements DcEventCenter.DcEventDelegate {
       return;
     }
 
-    // Check notification permission
+    // Check notification permission. Screen share must still start the FGS even without
+    // it, otherwise Android 14 rejects getMediaProjection().
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-      if (!hasNotificationPermission()) {
+      if (!hasNotificationPermission() && !isScreenShare()) {
         Log.w(TAG, "POST_NOTIFICATIONS permission not granted, cannot update notification");
         return;
       }
@@ -1789,6 +1842,15 @@ public class CallCoordinator implements DcEventCenter.DcEventDelegate {
 
   public synchronized boolean isStartsWithVideo() {
     return activeSession != null && activeSession.startsWithVideo;
+  }
+
+  public synchronized boolean isScreenShare() {
+    return activeSession != null && activeSession.withScreenShare;
+  }
+
+  @Nullable
+  public synchronized Intent getScreenShareProjectionData() {
+    return activeSession != null ? activeSession.projectionData : null;
   }
 
   public synchronized boolean isAnswerInProgress() {

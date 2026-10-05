@@ -54,6 +54,16 @@
                 android:textSize="13sp" />
 
             <TextView
+                android:id="@+id/about_build_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal"
+                android:layout_marginTop="2dp"
+                android:gravity="center"
+                android:textColor="?android:attr/textColorSecondary"
+                android:textSize="12sp" />
+
+            <TextView
                 android:id="@+id/about_developer"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

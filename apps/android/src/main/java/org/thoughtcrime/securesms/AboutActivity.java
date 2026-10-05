@@ -8,6 +8,9 @@ import android.view.ViewTreeObserver;
 import android.widget.TextView;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
 import org.thoughtcrime.securesms.oobe.OobeActivity;
 import org.thoughtcrime.securesms.preferences.AdvancedPreferenceFragment;
 import org.thoughtcrime.securesms.util.IntentUtils;
@@ -50,6 +53,12 @@ public class AboutActivity extends BaseActionBarActivity {
 
     TextView versionView = findViewById(R.id.about_version);
     versionView.setText(AdvancedPreferenceFragment.getVersion(this));
+
+    TextView buildTimeView = findViewById(R.id.about_build_time);
+    String buildTime =
+        new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+            .format(new Date(BuildConfig.BUILD_TIME_MS));
+    buildTimeView.setText(getString(R.string.about_build_time, buildTime));
 
     findViewById(R.id.about_source_button)
         .setOnClickListener(

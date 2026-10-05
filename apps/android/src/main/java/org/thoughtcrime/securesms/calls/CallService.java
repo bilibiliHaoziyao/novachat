@@ -100,6 +100,7 @@ public class CallService extends Service implements WebRTCClient.Callbacks {
     }
 
     webRTCClient = new WebRTCClient(getApplicationContext(), this);
+    webRTCClient.setLocalScreenShare(callCoordinator.isScreenShare());
 
     mediaStreamManager =
         new MediaStreamManager(getApplicationContext(), webRTCClient.getPeerConnectionFactory());
@@ -366,6 +367,14 @@ public class CallService extends Service implements WebRTCClient.Callbacks {
     }
   }
 
+  public void setLocalScreenShare(boolean screenShare) {
+    Log.d(TAG, "setLocalScreenShare: " + screenShare);
+
+    if (webRTCClient != null) {
+      webRTCClient.setLocalScreenShare(screenShare);
+    }
+  }
+
   public void switchCamera() {
     Log.d(TAG, "switchCamera");
 
@@ -438,10 +447,18 @@ public class CallService extends Service implements WebRTCClient.Callbacks {
   }
 
   @Override
-  public void onRemoteMutedStateChanged(boolean audioEnabled, boolean videoEnabled) {
-    Log.d(TAG, "onRemoteMutedStateChanged: audio=" + audioEnabled + ", video=" + videoEnabled);
+  public void onRemoteMutedStateChanged(
+      boolean audioEnabled, boolean videoEnabled, boolean screenShare) {
+    Log.d(
+        TAG,
+        "onRemoteMutedStateChanged: audio="
+            + audioEnabled
+            + ", video="
+            + videoEnabled
+            + ", screenShare="
+            + screenShare);
 
-    callCoordinator.updateRemoteMutedState(audioEnabled, videoEnabled);
+    callCoordinator.updateRemoteMutedState(audioEnabled, videoEnabled, screenShare);
   }
 
   @Override
@@ -476,6 +493,9 @@ public class CallService extends Service implements WebRTCClient.Callbacks {
                 | ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE;
         if (callCoordinator.hasCameraPermission()) {
           types |= ServiceInfo.FOREGROUND_SERVICE_TYPE_CAMERA;
+        }
+        if (callCoordinator.isScreenShare()) {
+          types |= ServiceInfo.FOREGROUND_SERVICE_TYPE_MEDIA_PROJECTION;
         }
         try {
           startForeground(id, notification, types);

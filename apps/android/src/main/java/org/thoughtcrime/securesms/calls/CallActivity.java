@@ -80,6 +80,7 @@ public class CallActivity extends AppCompatActivity {
 
   // Status and info
   private TextView statusText;
+  private TextView screenShareBanner;
   private TextView displayNameText;
   private View incomingCallPrompt;
 
@@ -322,6 +323,7 @@ public class CallActivity extends AppCompatActivity {
     remoteVideoView = findViewById(R.id.remote_video_view);
 
     statusText = findViewById(R.id.status_text);
+    screenShareBanner = findViewById(R.id.screen_share_banner);
     displayNameText = findViewById(R.id.display_name_text);
     incomingCallPrompt = findViewById(R.id.incoming_call_prompt);
 
@@ -530,12 +532,22 @@ public class CallActivity extends AppCompatActivity {
         .observe(
             this,
             enabled -> {
-              videoButton.setImageResource(
-                  enabled ? R.drawable.ic_videocam_on : R.drawable.ic_videocam_off);
+              updateVideoButtonIcon();
 
               ViewCompat.setStateDescription(
                   videoButton, getString(enabled ? R.string.on : R.string.off));
             });
+
+    viewModel
+        .getLocalScreenShare()
+        .observe(
+            this,
+            sharing -> {
+              updateVideoButtonIcon();
+              updateScreenShareBanner();
+            });
+
+    viewModel.getRemoteScreenShare().observe(this, sharing -> updateScreenShareBanner());
 
     viewModel
         .getIsFrontCamera()
@@ -605,6 +617,8 @@ public class CallActivity extends AppCompatActivity {
         viewModel.getRemoteVideoEnabled(), v -> videoConfigChanged.setValue(true));
     videoConfigChanged.addSource(
         viewModel.getIsFrontCamera(), v -> videoConfigChanged.setValue(true));
+    videoConfigChanged.addSource(
+        viewModel.getLocalScreenShare(), v -> videoConfigChanged.setValue(true));
 
     // Video layout
     videoConfigChanged.observe(
@@ -826,6 +840,7 @@ public class CallActivity extends AppCompatActivity {
     VideoTrack remoteTrack = viewModel.getRemoteVideoTrack().getValue();
 
     boolean isFront = Boolean.TRUE.equals(viewModel.getIsFrontCamera().getValue());
+    boolean localSharing = Boolean.TRUE.equals(viewModel.getLocalScreenShare().getValue());
     boolean active =
         state == CallViewModel.CallState.CONNECTED || state == CallViewModel.CallState.RECONNECTING;
     boolean showFullScreen = false;
@@ -838,7 +853,7 @@ public class CallActivity extends AppCompatActivity {
         && (state == CallViewModel.CallState.RINGING || state == CallViewModel.CallState.CONNECTING)
         && localTrack != null
         && Boolean.TRUE.equals(videoEnabled)) {
-      remoteVideoView.setMirror(isFront);
+      remoteVideoView.setMirror(isFront && !localSharing);
       localTrack.addSink(remoteVideoView);
       showFullScreen = true;
     }
@@ -852,7 +867,7 @@ public class CallActivity extends AppCompatActivity {
             && !isInPictureInPictureMode();
 
     if (showCorner) {
-      localVideoView.setMirror(isFront);
+      localVideoView.setMirror(isFront && !localSharing);
       localTrack.addSink(localVideoView);
     }
 
@@ -864,6 +879,35 @@ public class CallActivity extends AppCompatActivity {
             && state != CallViewModel.CallState.INITIALIZING;
 
     remoteAvatarView.setVisibility(showAvatar ? View.VISIBLE : View.GONE);
+  }
+
+  private void updateVideoButtonIcon() {
+    boolean localSharing = Boolean.TRUE.equals(viewModel.getLocalScreenShare().getValue());
+    Boolean enabled = viewModel.getVideoEnabled().getValue();
+
+    if (localSharing) {
+      videoButton.setImageResource(R.drawable.ic_cast);
+    } else {
+      videoButton.setImageResource(
+          Boolean.TRUE.equals(enabled) ? R.drawable.ic_videocam_on : R.drawable.ic_videocam_off);
+    }
+  }
+
+  private void updateScreenShareBanner() {
+    if (screenShareBanner == null) return;
+
+    boolean localSharing = Boolean.TRUE.equals(viewModel.getLocalScreenShare().getValue());
+    boolean remoteSharing = Boolean.TRUE.equals(viewModel.getRemoteScreenShare().getValue());
+
+    if (localSharing) {
+      screenShareBanner.setText(R.string.screen_share_active);
+      screenShareBanner.setVisibility(View.VISIBLE);
+    } else if (remoteSharing) {
+      screenShareBanner.setText(R.string.screen_share_remote_active);
+      screenShareBanner.setVisibility(View.VISIBLE);
+    } else {
+      screenShareBanner.setVisibility(View.GONE);
+    }
   }
 
   private void detachAllTracks() {
